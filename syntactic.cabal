@@ -30,15 +30,20 @@ License-file:   LICENSE
 Author:         Emil Axelsson
 Maintainer:     emax@chalmers.se
 Copyright:      Copyright (c) 2011, Emil Axelsson
+Homepage:       http://projects.haskell.org/syntactic/
 Category:       Language
 Build-type:     Simple
-Cabal-version:  >=1.4
+Cabal-version:  >=1.6
 
 Extra-source-files:
   Examples/ALaCarte.hs
   Examples/MuFeldspar/Core.hs
   Examples/MuFeldspar/Vector.hs
   Examples/MuFeldspar/Test.hs
+
+source-repository head
+  type:     darcs
+  location: http://code.haskell.org/syntactic/
 
 Library
   Exposed-modules:
