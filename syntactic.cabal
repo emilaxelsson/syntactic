@@ -1,0 +1,86 @@
+Name:           syntactic
+Version:        0.1
+Synopsis:       Generic abstract syntax, and utilities for embedded languages
+Description:    This library provides:
+                .
+                  * Generic representation and manipulation of abstract syntax
+                    using a practical encoding of open data types (based on Data
+                    Types à la Carte [1])
+                .
+                  * Utilities for analyzing and transforming generic syntax
+                .
+                  * General variable binding constructs
+                .
+                  * Utilities for building extensible embedded languages based
+                    on generic syntax
+                .
+                  * A small proof-of-concept implementation of the embedded
+                    language Feldspar [2] (see the @Examples@ directory)
+                .
+                Note: The library is probably mostly useful for data-flow
+                languages, such as Feldspar. Currently, it does not support
+                cyclic programs.
+                .
+                \[1\] /Data types a la carte/, by Wouter Swierstra, in
+                /Journal of Functional Programming/, 2008
+                .
+                \[2\] <http://hackage.haskell.org/package/feldspar-language>
+License:        BSD3
+License-file:   LICENSE
+Author:         Emil Axelsson
+Maintainer:     emax@chalmers.se
+Copyright:      Copyright (c) 2011, Emil Axelsson
+Category:       Language
+Build-type:     Simple
+Cabal-version:  >=1.4
+
+Extra-source-files:
+  Examples/ALaCarte.hs
+  Examples/MuFeldspar/Core.hs
+  Examples/MuFeldspar/Vector.hs
+  Examples/MuFeldspar/Test.hs
+
+Library
+  Exposed-modules:
+    Language.Syntactic
+    Language.Syntactic.Syntax
+    Language.Syntactic.Analysis.Equality
+    Language.Syntactic.Analysis.Render
+    Language.Syntactic.Analysis.Evaluation
+    Language.Syntactic.Analysis.Hash
+    Language.Syntactic.Features.Literal
+    Language.Syntactic.Features.PrimFunc
+    Language.Syntactic.Features.Condition
+    Language.Syntactic.Features.Tuple
+    Language.Syntactic.Features.Annotate
+    Language.Syntactic.Features.Binding
+    Language.Syntactic.Features.Binding.HigherOrder
+
+  Other-modules:
+
+  Build-depends:
+    array,
+    base >= 4 && < 4.4,
+    containers,
+    data-hash,
+    mtl >= 1.1 && < 3,
+    tuple >= 0.2
+
+  Extensions:
+    DeriveDataTypeable
+    FlexibleContexts
+    FlexibleInstances
+    FunctionalDependencies
+    GADTs
+    GeneralizedNewtypeDeriving
+    MultiParamTypeClasses
+    Rank2Types
+    ScopedTypeVariables
+    TypeFamilies
+    TypeOperators
+    TypeSynonymInstances
+    ViewPatterns
+
+    -- Required by GHC-6.12:
+    EmptyDataDecls
+    PatternGuards
