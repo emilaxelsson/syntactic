@@ -15,7 +15,7 @@ class ExprEq expr => ExprHash expr
     -- according to 'exprEq' must result in the same hash.
     exprHash :: expr a -> Hash
 
-instance ExprHash expr => ExprHash (AST expr)
+instance ExprHash dom => ExprHash (AST dom)
   where
     exprHash (Symbol a) = hashInt 0 `combine` exprHash a
     exprHash (f :$: a)  = hashInt 1 `combine` exprHash f `combine` exprHash a

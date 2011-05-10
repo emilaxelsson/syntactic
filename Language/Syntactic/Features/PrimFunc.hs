@@ -52,37 +52,37 @@ instance ExprHash PrimFunc
 
 
 
-primFunc :: (Typeable a, PrimFunc :<: expr)
+primFunc :: (Typeable a, PrimFunc :<: dom)
     => String
     -> (a -> b)
-    -> ASTF expr a
-    -> ASTF expr b
+    -> ASTF dom a
+    -> ASTF dom b
 primFunc name f a = inject (PrimFunc name f) :$: a
 
-primFunc2 :: (Typeable a, Typeable b, PrimFunc :<: expr)
+primFunc2 :: (Typeable a, Typeable b, PrimFunc :<: dom)
     => String
     -> (a -> b -> c)
-    -> ASTF expr a
-    -> ASTF expr b
-    -> ASTF expr c
+    -> ASTF dom a
+    -> ASTF dom b
+    -> ASTF dom c
 primFunc2 name f a b = inject (PrimFunc name f) :$: a :$: b
 
-primFunc3 :: (Typeable a, Typeable b, Typeable c, PrimFunc :<: expr)
+primFunc3 :: (Typeable a, Typeable b, Typeable c, PrimFunc :<: dom)
     => String
     -> (a -> b -> c -> d)
-    -> ASTF expr a
-    -> ASTF expr b
-    -> ASTF expr c
-    -> ASTF expr d
+    -> ASTF dom a
+    -> ASTF dom b
+    -> ASTF dom c
+    -> ASTF dom d
 primFunc3 name f a b c = inject (PrimFunc name f) :$: a :$: b :$: c
 
-primFunc4 :: (Typeable a, Typeable b, Typeable c, Typeable d, PrimFunc :<: expr)
+primFunc4 :: (Typeable a, Typeable b, Typeable c, Typeable d, PrimFunc :<: dom)
     => String
     -> (a -> b -> c -> d -> e)
-    -> ASTF expr a
-    -> ASTF expr b
-    -> ASTF expr c
-    -> ASTF expr d
-    -> ASTF expr e
+    -> ASTF dom a
+    -> ASTF dom b
+    -> ASTF dom c
+    -> ASTF dom d
+    -> ASTF dom e
 primFunc4 name f a b c d = inject (PrimFunc name f) :$: a :$: b :$: c :$: d
 

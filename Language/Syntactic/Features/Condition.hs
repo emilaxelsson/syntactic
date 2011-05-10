@@ -39,8 +39,8 @@ instance ExprHash Condition
 
 
 
-condition :: (Condition :<: expr, Syntactic a expr) =>
-    ASTF expr Bool -> a -> a -> a
+condition :: (Condition :<: dom, Syntactic a dom) =>
+    ASTF dom Bool -> a -> a -> a
 condition cond tHEN eLSE = sugar $ inject Condition
     :$: cond
     :$: desugar tHEN

@@ -1,9 +1,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module MuFeldspar.Core where
 
@@ -11,13 +11,16 @@ module MuFeldspar.Core where
 
 import Prelude hiding (max, min)
 import qualified Prelude
-
 import Data.Typeable
 
 import Language.Syntactic.Features.Binding
 import Language.Syntactic.Features.Binding.HigherOrder
 
 
+
+--------------------------------------------------------------------------------
+-- * Types
+--------------------------------------------------------------------------------
 
 -- | Convenient class alias
 class    (Eq a, Show a, Typeable a) => Type a
@@ -90,20 +93,46 @@ type FeldDomain
     :+: Parallel
     :+: ForLoop
 
-type Data a = HOAST FeldDomain (Full a)
+data Data a = Type a => Data { unData :: HOAST FeldDomain (Full a) }
+
+instance Type a =>
+    Syntactic (Data a) (HOLambda FeldDomain :+: Variable :+: FeldDomain)
+  where
+    type Internal (Data a) = a
+    desugar = unData
+    sugar   = Data
 
 -- | Specialization of the 'Syntactic' class for the Feldspar domain
 class
     ( Syntactic a (HOLambda FeldDomain :+: Variable :+: FeldDomain)
     , Type (Internal a)
+    , SyntacticN a
+        (ASTF (HOLambda FeldDomain :+: Variable :+: FeldDomain) (Internal a))
     ) =>
       Syntax a
 
 instance
     ( Syntactic a (HOLambda FeldDomain :+: Variable :+: FeldDomain)
     , Type (Internal a)
+    , SyntacticN a
+        (ASTF (HOLambda FeldDomain :+: Variable :+: FeldDomain) (Internal a))
     ) =>
       Syntax a
+
+
+
+--------------------------------------------------------------------------------
+-- * Back ends
+--------------------------------------------------------------------------------
+
+printFeld :: Reifiable a FeldDomain internal => a -> IO ()
+printFeld = printExpr . reify
+
+drawFeld :: Reifiable a FeldDomain internal => a -> IO ()
+drawFeld = drawAST . reify
+
+eval :: Reifiable a FeldDomain internal => a -> NAryEval internal
+eval = evalLambda . reify
 
 
 
@@ -111,49 +140,54 @@ instance
 -- * Core library
 --------------------------------------------------------------------------------
 
-reifyFeld :: Syntax a =>
-    a -> AST (Lambda :+: Variable :+: FeldDomain) (Full (Internal a))
-reifyFeld = reify . desugar
-
-eval :: Syntax a => a -> Internal a
-eval = evalLambda . reifyFeld
+value :: Syntax a => Internal a -> a
+value = litSyn
 
 -- | For types containing some kind of \"thunk\", this function can be used to
 -- force computation
 force :: Syntax a => a -> a
 force = resugar
 
--- TODO Hacks to make the 'Num' instance work:
-instance ExprEq (HOLambda a) where exprEq = undefined
-instance Render (HOLambda a) where render = undefined
-instance ExprEq Variable     where exprEq = undefined
+leT :: (Syntax a, Syntax b) => a -> (a -> b) -> b
+leT a f = sugar $ let_ (desugar a) (desugarN f)
+
+instance Eq (Data a)
+  where
+    Data a == Data b = reifyHOAST a `eqLambda` reifyHOAST b
+
+instance Show (Data a)
+  where
+    show (Data a) = render $ reifyHOAST a
 
 instance (Type a, Num a) => Num (Data a)
   where
-    fromInteger = lit . fromInteger
-    abs         = primFunc "abs" abs
-    signum      = primFunc "signum" signum
-    (+)         = primFunc2 "(+)" (+)
-    (-)         = primFunc2 "(-)" (-)
-    (*)         = primFunc2 "(*)" (*)
+    fromInteger = value . fromInteger
+    abs         = sugarN $ primFunc "abs" abs
+    signum      = sugarN $ primFunc "signum" signum
+    (+)         = sugarN $ primFunc2 "(+)" (+)
+    (-)         = sugarN $ primFunc2 "(-)" (-)
+    (*)         = sugarN $ primFunc2 "(*)" (*)
 
 parallel :: Type a => Data Length -> (Data Index -> Data a) -> Data [a]
-parallel len ixf = inject Parallel :$: len :$: lambda ixf
-
-forLoopCore :: Type st =>
-     Data Length -> Data st -> (Data Index -> Data st -> Data st) -> Data st
-forLoopCore len init body = inject ForLoop :$: len :$: init :$: lambdaN body
+parallel len ixf
+    =   sugar
+    $   inject Parallel
+    :$: desugar len
+    :$: lambda (desugarN ixf)
 
 forLoop :: Syntax st => Data Length -> st -> (Data Index -> st -> st) -> st
-forLoop len init body = sugar $ forLoopCore len (desugar init) body'
-  where
-    body' i = desugar . body i . sugar
+forLoop len init body
+    =   sugar
+    $   inject ForLoop
+    :$: desugar len
+    :$: desugar init
+    :$: lambdaN (desugarN body)
 
 arrLength :: Type a => Data [a] -> Data Length
-arrLength = primFunc "arrLength" Prelude.length
+arrLength = sugarN $ primFunc "arrLength" Prelude.length
 
 getIx :: Type a => Data [a] -> Data Index -> Data a
-getIx arr ix = primFunc2 "getIx" eval arr ix
+getIx = sugarN $ primFunc2 "getIx" eval
   where
     eval as i
         | i >= len || i < 0 = error "getIx: index out of bounds"
@@ -162,8 +196,8 @@ getIx arr ix = primFunc2 "getIx" eval arr ix
         len = Prelude.length as
 
 max :: (Type a, Ord a) => Data a -> Data a -> Data a
-max = primFunc2 "max" Prelude.max
+max = sugarN $ primFunc2 "max" Prelude.max
 
 min :: (Type a, Ord a) => Data a -> Data a -> Data a
-min = primFunc2 "min" Prelude.min
+min = sugarN $ primFunc2 "min" Prelude.min
 

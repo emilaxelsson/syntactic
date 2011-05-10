@@ -42,6 +42,15 @@ instance ExprHash Literal
 
 
 
-lit :: (Eq a, Show a, Typeable a, Literal :<: expr) => a -> ASTF expr a
+lit :: (Eq a, Show a, Typeable a, Literal :<: dom) => a -> ASTF dom a
 lit = inject . Literal
+
+litSyn
+    :: ( Eq (Internal a)
+       , Show (Internal a)
+       , Syntactic a dom
+       , Literal :<: dom
+       )
+    => Internal a -> a
+litSyn = sugar . inject . Literal
 

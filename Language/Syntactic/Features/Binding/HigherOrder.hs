@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | This module provides binding constructs using higher-order syntax and a
 -- function for translating back to first-order syntax. Expressions constructed
 -- using the exported interface are guaranteed to have a well-behaved
@@ -14,6 +16,8 @@ module Language.Syntactic.Features.Binding.HigherOrder
     , lambdaN
     , let_
     , reifyM
+    , reifyHOAST
+    , Reifiable
     , reify
     ) where
 
@@ -44,11 +48,8 @@ lambda :: (Typeable a, Typeable b) =>
 lambda = inject . HOLambda
 
 -- | N-ary lambda binding
-lambdaN ::
-    ( NAry a
-    , NAryDom a ~ (HOLambda dom :+: Variable :+: dom)
-    ) =>
-      a -> HOAST dom (Full (NAryEval a))
+lambdaN :: NAry a (HOLambda dom :+: Variable :+: dom) =>
+    a -> HOAST dom (Full (NAryEval a))
 lambdaN = bindN lambda
 
 -- | Let binding
@@ -71,8 +72,30 @@ reifyM (Symbol (InjectL (HOLambda f))) = do
 
 -- | Translating expressions with higher-order binding to corresponding
 -- expressions using first-order binding
-reify :: Typeable a => HOAST dom a -> AST (Lambda :+: Variable :+: dom) a
-reify = flip evalState 0 . reifyM
+reifyHOAST :: Typeable a => HOAST dom a -> AST (Lambda :+: Variable :+: dom) a
+reifyHOAST = flip evalState 0 . reifyM
   -- It is assumed that there are no 'Variable' constructors (i.e. no free
   -- variables) in the argument. This is guaranteed by the exported interface.
+
+
+
+-- | Convenient class alias for n-ary syntactic functions
+class
+    ( SyntacticN a internal
+    , NAry internal (HOLambda dom :+: Variable :+: dom)
+    , Typeable (NAryEval internal)
+    ) =>
+      Reifiable a dom internal | a -> dom internal
+
+instance
+    ( SyntacticN a internal
+    , NAry internal (HOLambda dom :+: Variable :+: dom)
+    , Typeable (NAryEval internal)
+    ) =>
+      Reifiable a dom internal
+
+-- | Reifying an n-ary syntactic function
+reify :: Reifiable a dom internal =>
+    a -> ASTF (Lambda :+: Variable :+: dom) (NAryEval internal)
+reify = reifyHOAST . lambdaN . desugarN
 

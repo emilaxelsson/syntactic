@@ -11,7 +11,7 @@ class Eval expr
     -- | Evaluation of expressions
     evaluate :: expr a -> a
 
-instance Eval expr => Eval (AST expr)
+instance Eval dom => Eval (AST dom)
   where
     evaluate (Symbol a) = evaluate a
     evaluate (f :$: a)  = evaluate f $: result (evaluate a)
@@ -21,7 +21,7 @@ instance (Eval expr1, Eval expr2) => Eval (expr1 :+: expr2)
     evaluate (InjectL a) = evaluate a
     evaluate (InjectR a) = evaluate a
 
-evalFull :: Eval expr => ASTF expr a -> a
+evalFull :: Eval dom => ASTF dom a -> a
 evalFull = result . evaluate
 
 evalSyn :: (Syntactic a dom, Eval dom) => a -> Internal a

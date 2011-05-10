@@ -15,13 +15,13 @@ class ExprEq expr
   where
     exprEq :: expr a -> expr b -> Bool
 
-instance ExprEq expr => ExprEq (AST expr)
+instance ExprEq dom => ExprEq (AST dom)
   where
     exprEq (Symbol a)  (Symbol b)  = exprEq a b
     exprEq (f1 :$: a1) (f2 :$: a2) = exprEq f1 f2 && exprEq a1 a2
     exprEq _ _ = False
 
-instance ExprEq expr => Eq (AST expr a)
+instance ExprEq dom => Eq (AST dom a)
   where
     (==) = exprEq
 

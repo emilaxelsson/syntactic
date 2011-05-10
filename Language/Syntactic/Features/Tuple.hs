@@ -135,12 +135,12 @@ selectPos Sel7 = 7
 
 
 instance
-    ( Syntactic a expr
-    , Syntactic b expr
-    , Tuple  :<: expr
-    , Select :<: expr
+    ( Syntactic a dom
+    , Syntactic b dom
+    , Tuple  :<: dom
+    , Select :<: dom
     ) =>
-      Syntactic (a,b) expr
+      Syntactic (a,b) dom
   where
     type Internal (a,b) =
         ( Internal a
@@ -157,13 +157,13 @@ instance
         )
 
 instance
-    ( Syntactic a expr
-    , Syntactic b expr
-    , Syntactic c expr
-    , Tuple  :<: expr
-    , Select :<: expr
+    ( Syntactic a dom
+    , Syntactic b dom
+    , Syntactic c dom
+    , Tuple  :<: dom
+    , Select :<: dom
     ) =>
-      Syntactic (a,b,c) expr
+      Syntactic (a,b,c) dom
   where
     type Internal (a,b,c) =
         ( Internal a
@@ -183,14 +183,14 @@ instance
         )
 
 instance
-    ( Syntactic a expr
-    , Syntactic b expr
-    , Syntactic c expr
-    , Syntactic d expr
-    , Tuple  :<: expr
-    , Select :<: expr
+    ( Syntactic a dom
+    , Syntactic b dom
+    , Syntactic c dom
+    , Syntactic d dom
+    , Tuple  :<: dom
+    , Select :<: dom
     ) =>
-      Syntactic (a,b,c,d) expr
+      Syntactic (a,b,c,d) dom
   where
     type Internal (a,b,c,d) =
         ( Internal a
@@ -213,15 +213,15 @@ instance
         )
 
 instance
-    ( Syntactic a expr
-    , Syntactic b expr
-    , Syntactic c expr
-    , Syntactic d expr
-    , Syntactic e expr
-    , Tuple  :<: expr
-    , Select :<: expr
+    ( Syntactic a dom
+    , Syntactic b dom
+    , Syntactic c dom
+    , Syntactic d dom
+    , Syntactic e dom
+    , Tuple  :<: dom
+    , Select :<: dom
     ) =>
-      Syntactic (a,b,c,d,e) expr
+      Syntactic (a,b,c,d,e) dom
   where
     type Internal (a,b,c,d,e) =
         ( Internal a
@@ -247,16 +247,16 @@ instance
         )
 
 instance
-    ( Syntactic a expr
-    , Syntactic b expr
-    , Syntactic c expr
-    , Syntactic d expr
-    , Syntactic e expr
-    , Syntactic f expr
-    , Tuple  :<: expr
-    , Select :<: expr
+    ( Syntactic a dom
+    , Syntactic b dom
+    , Syntactic c dom
+    , Syntactic d dom
+    , Syntactic e dom
+    , Syntactic f dom
+    , Tuple  :<: dom
+    , Select :<: dom
     ) =>
-      Syntactic (a,b,c,d,e,f) expr
+      Syntactic (a,b,c,d,e,f) dom
   where
     type Internal (a,b,c,d,e,f) =
         ( Internal a
@@ -285,17 +285,17 @@ instance
         )
 
 instance
-    ( Syntactic a expr
-    , Syntactic b expr
-    , Syntactic c expr
-    , Syntactic d expr
-    , Syntactic e expr
-    , Syntactic f expr
-    , Syntactic g expr
-    , Tuple  :<: expr
-    , Select :<: expr
+    ( Syntactic a dom
+    , Syntactic b dom
+    , Syntactic c dom
+    , Syntactic d dom
+    , Syntactic e dom
+    , Syntactic f dom
+    , Syntactic g dom
+    , Tuple  :<: dom
+    , Select :<: dom
     ) =>
-      Syntactic (a,b,c,d,e,f,g) expr
+      Syntactic (a,b,c,d,e,f,g) dom
   where
     type Internal (a,b,c,d,e,f,g) =
         ( Internal a

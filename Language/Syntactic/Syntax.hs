@@ -72,6 +72,7 @@ module Language.Syntactic.Syntax
       -- * Syntactic sugar
     , Syntactic (..)
     , resugar
+    , SyntacticN (..)
       -- * AST processing
     , SubTrees (..)
     , processNode
@@ -241,6 +242,43 @@ instance Typeable a => Syntactic (ASTF dom a) dom
 -- | Syntactic type casting
 resugar :: (Syntactic a dom, Syntactic b dom, Internal a ~ Internal b) => a -> b
 resugar = sugar . desugar
+
+-- | N-ary syntactic functions
+--
+-- 'desugarN' has any type of the form:
+--
+-- > desugarN ::
+-- >     ( Syntactic a dom
+-- >     , Syntactic b dom
+-- >     , ...
+-- >     , Syntactic x dom
+-- >     ) => (a -> b -> ... -> x)
+-- >       -> (  AST dom (Full (Internal a))
+-- >          -> AST dom (Full (Internal b))
+-- >          -> ...
+-- >          -> AST dom (Full (Internal x))
+-- >          )
+--
+-- ...and vice versa for 'sugarN'.
+class SyntacticN a internal | a -> internal
+  where
+    desugarN :: a -> internal
+    sugarN   :: internal -> a
+
+instance (Syntactic a dom, ia ~ AST dom (Full (Internal a))) => SyntacticN a ia
+  where
+    desugarN = desugar
+    sugarN   = sugar
+
+instance
+    ( Syntactic a dom
+    , ia ~ Internal a
+    , SyntacticN b ib
+    ) =>
+      SyntacticN (a -> b) (AST dom (Full ia) -> ib)
+  where
+    desugarN f = desugarN . f . sugar
+    sugarN f   = sugarN . f . desugar
 
 
 

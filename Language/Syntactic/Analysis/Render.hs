@@ -28,12 +28,12 @@ class Render expr
     renderPart []   a = render a
     renderPart args a = "(" ++ unwords (render a : args) ++ ")"
 
-instance Render expr => Render (AST expr)
+instance Render dom => Render (AST dom)
   where
     renderPart args (Symbol a) = renderPart args a
     renderPart args (f :$: a)  = renderPart (render a : args) f
 
-instance Render expr => Show (AST expr a)
+instance Render dom => Show (AST dom a)
   where
     show = render
 

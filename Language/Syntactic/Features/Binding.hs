@@ -60,38 +60,45 @@ instance ToTree Lambda
 
 -- | Alpha-equivalence on 'Lambda' expressions. Free variables are taken to be
 -- equvalent if they have the same identifier.
-eqLambda :: ExprEq dom
+eqLambdaM :: ExprEq dom
     => AST (Lambda :+: Variable :+: dom) a
     -> AST (Lambda :+: Variable :+: dom) b
     -> Reader [(VarId,VarId)] Bool
 
-eqLambda (project -> Just (Variable v1)) (project -> Just (Variable v2)) = do
+eqLambdaM (project -> Just (Variable v1)) (project -> Just (Variable v2)) = do
     env <- ask
     case lookup v1 env of
       Nothing  -> return (v1==v2)   -- Free variables
       Just v2' -> return (v2==v2')
 
-eqLambda
+eqLambdaM
     ((project -> Just (Lambda v1)) :$: a1)
     ((project -> Just (Lambda v2)) :$: a2)
-      = local ((v1,v2):) $ eqLambda a1 a2
+      = local ((v1,v2):) $ eqLambdaM a1 a2
 
-eqLambda (f1 :$: a1) (f2 :$: a2) = do
-    e <- eqLambda f1 f2
-    if e then eqLambda a1 a2 else return False
+eqLambdaM (f1 :$: a1) (f2 :$: a2) = do
+    e <- eqLambdaM f1 f2
+    if e then eqLambdaM a1 a2 else return False
 
-eqLambda
+eqLambdaM
     (Symbol (InjectR (InjectR a)))
     (Symbol (InjectR (InjectR b)))
       = return (exprEq a b)
 
-eqLambda _ _ = return False
+eqLambdaM _ _ = return False
 
+
+
+eqLambda :: ExprEq dom
+    => AST (Lambda :+: Variable :+: dom) a
+    -> AST (Lambda :+: Variable :+: dom) b
+    -> Bool
+eqLambda a b = runReader (eqLambdaM a b) []
 
 
 -- | Evaluation of possibly open 'LambdaAST' expressions
 evalLambdaM :: (Eval dom, MonadReader [(VarId,Dynamic)] m) =>
-    AST (Lambda :+: Variable :+: dom) (Full a) -> m a
+    ASTF (Lambda :+: Variable :+: dom) a -> m a
 evalLambdaM = liftM result . eval
   where
     eval :: (Eval dom, MonadReader [(VarId,Dynamic)] m) =>
@@ -122,41 +129,36 @@ evalLambdaM = liftM result . eval
 
 
 -- | Evaluation of closed 'Lambda' expressions
-evalLambda :: Eval dom => AST (Lambda :+: Variable :+: dom) (Full a) -> a
+evalLambda :: Eval dom => ASTF (Lambda :+: Variable :+: dom) a -> a
 evalLambda = flip runReader [] . evalLambdaM
 
 
 
 -- | The class of n-ary binding functions
-class NAry a
+class NAry a dom | a -> dom
+    -- Note: using a two-parameter class rather than an associated type, because
+    -- this makes it possible to make a class alias constraining dom. GHC
+    -- doesn't yet handle equality super classes.
   where
     type NAryEval a
-    type NAryDom  a :: * -> *
 
     -- | N-ary binding by nested use of the supplied binder
     bindN
       :: (  forall b c . (Typeable b, Typeable c)
-         => (AST (NAryDom a) (Full b) -> AST (NAryDom a) (Full c))
-         -> AST (NAryDom a) (Full (b -> c))
+         => (ASTF dom b -> ASTF dom c)
+         -> ASTF dom (b -> c)
          )
-      -> a -> AST (NAryDom a) (Full (NAryEval a))
+      -> a -> ASTF dom (NAryEval a)
 
-instance NAry (AST dom (Full a))
+instance NAry (ASTF dom a) dom
   where
-    type NAryEval (AST dom (Full a)) = a
-    type NAryDom  (AST dom (Full a)) = dom
+    type NAryEval (ASTF dom a) = a
     bindN _ = id
 
-instance
-    ( Typeable a
-    , NAry b
-    , Typeable (NAryEval b)
-    , NAryDom b ~ dom
-    ) =>
-      NAry (AST dom (Full a) -> b)
+instance (Typeable a, NAry b dom, Typeable (NAryEval b)) =>
+    NAry (ASTF dom a -> b) dom
   where
-    type NAryEval (AST dom (Full a) -> b) = a -> NAryEval b
-    type NAryDom  (AST dom (Full a) -> b) = dom
+    type NAryEval (ASTF dom a -> b) = a -> NAryEval b
     bindN lambda = lambda . (bindN lambda .)
 
 
