@@ -65,15 +65,18 @@ eqLambdaM :: ExprEq dom
     -> AST (Lambda :+: Variable :+: dom) b
     -> Reader [(VarId,VarId)] Bool
 
-eqLambdaM (project -> Just (Variable v1)) (project -> Just (Variable v2)) = do
+-- eqLambdaM (project -> Just (Variable v1)) (project -> Just (Variable v2)) = do  -- Not accepted by GHC-6.12
+eqLambdaM (Symbol (InjectR (InjectL (Variable v1)))) (Symbol (InjectR (InjectL (Variable v2)))) = do
     env <- ask
     case lookup v1 env of
       Nothing  -> return (v1==v2)   -- Free variables
       Just v2' -> return (v2==v2')
 
 eqLambdaM
-    ((project -> Just (Lambda v1)) :$: a1)
-    ((project -> Just (Lambda v2)) :$: a2)
+--     ((project -> Just (Lambda v1)) :$: a1)
+--     ((project -> Just (Lambda v2)) :$: a2)  -- Not accepted by GHC-6.12
+    (Symbol (InjectL (Lambda v1)) :$: a1)
+    (Symbol (InjectL (Lambda v2)) :$: a2)
       = local ((v1,v2):) $ eqLambdaM a1 a2
 
 eqLambdaM (f1 :$: a1) (f2 :$: a2) = do
@@ -103,7 +106,8 @@ evalLambdaM = liftM result . eval
   where
     eval :: (Eval dom, MonadReader [(VarId,Dynamic)] m) =>
         AST (Lambda :+: Variable :+: dom) a -> m a
-    eval (project -> Just (Variable v)) = do
+--     eval (project -> Just (Variable v)) = do  -- Not accepted by GHC-6.12
+    eval (Symbol (InjectR (InjectL (Variable v)))) = do
         env <- ask
         case lookup v env of
           Nothing -> return $ error "eval: evaluating free variable"
@@ -111,7 +115,8 @@ evalLambdaM = liftM result . eval
             Just a -> return (Full a)
             _      -> return $ error "eval: internal type error"
 
-    eval ((project -> Just (Lambda v)) :$: body) = do
+--     eval ((project -> Just (Lambda v)) :$: body) = do  -- Not accepted by GHC-6.12
+    eval (Symbol (InjectL (Lambda v)) :$: body) = do
         env <- ask
         return
             $ Full
