@@ -27,29 +27,35 @@ import Language.Syntactic.Analysis.Hash
 -- 'injectAnn' / 'projectAnn'.
 data Ann info expr a
   where
-    Ann :: info (EvalResult a) -> expr a -> Ann info expr a
+    Ann
+        :: { annInfo :: info (EvalResult a)
+           , annExpr :: expr a
+           }
+        -> Ann info expr a
+
+type AnnSTF info dom a = ASTF (Ann info dom) a
 
 
 
 instance ExprEq expr => ExprEq (Ann info expr)
   where
-    Ann _ a `exprEq` Ann _ b = exprEq a b
+    exprEq a b = annExpr a `exprEq` annExpr b
 
 instance Render expr => Render (Ann info expr)
   where
-    render (Ann _ a) = render a
+    render = render . annExpr
 
 instance ToTree expr => ToTree (Ann info expr)
   where
-    toTreePart args (Ann _ a) = toTreePart args a
+    toTreePart args = toTreePart args . annExpr
 
 instance Eval expr => Eval (Ann info expr)
   where
-    evaluate (Ann _ a) = evaluate a
+    evaluate = evaluate . annExpr
 
 instance ExprHash expr => ExprHash (Ann info expr)
   where
-    exprHash (Ann _ a) = exprHash a
+    exprHash = exprHash . annExpr
 
 
 

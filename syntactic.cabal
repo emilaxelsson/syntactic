@@ -1,5 +1,5 @@
 Name:           syntactic
-Version:        0.2.0.1
+Version:        0.3
 Synopsis:       Generic abstract syntax, and utilities for embedded languages
 Description:    This library provides:
                 .
@@ -21,7 +21,7 @@ Description:    This library provides:
                 languages, such as Feldspar. Currently, it does not support
                 cyclic programs.
                 .
-                \[1\] /Data types a la carte/, by Wouter Swierstra, in
+                \[1\] /Data types à la carte/, by Wouter Swierstra, in
                 /Journal of Functional Programming/, 2008
                 .
                 \[2\] <http://hackage.haskell.org/package/feldspar-language>
@@ -53,14 +53,14 @@ Library
     Language.Syntactic.Analysis.Render
     Language.Syntactic.Analysis.Evaluation
     Language.Syntactic.Analysis.Hash
+    Language.Syntactic.Features.Annotate
     Language.Syntactic.Features.Literal
     Language.Syntactic.Features.PrimFunc
     Language.Syntactic.Features.Condition
     Language.Syntactic.Features.Tuple
-    Language.Syntactic.Features.Annotate
+    Language.Syntactic.Features.TupleSyntactic
     Language.Syntactic.Features.Binding
     Language.Syntactic.Features.Binding.HigherOrder
-
   Other-modules:
 
   Build-depends:

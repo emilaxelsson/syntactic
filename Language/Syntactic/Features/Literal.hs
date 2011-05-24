@@ -8,11 +8,7 @@ import Data.Typeable
 
 import Data.Hash
 
-import Language.Syntactic.Syntax
-import Language.Syntactic.Analysis.Equality
-import Language.Syntactic.Analysis.Render
-import Language.Syntactic.Analysis.Evaluation
-import Language.Syntactic.Analysis.Hash
+import Language.Syntactic
 
 
 
@@ -34,7 +30,7 @@ instance ToTree Literal
 
 instance Eval Literal
   where
-    evaluate (Literal a) = consEval a
+    evaluate (Literal a) = fromEval a
 
 instance ExprHash Literal
   where
@@ -42,15 +38,12 @@ instance ExprHash Literal
 
 
 
+-- | Literal
 lit :: (Eq a, Show a, Typeable a, Literal :<: dom) => a -> ASTF dom a
 lit = inject . Literal
 
-litSyn
-    :: ( Eq (Internal a)
-       , Show (Internal a)
-       , Syntactic a dom
-       , Literal :<: dom
-       )
-    => Internal a -> a
-litSyn = sugar . inject . Literal
+-- | Annotated literal
+litAnn :: (Eq a, Show a, Typeable a, Literal :<: dom) =>
+    info a -> a -> AnnSTF info dom a
+litAnn info = injectAnn info . Literal
 

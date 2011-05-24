@@ -6,8 +6,7 @@
 -- translation.
 
 module Language.Syntactic.Features.Binding.HigherOrder
-    ( module Language.Syntactic
-    , Variable
+    ( Variable
     , evalLambda
     , Let (..)
     , HOLambda (..)

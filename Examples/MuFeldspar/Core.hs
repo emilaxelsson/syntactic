@@ -15,6 +15,12 @@ import Prelude hiding (max, min)
 import qualified Prelude
 import Data.Typeable
 
+import Language.Syntactic
+import Language.Syntactic.Features.Literal
+import Language.Syntactic.Features.PrimFunc
+import Language.Syntactic.Features.Condition
+import Language.Syntactic.Features.Tuple
+import Language.Syntactic.Features.TupleSyntactic
 import Language.Syntactic.Features.Binding
 import Language.Syntactic.Features.Binding.HigherOrder
 
@@ -53,7 +59,7 @@ instance ExprEq Parallel
 
 instance Eval Parallel
   where
-    evaluate Parallel = consEval $ \len ixf -> Prelude.map ixf [0 .. len-1]
+    evaluate Parallel = fromEval $ \len ixf -> Prelude.map ixf [0 .. len-1]
 
 
 
@@ -77,7 +83,7 @@ instance ToTree ForLoop
 
 instance Eval ForLoop
   where
-    evaluate ForLoop = consEval $ \len init body -> foldr body init [0 .. len-1]
+    evaluate ForLoop = fromEval $ \len init body -> foldr body init [0 .. len-1]
 
 
 
@@ -143,7 +149,7 @@ eval = evalLambda . reify
 --------------------------------------------------------------------------------
 
 value :: Syntax a => Internal a -> a
-value = litSyn
+value = sugar . lit
 
 -- | For types containing some kind of \"thunk\", this function can be used to
 -- force computation
@@ -164,8 +170,8 @@ instance Show (Data a)
 instance (Type a, Num a) => Num (Data a)
   where
     fromInteger = value . fromInteger
-    abs         = sugarN $ primFunc "abs" abs
-    signum      = sugarN $ primFunc "signum" signum
+    abs         = sugarN $ primFunc1 "abs" abs
+    signum      = sugarN $ primFunc1 "signum" signum
     (+)         = sugarN $ primFunc2 "(+)" (+)
     (-)         = sugarN $ primFunc2 "(-)" (-)
     (*)         = sugarN $ primFunc2 "(*)" (*)
@@ -186,7 +192,7 @@ forLoop len init body
     :$: lambdaN (desugarN body)
 
 arrLength :: Type a => Data [a] -> Data Length
-arrLength = sugarN $ primFunc "arrLength" Prelude.length
+arrLength = sugarN $ primFunc1 "arrLength" Prelude.length
 
 getIx :: Type a => Data [a] -> Data Index -> Data a
 getIx = sugarN $ primFunc2 "getIx" eval

@@ -190,7 +190,7 @@ instance ToTree Let
 
 instance Eval Let
   where
-    evaluate Let = consEval (flip ($))
+    evaluate Let = fromEval (flip ($))
 
 instance ExprHash Let
   where

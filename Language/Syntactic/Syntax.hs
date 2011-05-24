@@ -50,7 +50,7 @@
 -- > conv12 :: (Num2 :<: dom, Add2 :<: dom) => Expr1 a -> ASTF dom a
 -- > conv21 :: (Num2 :<: dom, Add2 :<: dom) => ASTF dom a -> Expr1 a
 --
--- This way of encoding open data types is taken from /Data types a la carte/,
+-- This way of encoding open data types is taken from /Data types à la carte/,
 -- by Wouter Swierstra, in /Journal of Functional Programming/, 2008. However,
 -- we do not need Swierstra's fixed-point machinery for recursive data types.
 -- Instead we rely on 'AST' being recursive.
@@ -59,10 +59,15 @@ module Language.Syntactic.Syntax
     ( -- * Syntax trees
       Full (..)
     , (:->) (..)
+    , HList (..)
     , ConsType
     , ConsEval
     , EvalResult
-    , consEval
+    , fromEval
+    , toEval
+    , listHList
+    , listHListM
+    , mapHList
     , ($:)
     , AST (..)
     , ASTF
@@ -74,8 +79,8 @@ module Language.Syntactic.Syntax
     , resugar
     , SyntacticN (..)
       -- * AST processing
-    , SubTrees (..)
-    , processNode
+    , queryNode
+    , transformNode
     ) where
 
 
@@ -92,7 +97,13 @@ newtype Full a = Full { result :: a }
 newtype a :-> b = Partial (a -> b)
   deriving (Typeable)
 
-infixr :->
+-- | Heterogeneous list, indexed by a container type and a 'ConsType'
+data family HList (c :: * -> *) a
+
+data instance HList c (Full a)  = Nil
+data instance HList c (a :-> b) = c (Full a) :*: HList c b
+
+infixr :->, :*:
 
 -- | Fully or partially applied constructor
 --
@@ -109,19 +120,34 @@ class ConsType' a
   where
     type ConsEval' a
     type EvalResult' a
-    consEval' :: ConsEval' a -> a
+
+    fromEval'   :: ConsEval' a -> a
+    toEval'     :: a -> ConsEval' a
+    listHList'  :: (forall a . c (Full a) -> b) -> HList c a -> [b]
+    listHListM' :: Monad m => (forall a . c (Full a) -> m b) -> HList c a -> m [b]
+    mapHList'   :: (forall a . c1 a -> c2 a) -> HList c1 a -> HList c2 a
 
 instance ConsType' (Full a)
   where
     type ConsEval'   (Full a) = a
     type EvalResult' (Full a) = a
-    consEval' = Full
+
+    fromEval'         = Full
+    toEval'           = result
+    listHList'  f Nil = []
+    listHListM' f Nil = return []
+    mapHList'   f Nil = Nil
 
 instance ConsType' b => ConsType' (a :-> b)
   where
     type ConsEval'   (a :-> b) = a -> ConsEval' b
     type EvalResult' (a :-> b) = EvalResult' b
-    consEval' = Partial . (consEval' .)
+
+    fromEval'                = Partial . (fromEval' .)
+    toEval' (Partial f)      = toEval' . f
+    listHList'  f (a :*: as) = f a : listHList' f as
+    listHListM' f (a :*: as) = sequence (f a : listHList' f as)
+    mapHList'   f (a :*: as) = f a :*: mapHList' f as
 
 -- | Fully or partially applied constructor
 --
@@ -143,8 +169,26 @@ type ConsEval a = ConsEval' a
 type EvalResult a = EvalResult' a
 
 -- | Make a constructor evaluation from a 'ConsEval' representation
-consEval :: ConsType a => ConsEval a -> a
-consEval = consEval'
+fromEval :: ConsType a => ConsEval a -> a
+fromEval = fromEval'
+
+toEval :: ConsType a => a -> ConsEval a
+toEval = toEval'
+
+-- | Convert a heterogeneous list to a normal list
+listHList :: ConsType a =>
+    (forall a . c (Full a) -> b) -> HList c a -> [b]
+listHList = listHList'
+
+-- | Convert a heterogeneous list to a normal list
+listHListM :: (Monad m, ConsType a) =>
+    (forall a . c (Full a) -> m b) -> HList c a -> m [b]
+listHListM = listHListM'
+
+-- | Change the container of each element in a heterogeneous list
+mapHList :: ConsType a =>
+    (forall a . c1 a -> c2 a) -> HList c1 a -> HList c2 a
+mapHList = mapHList'
 
 -- | Semantic constructor application
 ($:) :: (a :-> b) -> a -> b
@@ -282,23 +326,7 @@ instance
 
 
 
--- | Data family for collecting the children of a constructor, for example:
---
--- > subTrees :: forall dom . SubTrees dom (Int :-> Bool :-> Full [Int])
--- > subTrees = a :*: b :*: Nil
--- >   where
--- >     a = undefined :: ASTF dom Int
--- >     b = undefined :: ASTF dom Bool
---
--- @(`SubTrees` a)@ is meaningful iff. @(`ConsType` a)@
-data family SubTrees (dom :: * -> *) a
-
-data instance SubTrees dom (Full a)  = Nil
-data instance SubTrees dom (a :-> b) = ASTF dom a :*: SubTrees dom b
-
-infixr :*:
-
--- | Process an 'AST' using a function that gets direct access to the top-most
+-- | Query an 'AST' using a function that gets direct access to the top-most
 -- constructor and its sub-trees
 --
 -- This function can be used to create 'AST' traversal functions indexed by the
@@ -306,7 +334,7 @@ infixr :*:
 --
 -- > class Count subDomain
 -- >   where
--- >     count' :: Count domain => subDomain a -> SubTrees domain a -> Int
+-- >     count' :: Count domain => subDomain a -> HList (AST domain) a -> Int
 -- >
 -- > instance (Count sub1, Count sub2) => Count (sub1 :+: sub2)
 -- >   where
@@ -314,10 +342,10 @@ infixr :*:
 -- >     count' (InjectR a) args = count' a args
 -- >
 -- > count :: Count dom => ASTF dom a -> Int
--- > count = processNode count'
+-- > count = queryNode count'
 --
 -- Here, @count@ represents some static analysis on an 'AST'. Each constructor
--- in the tree will be processed by @count'@ indexed by the corresponding symbol
+-- in the tree will be queried by @count'@ indexed by the corresponding symbol
 -- type. That way, @count'@ can be seen as an open-ended function on an open
 -- data type. The @(Count domain)@ constraint on @count'@ is to allow recursion
 -- over sub-trees.
@@ -333,12 +361,28 @@ infixr :*:
 -- > instance Count Add
 -- >   where
 -- >     count' Add (a :*: b :*: Nil) = 1 + count a + count b
-processNode :: forall dom a b
-    .  (forall a . ConsType a => dom a -> SubTrees dom a -> b)
+queryNode :: forall dom a b
+    .  (forall a . ConsType a => dom a -> HList (AST dom) a -> b)
     -> ASTF dom a -> b
-processNode f a = process a Nil
+queryNode f a = query a Nil
   where
-    process :: AST dom c -> SubTrees dom c -> b
-    process (Symbol a) args = f a args
-    process (c :$: a)  args = process c (a :*: args)
+    query :: AST dom c -> HList (AST dom) c -> b
+    query (Symbol a) args = f a args
+    query (c :$: a)  args = query c (a :*: args)
+
+
+
+-- | Transform an 'AST' using a function that gets direct access to the top-most
+-- constructor and its sub-trees. This function is similar to 'queryNode', but
+-- returns a transformed 'AST' rather than abstract interpretation.
+transformNode :: forall dom dom' a
+    .  (  forall a . ConsType a
+       => dom a -> HList (AST dom) a -> ASTF dom' (EvalResult a)
+       )
+    -> ASTF dom a -> ASTF dom' a
+transformNode f a = transform a Nil
+  where
+    transform :: AST dom b -> HList (AST dom) b -> ASTF dom' (EvalResult b)
+    transform (Symbol a) args = f a args
+    transform (c :$: a)  args = transform c (a :*: args)
 
