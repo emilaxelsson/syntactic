@@ -161,7 +161,7 @@ leT a f = sugar $ let_ (desugar a) (desugarN f)
 
 instance Eq (Data a)
   where
-    Data a == Data b = reifyHOAST a `eqLambda` reifyHOAST b
+    Data a == Data b = reify a `alphaEq` reify b
 
 instance Show (Data a)
   where

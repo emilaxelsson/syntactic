@@ -4,7 +4,7 @@
 {-# LANGUAGE ViewPatterns #-}
 
 -- | Demonstration of the fact that "Language.Syntactic" has the same
--- functionality as /Data types á la carte/ (Wouter Swierstra, in
+-- functionality as /Data types à la carte/ (Wouter Swierstra, in
 -- /Journal of Functional Programming/, 2008)
 
 module ALaCarte where

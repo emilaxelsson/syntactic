@@ -33,6 +33,11 @@ data Variable a
   where
     Variable :: Typeable a => VarId -> Variable (Full a)
 
+-- | Strict identifier comparison; i.e. no alpha equivalence
+instance ExprEq Variable
+  where
+    exprEq (Variable v1) (Variable v2) = v1==v2
+
 instance Render Variable
   where
     render (Variable v) = showVar v
@@ -48,6 +53,11 @@ data Lambda a
   where
     Lambda :: (Typeable a, Typeable b) => VarId -> Lambda (b :-> Full (a -> b))
 
+-- | Strict identifier comparison; i.e. no alpha equivalence
+instance ExprEq Lambda
+  where
+    exprEq (Lambda v1) (Lambda v2) = v1==v2
+
 instance Render Lambda
   where
     renderPart [body] (Lambda v) = "(\\" ++ showVar v ++ " -> "  ++ body ++ ")"
@@ -60,43 +70,43 @@ instance ToTree Lambda
 
 -- | Alpha-equivalence on 'Lambda' expressions. Free variables are taken to be
 -- equvalent if they have the same identifier.
-eqLambdaM :: ExprEq dom
+alphaEqM :: ExprEq dom
     => AST (Lambda :+: Variable :+: dom) a
     -> AST (Lambda :+: Variable :+: dom) b
     -> Reader [(VarId,VarId)] Bool
 
--- eqLambdaM (project -> Just (Variable v1)) (project -> Just (Variable v2)) = do  -- Not accepted by GHC-6.12
-eqLambdaM (Symbol (InjectR (InjectL (Variable v1)))) (Symbol (InjectR (InjectL (Variable v2)))) = do
+-- alphaEqM (project -> Just (Variable v1)) (project -> Just (Variable v2)) = do  -- Not accepted by GHC-6.12
+alphaEqM (Symbol (InjectR (InjectL (Variable v1)))) (Symbol (InjectR (InjectL (Variable v2)))) = do
     env <- ask
     case lookup v1 env of
       Nothing  -> return (v1==v2)   -- Free variables
       Just v2' -> return (v2==v2')
 
-eqLambdaM
+alphaEqM
 --     ((project -> Just (Lambda v1)) :$: a1)
 --     ((project -> Just (Lambda v2)) :$: a2)  -- Not accepted by GHC-6.12
     (Symbol (InjectL (Lambda v1)) :$: a1)
     (Symbol (InjectL (Lambda v2)) :$: a2)
-      = local ((v1,v2):) $ eqLambdaM a1 a2
+      = local ((v1,v2):) $ alphaEqM a1 a2
 
-eqLambdaM (f1 :$: a1) (f2 :$: a2) = do
-    e <- eqLambdaM f1 f2
-    if e then eqLambdaM a1 a2 else return False
+alphaEqM (f1 :$: a1) (f2 :$: a2) = do
+    e <- alphaEqM f1 f2
+    if e then alphaEqM a1 a2 else return False
 
-eqLambdaM
+alphaEqM
     (Symbol (InjectR (InjectR a)))
     (Symbol (InjectR (InjectR b)))
       = return (exprEq a b)
 
-eqLambdaM _ _ = return False
+alphaEqM _ _ = return False
 
 
 
-eqLambda :: ExprEq dom
+alphaEq :: ExprEq dom
     => AST (Lambda :+: Variable :+: dom) a
     -> AST (Lambda :+: Variable :+: dom) b
     -> Bool
-eqLambda a b = runReader (eqLambdaM a b) []
+alphaEq a b = runReader (alphaEqM a b) []
 
 
 -- | Evaluation of possibly open 'LambdaAST' expressions
