@@ -156,8 +156,8 @@ value = sugar . lit
 force :: Syntax a => a -> a
 force = resugar
 
-leT :: (Syntax a, Syntax b) => a -> (a -> b) -> b
-leT a f = sugar $ let_ (desugar a) (desugarN f)
+share :: (Syntax a, Syntax b) => a -> (a -> b) -> b
+share a f = sugar $ letBind (desugar a) (desugarN f)
 
 instance Eq (Data a)
   where
@@ -165,7 +165,7 @@ instance Eq (Data a)
 
 instance Show (Data a)
   where
-    show (Data a) = render $ reifyHOAST a
+    show (Data a) = render $ reify a
 
 instance (Type a, Num a) => Num (Data a)
   where

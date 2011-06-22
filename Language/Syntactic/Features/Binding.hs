@@ -109,6 +109,7 @@ alphaEq :: ExprEq dom
 alphaEq a b = runReader (alphaEqM a b) []
 
 
+
 -- | Evaluation of possibly open 'LambdaAST' expressions
 evalLambdaM :: (Eval dom, MonadReader [(VarId,Dynamic)] m) =>
     ASTF (Lambda :+: Variable :+: dom) a -> m a
@@ -189,7 +190,8 @@ instance ExprEq Let
 
 instance Render Let
   where
-    render Let = "Let"
+    renderPart []    Let = "Let"
+    renderPart [f,a] Let = "(" ++ unwords ["letBind",f,a] ++ ")"
 
 instance ToTree Let
   where

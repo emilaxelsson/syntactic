@@ -13,7 +13,7 @@ module Language.Syntactic.Features.Binding.HigherOrder
     , HOAST
     , lambda
     , lambdaN
-    , let_
+    , letBind
     , reifyM
     , reifyHOAST
     , Reifiable
@@ -52,11 +52,11 @@ lambdaN :: NAry a (HOLambda dom :+: Variable :+: dom) =>
 lambdaN = bindN lambda
 
 -- | Let binding
-let_ :: (Typeable a, Typeable b, Let :<: dom)
+letBind :: (Typeable a, Typeable b, Let :<: dom)
     => HOAST dom (Full a)
     -> (HOAST dom (Full a) -> HOAST dom (Full b))
     -> HOAST dom (Full b)
-let_ a f = inject Let :$: a :$: lambda f
+letBind a f = inject Let :$: a :$: lambda f
 
 
 

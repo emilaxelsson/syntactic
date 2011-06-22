@@ -13,7 +13,7 @@ test1_2 = printFeld prog1
 test1_3 = eval prog1 0 10
 
 prog2 :: Data Int -> Data Int
-prog2 a = leT (min a a) $ \b -> max b b
+prog2 a = share (min a a) $ \b -> max b b
 
 test2_1 = drawFeld prog2
 test2_2 = printFeld prog2
