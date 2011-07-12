@@ -1,5 +1,5 @@
 Name:           syntactic
-Version:        0.4
+Version:        0.5
 Synopsis:       Generic abstract syntax, and utilities for embedded languages
 Description:    This library provides:
                 .
@@ -43,7 +43,7 @@ Extra-source-files:
 
 source-repository head
   type:     darcs
-  location: http://code.haskell.org/syntactic/
+  location: http://projects.haskell.org/syntactic/
 
 Library
   Exposed-modules:
@@ -61,6 +61,7 @@ Library
     Language.Syntactic.Features.TupleSyntactic
     Language.Syntactic.Features.Binding
     Language.Syntactic.Features.Binding.HigherOrder
+
   Other-modules:
 
   Build-depends:

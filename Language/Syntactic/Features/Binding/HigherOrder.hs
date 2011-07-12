@@ -11,6 +11,7 @@ module Language.Syntactic.Features.Binding.HigherOrder
     , Let (..)
     , HOLambda (..)
     , HOAST
+    , HOASTF
     , lambda
     , lambdaN
     , letBind
@@ -37,7 +38,8 @@ data HOLambda dom a
         => (HOAST dom (Full a) -> HOAST dom (Full b))
         -> HOLambda dom (Full (a -> b))
 
-type HOAST dom = AST (HOLambda dom :+: Variable :+: dom)
+type HOAST  dom a = AST (HOLambda dom :+: Variable :+: dom) a
+type HOASTF dom a = HOAST dom (Full a)
 
 
 

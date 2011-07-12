@@ -79,6 +79,7 @@ module Language.Syntactic.Syntax
     , resugar
     , SyntacticN (..)
       -- * AST processing
+    , queryNodeI
     , queryNode
     , transformNode
     ) where
@@ -326,6 +327,20 @@ instance
 
 
 
+-- | Like 'queryNode' but with the result indexed by the constructor's result
+-- type
+queryNodeI :: forall dom a b
+    .  (forall a . ConsType a => dom a -> HList (AST dom) a -> b (EvalResult a))
+    -> ASTF dom a -> b a
+queryNodeI f a = query a Nil
+  where
+    query :: AST dom c -> HList (AST dom) c -> b (EvalResult c)
+    query (Symbol a) args = f a args
+    query (c :$: a)  args = query c (a :*: args)
+
+newtype Wrap a b = Wrap {unWrap :: a}
+  -- Only used in the definition of 'queryNode'
+
 -- | Query an 'AST' using a function that gets direct access to the top-most
 -- constructor and its sub-trees
 --
@@ -364,11 +379,7 @@ instance
 queryNode :: forall dom a b
     .  (forall a . ConsType a => dom a -> HList (AST dom) a -> b)
     -> ASTF dom a -> b
-queryNode f a = query a Nil
-  where
-    query :: AST dom c -> HList (AST dom) c -> b
-    query (Symbol a) args = f a args
-    query (c :$: a)  args = query c (a :*: args)
+queryNode f a = unWrap $ queryNodeI (\c args -> Wrap $ f c args) a
 
 
 
