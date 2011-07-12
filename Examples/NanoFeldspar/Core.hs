@@ -7,7 +7,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module MuFeldspar.Core where
+module NanoFeldspar.Core where
 
 
 

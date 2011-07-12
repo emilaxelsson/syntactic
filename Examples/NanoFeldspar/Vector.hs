@@ -4,7 +4,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 
-module MuFeldspar.Vector where
+module NanoFeldspar.Vector where
 
 
 
@@ -14,7 +14,7 @@ import qualified Prelude
 import Language.Syntactic
 import Language.Syntactic.Features.Binding.HigherOrder
 
-import MuFeldspar.Core
+import NanoFeldspar.Core
 
 
 

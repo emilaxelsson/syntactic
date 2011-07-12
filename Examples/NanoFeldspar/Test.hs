@@ -1,7 +1,7 @@
 import Prelude hiding (length, map, max, min, reverse, sum, unzip, zip, zipWith)
 
-import MuFeldspar.Core
-import MuFeldspar.Vector
+import NanoFeldspar.Core
+import NanoFeldspar.Vector
 
 
 
