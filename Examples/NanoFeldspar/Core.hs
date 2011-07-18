@@ -4,8 +4,18 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+
+-- | A minimal Feldspar core language implementation. The intention of this
+-- module is to demonstrate how to quickly make a language prototype using
+-- syntactic.
+--
+-- A more realistic implementation would use custom contexts to restrict the
+-- types at which constructors operate. Currently, all general features (such as
+-- 'Literal' and 'Tuple') use a 'Poly' context, which means that the types are
+-- not restricted. A real implementation would also probably use custom types
+-- for primitive functions, since the 'PrimFunc' feature is quite unsafe (uses
+-- only a 'String' to distinguish between functions).
 
 module NanoFeldspar.Core where
 
@@ -20,7 +30,6 @@ import Language.Syntactic.Features.Literal
 import Language.Syntactic.Features.PrimFunc
 import Language.Syntactic.Features.Condition
 import Language.Syntactic.Features.Tuple
-import Language.Syntactic.Features.TupleSyntactic
 import Language.Syntactic.Features.Binding
 import Language.Syntactic.Features.Binding.HigherOrder
 
@@ -31,8 +40,8 @@ import Language.Syntactic.Features.Binding.HigherOrder
 --------------------------------------------------------------------------------
 
 -- | Convenient class alias
-class    (Eq a, Show a, Typeable a) => Type a
-instance (Eq a, Show a, Typeable a) => Type a
+class    (Ord a, Show a, Typeable a) => Type a
+instance (Ord a, Show a, Typeable a) => Type a
 
 type Length = Int
 type Index  = Int
@@ -91,20 +100,23 @@ instance Eval ForLoop
 -- * Feldspar domain
 --------------------------------------------------------------------------------
 
+-- | The Feldspar domain
 type FeldDomain
-    =   Literal
+    =   Literal Poly
     :+: PrimFunc
-    :+: Condition
-    :+: Tuple
-    :+: Select
-    :+: Let
+    :+: Condition Poly
+    :+: Tuple Poly
+    :+: Select Poly
+    :+: Let Poly Poly
     :+: Parallel
     :+: ForLoop
 
-data Data a = Type a => Data { unData :: HOAST FeldDomain (Full a) }
+data Data a = Type a => Data { unData :: HOAST Poly FeldDomain (Full a) }
 
-instance Type a =>
-    Syntactic (Data a) (HOLambda FeldDomain :+: Variable :+: FeldDomain)
+type FeldDomainAll = HOLambda Poly FeldDomain :+: Variable Poly :+: FeldDomain
+
+-- | Declaring 'Data' as syntactic sugar
+instance Type a => Syntactic (Data a) FeldDomainAll
   where
     type Internal (Data a) = a
     desugar = unData
@@ -112,18 +124,16 @@ instance Type a =>
 
 -- | Specialization of the 'Syntactic' class for the Feldspar domain
 class
-    ( Syntactic a (HOLambda FeldDomain :+: Variable :+: FeldDomain)
+    ( Syntactic a FeldDomainAll
     , Type (Internal a)
-    , SyntacticN a
-        (ASTF (HOLambda FeldDomain :+: Variable :+: FeldDomain) (Internal a))
+    , SyntacticN a (ASTF FeldDomainAll (Internal a))
     ) =>
       Syntax a
 
 instance
-    ( Syntactic a (HOLambda FeldDomain :+: Variable :+: FeldDomain)
+    ( Syntactic a FeldDomainAll
     , Type (Internal a)
-    , SyntacticN a
-        (ASTF (HOLambda FeldDomain :+: Variable :+: FeldDomain) (Internal a))
+    , SyntacticN a (ASTF FeldDomainAll (Internal a))
     ) =>
       Syntax a
 
@@ -133,13 +143,16 @@ instance
 -- * Back ends
 --------------------------------------------------------------------------------
 
-printFeld :: Reifiable a FeldDomain internal => a -> IO ()
+-- | Print the expression
+printFeld :: Reifiable Poly a FeldDomain internal => a -> IO ()
 printFeld = printExpr . reify
 
-drawFeld :: Reifiable a FeldDomain internal => a -> IO ()
+-- | Draw the syntax tree
+drawFeld :: Reifiable Poly a FeldDomain internal => a -> IO ()
 drawFeld = drawAST . reify
 
-eval :: Reifiable a FeldDomain internal => a -> NAryEval internal
+-- | Evaluation
+eval :: Reifiable Poly a FeldDomain internal => a -> NAryEval internal
 eval = evalLambda . reify
 
 
@@ -148,6 +161,7 @@ eval = evalLambda . reify
 -- * Core library
 --------------------------------------------------------------------------------
 
+-- | Literal
 value :: Syntax a => Internal a -> a
 value = sugar . lit
 
@@ -156,9 +170,11 @@ value = sugar . lit
 force :: Syntax a => a -> a
 force = resugar
 
+-- | Share a value using let binding
 share :: (Syntax a, Syntax b) => a -> (a -> b) -> b
 share a f = sugar $ letBind (desugar a) (desugarN f)
 
+-- | Alpha equivalence
 instance Eq (Data a)
   where
     Data a == Data b = reify a `alphaEq` reify b
@@ -176,6 +192,7 @@ instance (Type a, Num a) => Num (Data a)
     (-)         = sugarN $ primFunc2 "(-)" (-)
     (*)         = sugarN $ primFunc2 "(*)" (*)
 
+-- | Parallel array
 parallel :: Type a => Data Length -> (Data Index -> Data a) -> Data [a]
 parallel len ixf
     =   sugar
@@ -194,6 +211,7 @@ forLoop len init body
 arrLength :: Type a => Data [a] -> Data Length
 arrLength = sugarN $ primFunc1 "arrLength" Prelude.length
 
+-- | Array indexing
 getIx :: Type a => Data [a] -> Data Index -> Data a
 getIx = sugarN $ primFunc2 "getIx" eval
   where
@@ -203,9 +221,9 @@ getIx = sugarN $ primFunc2 "getIx" eval
       where
         len = Prelude.length as
 
-max :: (Type a, Ord a) => Data a -> Data a -> Data a
+max :: Type a => Data a -> Data a -> Data a
 max = sugarN $ primFunc2 "max" Prelude.max
 
-min :: (Type a, Ord a) => Data a -> Data a -> Data a
+min :: Type a => Data a -> Data a -> Data a
 min = sugarN $ primFunc2 "min" Prelude.min
 

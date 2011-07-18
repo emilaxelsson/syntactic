@@ -35,8 +35,3 @@ instance (ExprEq expr1, ExprEq expr2) => Eq ((expr1 :+: expr2) a)
   where
     (==) = exprEq
 
-
-
-eqSyn :: (Syntactic a dom, ExprEq dom) => a -> a -> Bool
-eqSyn a b = desugar a `exprEq` desugar b
-

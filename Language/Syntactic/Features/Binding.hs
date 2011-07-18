@@ -10,6 +10,7 @@ import Data.Ix
 import Data.Tree
 
 import Data.Hash
+import Data.Proxy
 
 import Language.Syntactic
 
@@ -29,64 +30,85 @@ showVar v = "var" ++ show v
 
 
 -- | Variables
-data Variable a
+data Variable ctx a
   where
-    Variable :: Typeable a => VarId -> Variable (Full a)
+    Variable :: (Typeable a, Sat ctx a) =>
+        Proxy ctx -> VarId -> Variable ctx (Full a)
+      -- 'Typeable' needed by the dynamic types in 'evalLambda'.
+
+instance WitnessCons (Variable ctx)
+  where
+    witnessCons (Variable _ _) = ConsWit
 
 -- | Strict identifier comparison; i.e. no alpha equivalence
-instance ExprEq Variable
+instance ExprEq (Variable ctx)
   where
-    exprEq (Variable v1) (Variable v2) = v1==v2
+    exprEq (Variable _ v1) (Variable _ v2) = v1==v2
 
-instance Render Variable
+instance Render (Variable ctx)
   where
-    render (Variable v) = showVar v
+    render (Variable _ v) = showVar v
 
-instance ToTree Variable
+instance ToTree (Variable ctx)
   where
-    toTreePart [] (Variable v) = Node ("var:" ++ show v) []
+    toTreePart [] (Variable _ v) = Node ("var:" ++ show v) []
+
+-- | Partial `Variable` projection with explicit context
+prjVariable :: (Variable ctx :<: sup) =>
+    Proxy ctx -> sup a -> Maybe (Variable ctx a)
+prjVariable _ = project
 
 
 
 -- | Lambda binding
-data Lambda a
+data Lambda ctx a
   where
-    Lambda :: (Typeable a, Typeable b) => VarId -> Lambda (b :-> Full (a -> b))
+    Lambda :: (Typeable a, Sat ctx a) =>
+        Proxy ctx -> VarId -> Lambda ctx (b :-> Full (a -> b))
+      -- 'Typeable' needed by the dynamic types in 'evalLambda'.
+
+instance WitnessCons (Lambda ctx)
+  where
+    witnessCons (Lambda _ _) = ConsWit
 
 -- | Strict identifier comparison; i.e. no alpha equivalence
-instance ExprEq Lambda
+instance ExprEq (Lambda ctx)
   where
-    exprEq (Lambda v1) (Lambda v2) = v1==v2
+    exprEq (Lambda _ v1) (Lambda _ v2) = v1==v2
 
-instance Render Lambda
+instance Render (Lambda ctx)
   where
-    renderPart [body] (Lambda v) = "(\\" ++ showVar v ++ " -> "  ++ body ++ ")"
+    renderPart [body] (Lambda _ v) =
+        "(\\" ++ showVar v ++ " -> "  ++ body ++ ")"
 
-instance ToTree Lambda
+instance ToTree (Lambda ctx)
   where
-    toTreePart [body] (Lambda v) = Node ("Lambda " ++ show v) [body]
+    toTreePart [body] (Lambda _ v) = Node ("Lambda " ++ show v) [body]
+
+-- | Partial `Lambda` projection with explicit context
+prjLambda :: (Lambda ctx :<: sup) => Proxy ctx -> sup a -> Maybe (Lambda ctx a)
+prjLambda _ = project
 
 
 
 -- | Alpha-equivalence on 'Lambda' expressions. Free variables are taken to be
 -- equvalent if they have the same identifier.
 alphaEqM :: ExprEq dom
-    => AST (Lambda :+: Variable :+: dom) a
-    -> AST (Lambda :+: Variable :+: dom) b
+    => AST (Lambda ctx :+: Variable ctx :+: dom) a
+    -> AST (Lambda ctx :+: Variable ctx :+: dom) b
     -> Reader [(VarId,VarId)] Bool
 
--- alphaEqM (project -> Just (Variable v1)) (project -> Just (Variable v2)) = do  -- Not accepted by GHC-6.12
-alphaEqM (Symbol (InjectR (InjectL (Variable v1)))) (Symbol (InjectR (InjectL (Variable v2)))) = do
-    env <- ask
-    case lookup v1 env of
-      Nothing  -> return (v1==v2)   -- Free variables
-      Just v2' -> return (v2==v2')
+alphaEqM
+    (Symbol (InjectR (InjectL (Variable _ v1))))
+    (Symbol (InjectR (InjectL (Variable _ v2))))
+      = do env <- ask
+           case lookup v1 env of
+             Nothing  -> return (v1==v2)   -- Free variables
+             Just v2' -> return (v2==v2')
 
 alphaEqM
---     ((project -> Just (Lambda v1)) :$: a1)
---     ((project -> Just (Lambda v2)) :$: a2)  -- Not accepted by GHC-6.12
-    (Symbol (InjectL (Lambda v1)) :$: a1)
-    (Symbol (InjectL (Lambda v2)) :$: a2)
+    (Symbol (InjectL (Lambda _ v1)) :$: a1)
+    (Symbol (InjectL (Lambda _ v2)) :$: a2)
       = local ((v1,v2):) $ alphaEqM a1 a2
 
 alphaEqM (f1 :$: a1) (f2 :$: a2) = do
@@ -103,8 +125,8 @@ alphaEqM _ _ = return False
 
 
 alphaEq :: ExprEq dom
-    => AST (Lambda :+: Variable :+: dom) a
-    -> AST (Lambda :+: Variable :+: dom) b
+    => AST (Lambda ctx :+: Variable ctx :+: dom) a
+    -> AST (Lambda ctx :+: Variable ctx :+: dom) b
     -> Bool
 alphaEq a b = runReader (alphaEqM a b) []
 
@@ -112,13 +134,12 @@ alphaEq a b = runReader (alphaEqM a b) []
 
 -- | Evaluation of possibly open 'LambdaAST' expressions
 evalLambdaM :: (Eval dom, MonadReader [(VarId,Dynamic)] m) =>
-    ASTF (Lambda :+: Variable :+: dom) a -> m a
+    ASTF (Lambda ctx :+: Variable ctx :+: dom) a -> m a
 evalLambdaM = liftM result . eval
   where
     eval :: (Eval dom, MonadReader [(VarId,Dynamic)] m) =>
-        AST (Lambda :+: Variable :+: dom) a -> m a
---     eval (project -> Just (Variable v)) = do  -- Not accepted by GHC-6.12
-    eval (Symbol (InjectR (InjectL (Variable v)))) = do
+        AST (Lambda ctx :+: Variable ctx :+: dom) a -> m a
+    eval (Symbol (InjectR (InjectL (Variable _ v)))) = do
         env <- ask
         case lookup v env of
           Nothing -> return $ error "eval: evaluating free variable"
@@ -126,8 +147,7 @@ evalLambdaM = liftM result . eval
             Just a -> return (Full a)
             _      -> return $ error "eval: internal type error"
 
---     eval ((project -> Just (Lambda v)) :$: body) = do  -- Not accepted by GHC-6.12
-    eval (Symbol (InjectL (Lambda v)) :$: body) = do
+    eval (Symbol (InjectL (Lambda _ v)) :$: body) = do
         env <- ask
         return
             $ Full
@@ -145,66 +165,80 @@ evalLambdaM = liftM result . eval
 
 
 -- | Evaluation of closed 'Lambda' expressions
-evalLambda :: Eval dom => ASTF (Lambda :+: Variable :+: dom) a -> a
+evalLambda :: Eval dom => ASTF (Lambda ctx :+: Variable ctx :+: dom) a -> a
 evalLambda = flip runReader [] . evalLambdaM
 
 
 
 -- | The class of n-ary binding functions
-class NAry a dom | a -> dom
-    -- Note: using a two-parameter class rather than an associated type, because
-    -- this makes it possible to make a class alias constraining dom. GHC
-    -- doesn't yet handle equality super classes.
+class NAry ctx a dom | a -> dom
+    -- Note: using a functional dependency rather than an associated type,
+    -- because this makes it possible to make a class alias constraining dom.
+    -- GHC doesn't yet handle equality super classes.
   where
     type NAryEval a
 
     -- | N-ary binding by nested use of the supplied binder
     bindN
-      :: (  forall b c . (Typeable b, Typeable c)
+      :: Proxy ctx
+      -> (  forall b c . (Typeable b, Typeable c, Sat ctx b)
          => (ASTF dom b -> ASTF dom c)
          -> ASTF dom (b -> c)
          )
       -> a -> ASTF dom (NAryEval a)
 
-instance NAry (ASTF dom a) dom
+instance Sat ctx a => NAry ctx (ASTF dom a) dom
   where
     type NAryEval (ASTF dom a) = a
-    bindN _ = id
+    bindN _ _ = id
 
-instance (Typeable a, NAry b dom, Typeable (NAryEval b)) =>
-    NAry (ASTF dom a -> b) dom
+instance (Typeable a, Sat ctx a, NAry ctx b dom, Typeable (NAryEval b)) =>
+    NAry ctx (ASTF dom a -> b) dom
   where
     type NAryEval (ASTF dom a -> b) = a -> NAryEval b
-    bindN lambda = lambda . (bindN lambda .)
+    bindN ctx lambda = lambda . (bindN ctx lambda .)
 
 
 
 -- | Let binding
-data Let a
+--
+-- A 'Let' expression is really just an application of a lambda binding (the
+-- argument @(a -> b)@ is preferably constructed by 'Lambda').
+data Let ctxa ctxb a
   where
-    Let :: Let (a :-> (a -> b) :-> Full b)
+    Let :: (Sat ctxa a, Sat ctxb b) =>
+        Proxy ctxa -> Proxy ctxb -> Let ctxa ctxb (a :-> (a -> b) :-> Full b)
 
-instance ExprEq Let
+instance WitnessCons (Let ctxa ctxb)
   where
-    exprEq Let Let = True
+    witnessCons (Let _ _) = ConsWit
 
-instance Render Let
+instance ExprEq (Let ctxa ctxb)
   where
-    renderPart []    Let = "Let"
-    renderPart [f,a] Let = "(" ++ unwords ["letBind",f,a] ++ ")"
+    exprEq (Let _ _) (Let _ _) = True
 
-instance ToTree Let
+instance Render (Let ctxa ctxb)
   where
-    toTreePart [a,body] Let = Node ("Let " ++ var) [a,body']
+    renderPart []    (Let _ _) = "Let"
+    renderPart [f,a] (Let _ _) = "(" ++ unwords ["letBind",f,a] ++ ")"
+
+instance ToTree (Let ctxa ctxb)
+  where
+    toTreePart [a,body] (Let _ _) = Node ("Let " ++ var) [a,body']
       where
         Node node [body'] = body
         var               = drop 7 node  -- Drop the "Lambda " prefix
 
-instance Eval Let
+instance Eval (Let ctxa ctxb)
   where
-    evaluate Let = fromEval (flip ($))
+    evaluate (Let _ _) = fromEval (flip ($))
 
-instance ExprHash Let
+instance ExprHash (Let ctxa ctxb)
   where
-    exprHash Let = hashInt 0
+    exprHash (Let _ _) = hashInt 0
+
+-- | Partial `Let` projection with explicit context
+prjLet :: (Let ctxa ctxb :<: sup) =>
+    Proxy ctxa -> Proxy ctxb -> sup a -> Maybe (Let ctxa ctxb a)
+prjLet _ _ = project
 

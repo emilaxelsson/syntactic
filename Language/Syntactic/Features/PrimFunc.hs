@@ -1,4 +1,9 @@
 -- | Primitive functions
+--
+-- 'PrimFunc' provides a simple way to represent primitive functions for
+-- prototyping. However, note that 'PrimFunc' is quite unsafe as it only uses
+-- 'String' to distinguish between different functions. Also, 'PrimFunc' has a
+-- very free type that only guarantees that there is at least one argument.
 
 module Language.Syntactic.Features.PrimFunc where
 
@@ -16,6 +21,10 @@ data PrimFunc a
   where
     PrimFunc :: ConsType b =>
         String -> (ConsEval (a :-> b)) -> PrimFunc (a :-> b)
+
+instance WitnessCons PrimFunc
+  where
+    witnessCons (PrimFunc _ _) = ConsWit
 
 instance ExprEq PrimFunc
   where
@@ -99,64 +108,6 @@ primFunc4
     -> ASTF dom d
     -> ASTF dom e
 primFunc4 name f a b c d = inject (PrimFunc name f) :$: a :$: b :$: c :$: d
-
-primFuncAnn1
-    :: ( Typeable a
-       , PrimFunc :<: dom
-       )
-    => String
-    -> (a -> b)
-    -> info b
-    -> AnnSTF info dom a
-    -> AnnSTF info dom b
-primFuncAnn1 name f ib a = injectAnn ib (PrimFunc name f) :$: a
-
-primFuncAnn2
-    :: ( Typeable a
-       , Typeable b
-       , PrimFunc :<: dom
-       )
-    => String
-    -> (a -> b -> c)
-    -> info c
-    -> AnnSTF info dom a
-    -> AnnSTF info dom b
-    -> AnnSTF info dom c
-primFuncAnn2 name f ic a b = injectAnn ic (PrimFunc name f) :$: a :$: b
-
-primFuncAnn3
-    :: ( Typeable a
-       , Typeable b
-       , Typeable c
-       , PrimFunc :<: dom
-       )
-    => String
-    -> (a -> b -> c -> d)
-    -> info d
-    -> AnnSTF info dom a
-    -> AnnSTF info dom b
-    -> AnnSTF info dom c
-    -> AnnSTF info dom d
-primFuncAnn3 name f id a b c =
-    injectAnn id (PrimFunc name f) :$: a :$: b :$: c
-
-primFuncAnn4
-    :: ( Typeable a
-       , Typeable b
-       , Typeable c
-       , Typeable d
-       , PrimFunc :<: dom
-       )
-    => String
-    -> (a -> b -> c -> d -> e)
-    -> info e
-    -> AnnSTF info dom a
-    -> AnnSTF info dom b
-    -> AnnSTF info dom c
-    -> AnnSTF info dom d
-    -> AnnSTF info dom e
-primFuncAnn4 name f ie a b c d =
-    injectAnn ie (PrimFunc name f) :$: a :$: b :$: c :$: d
 
 
 

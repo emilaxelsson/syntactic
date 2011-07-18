@@ -63,11 +63,14 @@ module Language.Syntactic.Syntax
     , ConsType
     , ConsEval
     , EvalResult
+    , ConsWit (..)
+    , WitnessCons (..)
     , fromEval
     , toEval
     , listHList
     , listHListM
     , mapHList
+    , appHList
     , ($:)
     , AST (..)
     , ASTF
@@ -82,13 +85,23 @@ module Language.Syntactic.Syntax
     , queryNodeI
     , queryNode
     , transformNode
+      -- * Restricted syntax trees
+    , Sat (..)
+    , Poly (..)
+    , poly
     ) where
 
 
 
 import Data.Typeable
 
+import Data.Proxy
 
+
+
+--------------------------------------------------------------------------------
+-- * Syntax trees
+--------------------------------------------------------------------------------
 
 -- | The type of a fully applied constructor
 newtype Full a = Full { result :: a }
@@ -102,7 +115,9 @@ newtype a :-> b = Partial (a -> b)
 data family HList (c :: * -> *) a
 
 data instance HList c (Full a)  = Nil
-data instance HList c (a :-> b) = c (Full a) :*: HList c b
+data instance HList c (a :-> b) = Typeable a => c (Full a) :*: HList c b
+  -- The 'Typeable' constraint is needed in order to be able to rebuild an 'AST'
+  -- from an 'HList' (since '(:$:)' has a `Typeable` constraint).
 
 infixr :->, :*:
 
@@ -126,7 +141,9 @@ class ConsType' a
     toEval'     :: a -> ConsEval' a
     listHList'  :: (forall a . c (Full a) -> b) -> HList c a -> [b]
     listHListM' :: Monad m => (forall a . c (Full a) -> m b) -> HList c a -> m [b]
-    mapHList'   :: (forall a . c1 a -> c2 a) -> HList c1 a -> HList c2 a
+    mapHList'   :: (forall a . c1 (Full a) -> c2 (Full a)) -> HList c1 a -> HList c2 a
+    appHList'   :: AST dom a -> HList (AST dom) a -> ASTF dom (EvalResult a)
+
 
 instance ConsType' (Full a)
   where
@@ -138,6 +155,7 @@ instance ConsType' (Full a)
     listHList'  f Nil = []
     listHListM' f Nil = return []
     mapHList'   f Nil = Nil
+    appHList' a Nil   = a
 
 instance ConsType' b => ConsType' (a :-> b)
   where
@@ -149,6 +167,7 @@ instance ConsType' b => ConsType' (a :-> b)
     listHList'  f (a :*: as) = f a : listHList' f as
     listHListM' f (a :*: as) = sequence (f a : listHList' f as)
     mapHList'   f (a :*: as) = f a :*: mapHList' f as
+    appHList' c (a :*: as)   = appHList' (c :$: a) as
 
 -- | Fully or partially applied constructor
 --
@@ -169,6 +188,18 @@ type ConsEval a = ConsEval' a
 -- alias for the hidden type 'EvalResult''.
 type EvalResult a = EvalResult' a
 
+-- | A witness of @(`ConsType` a)@
+data ConsWit a
+  where
+    ConsWit :: ConsType a => ConsWit a
+
+-- | Expressions in syntactic are supposed to have the form
+-- @(`ConsType` a => expr a)@. This class lets us witness the 'ConsType'
+-- constraint of an expression without examining the expression.
+class WitnessCons expr
+  where
+    witnessCons :: expr a -> ConsWit a
+
 -- | Make a constructor evaluation from a 'ConsEval' representation
 fromEval :: ConsType a => ConsEval a -> a
 fromEval = fromEval'
@@ -188,8 +219,13 @@ listHListM = listHListM'
 
 -- | Change the container of each element in a heterogeneous list
 mapHList :: ConsType a =>
-    (forall a . c1 a -> c2 a) -> HList c1 a -> HList c2 a
+    (forall a . c1 (Full a) -> c2 (Full a)) -> HList c1 a -> HList c2 a
 mapHList = mapHList'
+
+-- | Apply the syntax tree to listed arguments
+appHList :: ConsType a =>
+    AST dom a -> HList (AST dom) a -> ASTF dom (EvalResult a)
+appHList = appHList'
 
 -- | Semantic constructor application
 ($:) :: (a :-> b) -> a -> b
@@ -226,6 +262,10 @@ infixl 1 :$:
 infixr :+:
 
 
+
+--------------------------------------------------------------------------------
+-- * Subsumption
+--------------------------------------------------------------------------------
 
 class sub :<: sup
   where
@@ -264,15 +304,19 @@ instance (expr1 :<: expr3) => ((:<:) expr1 (expr2 :+: expr3))
 
 
 
+--------------------------------------------------------------------------------
+-- * Syntactic sugar
+--------------------------------------------------------------------------------
+
 -- | It is assumed that for all types @A@ fulfilling @(`Syntactic` A dom)@:
 --
 -- > eval a == eval (desugar $ (id :: A -> A) $ sugar a)
 --
 -- (using 'Language.Syntactic.Analysis.Evaluation.eval')
 class Typeable (Internal a) => Syntactic a dom | a -> dom
-    -- Note: using a two-parameter class rather than an associated type, because
-    -- this makes it possible to make a class alias constraining dom. GHC
-    -- doesn't yet handle equality super classes.
+    -- Note: using a functional dependency rather than an associated type,
+    -- because this makes it possible to make a class alias constraining dom.
+    -- GHC doesn't yet handle equality super classes.
   where
     type Internal a
     desugar :: a -> ASTF dom (Internal a)
@@ -326,6 +370,10 @@ instance
     sugarN f   = sugarN . f . desugar
 
 
+
+--------------------------------------------------------------------------------
+-- * AST processing
+--------------------------------------------------------------------------------
 
 -- | Like 'queryNode' but with the result indexed by the constructor's result
 -- type
@@ -396,4 +444,41 @@ transformNode f a = transform a Nil
     transform :: AST dom b -> HList (AST dom) b -> ASTF dom' (EvalResult b)
     transform (Symbol a) args = f a args
     transform (c :$: a)  args = transform c (a :*: args)
+
+
+
+--------------------------------------------------------------------------------
+-- * Restricted syntax trees
+--------------------------------------------------------------------------------
+
+-- | An abstract representation of a constraint on @a@. An instance might look
+-- as follows:
+--
+-- > instance MyClass a => Sat MyContext a
+-- >   where
+-- >     data Witness MyContext a = MyClass a => MyWitness
+-- >     witness _ = MyWitness
+--
+-- This allows us to use @Sat MyContext a@ instead of @MyClass a@. The
+-- point with this is that @MyContext@ can be provided as a parameter, so this
+-- effectively allows us to parameterize on class constraints.
+--
+-- This trick was inspired by /Restricted Data Types in Haskell/ (John Hughes,
+-- Haskell Workshop, 1999).
+class Sat ctx a
+  where
+    data Witness ctx a
+    witness :: Proxy ctx -> Witness ctx a
+
+-- | Representation of a fully polymorphic constraint -- i.e. @(`Sat` `Poly` a)@
+-- is satisfied by all types @a@.
+data Poly
+
+instance Sat Poly a
+  where
+    data Witness Poly a = PolyWit
+    witness _ = PolyWit
+
+poly :: Proxy Poly
+poly = Proxy
 

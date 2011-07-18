@@ -4,12 +4,23 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 
+-- | A simple vector library for NanoFeldspar. The intention of this module is
+-- to demonstrate how to add language features without extending the underlying
+-- core language. By declaring 'Vector' as syntactic sugar, vector operations
+-- can work seamlessly with the functions of the core language.
+--
+-- An interesting aspect of the 'Vector' interface is that the only operation
+-- that produces a core language array (i.e. allocates memory) is 'freezeVector'
+-- (which uses 'parallel'). This means that expressions not involving
+-- 'freezeVector' are guaranteed to be fused. (Note, however, that
+-- 'freezeVector' is introduced by 'desugar', which in turn is used by many
+-- other functions.)
+
 module NanoFeldspar.Vector where
 
 
 
 import Prelude hiding (length, map, max, min, reverse, sum, unzip, zip, zipWith)
-import qualified Prelude
 
 import Language.Syntactic
 import Language.Syntactic.Features.Binding.HigherOrder
@@ -22,8 +33,7 @@ data Vector a
   where
     Indexed :: Data Length -> (Data Index -> a) -> Vector a
 
-instance Syntax a =>
-    Syntactic (Vector a) (HOLambda FeldDomain :+: Variable :+: FeldDomain)
+instance Syntax a => Syntactic (Vector a) FeldDomainAll
   where
     type Internal (Vector a) = [Internal a]
     desugar = desugar . freezeVector . map resugar

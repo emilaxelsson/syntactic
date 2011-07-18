@@ -1,5 +1,7 @@
 import Prelude hiding (length, map, max, min, reverse, sum, unzip, zip, zipWith)
 
+import Language.Syntactic.Features.TupleSyntacticPoly
+
 import NanoFeldspar.Core
 import NanoFeldspar.Vector
 
@@ -41,4 +43,11 @@ prog5 = zipWith (*) (1...1000)
 test5_1 = drawFeld prog5
 test5_2 = printFeld prog5
 test5_3 = eval prog5 [20..30]
+
+prog6 :: Data Index -> Data Index
+prog6 a = share (a*2,a*3) $ \(b,c) -> (b-c)*(c-b)
+
+test6_1 = drawFeld prog6
+test6_2 = printFeld prog6
+test6_3 = eval prog6 20
 

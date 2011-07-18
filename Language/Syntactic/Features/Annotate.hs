@@ -70,7 +70,13 @@ projectAnn a = do
     c                   <- project b
     return (info, c)
 
-getInfo :: AST (Ann info sup) a -> info (EvalResult a)
+-- | Get the annotation of the top-level node
+getInfo :: AST (Ann info dom) a -> info (EvalResult a)
 getInfo (Symbol (Ann info _)) = info
 getInfo (f :$: _)             = getInfo f
+
+-- | Collect the annotations of all nodes
+collectInfo :: (forall a . info a -> b) -> AST (Ann info dom) a -> [b]
+collectInfo coll (Symbol (Ann info _)) = [coll info]
+collectInfo coll (f :$: a) = collectInfo coll f ++ collectInfo coll a
 
