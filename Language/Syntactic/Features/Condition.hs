@@ -13,39 +13,43 @@ import Language.Syntactic
 
 data Condition ctx a
   where
-    Condition :: Sat ctx a =>
-        Proxy ctx -> Condition ctx (Bool :-> a :-> a :-> Full a)
+    Condition :: Sat ctx a => Condition ctx (Bool :-> a :-> a :-> Full a)
 
 instance WitnessCons (Condition ctx)
   where
-    witnessCons (Condition _) = ConsWit
+    witnessCons Condition = ConsWit
+
+instance WitnessSat (Condition ctx)
+  where
+    type Context (Condition ctx) = ctx
+    witnessSat Condition = witness
 
 instance ExprEq (Condition ctx)
   where
-    exprEq (Condition _) (Condition _) = True
+    exprEq Condition Condition = True
 
 instance Render (Condition ctx)
   where
-    render (Condition _) = "condition"
+    render Condition = "condition"
 
 instance ToTree (Condition ctx)
 
 instance Eval (Condition ctx)
   where
-    evaluate (Condition _) = fromEval $
+    evaluate Condition = fromEval $
         \cond tHEN eLSE -> if cond then tHEN else eLSE
 
 instance ExprHash (Condition ctx)
   where
-    exprHash (Condition _) = hashInt 0
+    exprHash Condition = hashInt 0
 
 
 
 -- | Conditional expression with explicit context
 conditionCtx
-    :: (Sat ctx (Internal a), Condition ctx :<: dom, Syntactic a dom)
+    :: (Sat ctx (Internal a), Syntactic a dom, Condition ctx :<: dom)
     => Proxy ctx -> ASTF dom Bool -> a -> a -> a
-conditionCtx ctx cond tHEN eLSE = sugar $ inject (Condition ctx)
+conditionCtx ctx cond tHEN eLSE = sugar $ inject (Condition `withContext` ctx)
     :$: cond
     :$: desugar tHEN
     :$: desugar eLSE
@@ -54,8 +58,6 @@ conditionCtx ctx cond tHEN eLSE = sugar $ inject (Condition ctx)
 condition :: (Condition Poly :<: dom, Syntactic a dom) =>
     ASTF dom Bool -> a -> a -> a
 condition = conditionCtx poly
-
-
 
 -- | Partial `Condition` projection with explicit context
 prjCondition :: (Condition ctx :<: sup) =>

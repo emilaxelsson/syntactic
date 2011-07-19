@@ -5,8 +5,6 @@ module Language.Syntactic.Features.TupleSyntacticPoly where
 
 
 
-import Data.Proxy
-
 import Language.Syntactic.Syntax
 import Language.Syntactic.Features.Tuple
 

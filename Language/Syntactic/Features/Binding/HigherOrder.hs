@@ -11,9 +11,7 @@ module Language.Syntactic.Features.Binding.HigherOrder
     , HOLambda (..)
     , HOAST
     , HOASTF
-    , lambdaCtx
     , lambda
-    , lambdaNCtx
     , lambdaN
     , letBindCtx
     , letBind
@@ -40,8 +38,7 @@ import Language.Syntactic.Features.Binding
 data HOLambda ctx dom a
   where
     HOLambda :: (Typeable a, Typeable b, Sat ctx a)
-        => Proxy ctx
-        -> (HOAST ctx dom (Full a) -> HOAST ctx dom (Full b))
+        => (HOAST ctx dom (Full a) -> HOAST ctx dom (Full b))
         -> HOLambda ctx dom (Full (a -> b))
 
 type HOAST  ctx dom a = AST (HOLambda ctx dom :+: Variable ctx :+: dom) a
@@ -49,60 +46,55 @@ type HOASTF ctx dom a = HOAST ctx dom (Full a)
 
 instance WitnessCons (HOLambda ctx dom)
   where
-    witnessCons (HOLambda _ _) = ConsWit
+    witnessCons (HOLambda _) = ConsWit
 
 
-
--- | Lambda binding with explicit context
-lambdaCtx :: (Typeable a, Typeable b, Sat ctx a)
-    => Proxy ctx
-    -> (HOAST ctx dom (Full a) -> HOAST ctx dom (Full b))
-    -> HOAST ctx dom (Full (a -> b))
-lambdaCtx ctx = inject . HOLambda ctx
 
 -- | Lambda binding
-lambda :: (Typeable a, Typeable b)
-    => (HOAST Poly dom (Full a) -> HOAST Poly dom (Full b))
-    -> HOAST Poly dom (Full (a -> b))
-lambda = lambdaCtx poly
-
--- | N-ary lambda binding with explicit context
-lambdaNCtx :: NAry ctx a (HOLambda ctx dom :+: Variable ctx :+: dom) =>
-    Proxy ctx -> a -> HOAST ctx dom (Full (NAryEval a))
-lambdaNCtx ctx = bindN ctx (lambdaCtx ctx)
+lambda :: (Typeable a, Typeable b, Sat ctx a)
+    => (HOAST ctx dom (Full a) -> HOAST ctx dom (Full b))
+    -> HOAST ctx dom (Full (a -> b))
+lambda = inject . HOLambda
 
 -- | N-ary lambda binding
-lambdaN :: NAry Poly a (HOLambda Poly dom :+: Variable Poly :+: dom) =>
-    a -> HOAST Poly dom (Full (NAryEval a))
-lambdaN = lambdaNCtx poly
+lambdaN :: forall ctx dom a
+    .  NAry ctx a (HOLambda ctx dom :+: Variable ctx :+: dom)
+    => a -> HOAST ctx dom (Full (NAryEval a))
+lambdaN = bindN (Proxy :: Proxy ctx) lambda
 
 -- | Let binding with explicit context
-letBindCtx
-    :: (Typeable a, Typeable b, Let ctxa ctxb :<: dom, Sat ctxa a, Sat ctxb b)
-    => Proxy ctxa
-    -> Proxy ctxb
+letBindCtx :: forall ctxa ctxb dom a b
+    .  (Typeable a, Typeable b, Let ctxa ctxb :<: dom, Sat ctxa a, Sat ctxb b)
+    => Proxy ctxb
     -> HOAST ctxa dom (Full a)
     -> (HOAST ctxa dom (Full a) -> HOAST ctxa dom (Full b))
     -> HOAST ctxa dom (Full b)
-letBindCtx ctxa ctxb a f = inject (Let ctxa ctxb) :$: a :$: lambdaCtx ctxa f
+letBindCtx _ a f = inject let' :$: a :$: lambda f
+  where
+    let' :: Let ctxa ctxb (a :-> (a -> b) :-> Full b)
+    let' = Let
 
 -- | Let binding
 letBind :: (Typeable a, Typeable b, Let Poly Poly :<: dom)
     => HOAST Poly dom (Full a)
     -> (HOAST Poly dom (Full a) -> HOAST Poly dom (Full b))
     -> HOAST Poly dom (Full b)
-letBind = letBindCtx poly poly
+letBind = letBindCtx poly
 
 
 
-reifyM :: Typeable a
+reifyM :: forall ctx dom a . Typeable a
     => HOAST ctx dom a
     -> State VarId (AST (Lambda ctx :+: Variable ctx :+: dom) a)
 reifyM (f :$: a)            = liftM2 (:$:) (reifyM f) (reifyM a)
 reifyM (Symbol (InjectR a)) = return $ Symbol $ InjectR a
-reifyM (Symbol (InjectL (HOLambda ctx f))) = do
-    v <- get; put (v+1)
-    liftM (inject (Lambda ctx v) :$:) $ reifyM $ f $ inject $ Variable ctx v
+reifyM (Symbol (InjectL (HOLambda f))) = do
+    v    <- get; put (v+1)
+    body <- reifyM $ f $ inject $ (Variable v `withContext` ctx)
+    return $ inject (Lambda v `withContext` ctx) :$: body
+  where
+    ctx = Proxy :: Proxy ctx
+
 
 -- | Translating expressions with higher-order binding to corresponding
 -- expressions using first-order binding
@@ -134,7 +126,7 @@ reifyCtx :: Reifiable ctx a dom internal
     => Proxy ctx
     -> a
     -> ASTF (Lambda ctx :+: Variable ctx :+: dom) (NAryEval internal)
-reifyCtx ctx = reifyHOAST . lambdaNCtx ctx . desugarN
+reifyCtx _ = reifyHOAST . lambdaN . desugarN
 
 -- | Reifying an n-ary syntactic function
 reify :: Reifiable Poly a dom internal =>

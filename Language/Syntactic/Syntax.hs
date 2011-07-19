@@ -87,7 +87,9 @@ module Language.Syntactic.Syntax
     , transformNode
       -- * Restricted syntax trees
     , Sat (..)
-    , Poly (..)
+    , WitnessSat (..)
+    , withContext
+    , Poly
     , poly
     ) where
 
@@ -461,14 +463,27 @@ transformNode f a = transform a Nil
 --
 -- This allows us to use @Sat MyContext a@ instead of @MyClass a@. The
 -- point with this is that @MyContext@ can be provided as a parameter, so this
--- effectively allows us to parameterize on class constraints.
+-- effectively allows us to parameterize on class constraints. Note that the
+-- existential context in the data definition is important. This means that,
+-- given a constraint @(`Sat` MyContext a)@, we can always construct the context
+-- @(MyClass a)@ by calling the 'witness' method (the class instance only
+-- declares the reverse relationship).
 --
 -- This trick was inspired by /Restricted Data Types in Haskell/ (John Hughes,
 -- Haskell Workshop, 1999).
 class Sat ctx a
   where
     data Witness ctx a
-    witness :: Proxy ctx -> Witness ctx a
+    witness :: Witness ctx a
+
+class WitnessSat expr
+  where
+    type Context expr
+    witnessSat :: expr a -> Witness (Context expr) (EvalResult a)
+
+-- | Type application for constraining the @ctx@ type of a parameterized symbol
+withContext :: sym ctx a -> Proxy ctx -> sym ctx a
+withContext = const
 
 -- | Representation of a fully polymorphic constraint -- i.e. @(`Sat` `Poly` a)@
 -- is satisfied by all types @a@.
@@ -477,7 +492,7 @@ data Poly
 instance Sat Poly a
   where
     data Witness Poly a = PolyWit
-    witness _ = PolyWit
+    witness = PolyWit
 
 poly :: Proxy Poly
 poly = Proxy
