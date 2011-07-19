@@ -48,12 +48,12 @@ instance WitnessCons (Tuple ctx)
 instance WitnessSat (Tuple ctx)
   where
     type Context (Tuple ctx) = ctx
-    witnessSat Tup2 = witness
-    witnessSat Tup3 = witness
-    witnessSat Tup4 = witness
-    witnessSat Tup5 = witness
-    witnessSat Tup6 = witness
-    witnessSat Tup7 = witness
+    witnessSat Tup2 = Witness'
+    witnessSat Tup3 = Witness'
+    witnessSat Tup4 = Witness'
+    witnessSat Tup5 = Witness'
+    witnessSat Tup6 = Witness'
+    witnessSat Tup7 = Witness'
 
 instance IsFunction (Tuple ctx)
   where
@@ -214,13 +214,13 @@ instance WitnessCons (Select ctx)
 instance WitnessSat (Select ctx)
   where
     type Context (Select ctx) = ctx
-    witnessSat Sel1 = witness
-    witnessSat Sel2 = witness
-    witnessSat Sel3 = witness
-    witnessSat Sel4 = witness
-    witnessSat Sel5 = witness
-    witnessSat Sel6 = witness
-    witnessSat Sel7 = witness
+    witnessSat Sel1 = Witness'
+    witnessSat Sel2 = Witness'
+    witnessSat Sel3 = Witness'
+    witnessSat Sel4 = Witness'
+    witnessSat Sel5 = Witness'
+    witnessSat Sel6 = Witness'
+    witnessSat Sel7 = Witness'
 
 instance IsFunction (Select ctx)
   where

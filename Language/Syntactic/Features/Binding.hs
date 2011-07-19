@@ -46,7 +46,7 @@ instance WitnessCons (Variable ctx)
 instance WitnessSat (Variable ctx)
   where
     type Context (Variable ctx) = ctx
-    witnessSat (Variable _) = witness
+    witnessSat (Variable _) = Witness'
 
 -- | Strict identifier comparison; i.e. no alpha equivalence
 instance ExprEq (Variable ctx)
@@ -230,7 +230,7 @@ instance WitnessCons (Let ctxa ctxb)
 instance WitnessSat (Let ctxa ctxb)
   where
     type Context (Let ctxa ctxb) = ctxb
-    witnessSat Let = witness
+    witnessSat Let = Witness'
 
 instance ExprEq (Let ctxa ctxb)
   where

@@ -87,6 +87,8 @@ module Language.Syntactic.Syntax
     , transformNode
       -- * Restricted syntax trees
     , Sat (..)
+    , Witness' (..)
+    , witness'
     , WitnessSat (..)
     , withContext
     , Poly
@@ -459,9 +461,9 @@ transformNode f a = transform a Nil
 -- > instance MyClass a => Sat MyContext a
 -- >   where
 -- >     data Witness MyContext a = MyClass a => MyWitness
--- >     witness _ = MyWitness
+-- >     witness = MyWitness
 --
--- This allows us to use @Sat MyContext a@ instead of @MyClass a@. The
+-- This allows us to use @(`Sat` MyContext a)@ instead of @(MyClass a)@. The
 -- point with this is that @MyContext@ can be provided as a parameter, so this
 -- effectively allows us to parameterize on class constraints. Note that the
 -- existential context in the data definition is important. This means that,
@@ -469,17 +471,29 @@ transformNode f a = transform a Nil
 -- @(MyClass a)@ by calling the 'witness' method (the class instance only
 -- declares the reverse relationship).
 --
--- This trick was inspired by /Restricted Data Types in Haskell/ (John Hughes,
--- Haskell Workshop, 1999).
+-- This way of parameterizing over type classes was inspired by
+-- /Restricted Data Types in Haskell/ (John Hughes, Haskell Workshop, 1999).
 class Sat ctx a
   where
     data Witness ctx a
     witness :: Witness ctx a
 
-class WitnessSat expr
+-- | Witness of a @(`Sat` ctx a)@ constraint. This is different from
+-- @(`Witness` ctx a)@, which witnesses the class encoded by @ctx@. 'Witness''
+-- has a single constructor for all contexts, while 'Witness' has different
+-- constructors for different contexts.
+data Witness' ctx a
   where
-    type Context expr
-    witnessSat :: expr a -> Witness (Context expr) (EvalResult a)
+    Witness' :: Sat ctx a => Witness' ctx a
+
+witness' :: Witness' ctx a -> Witness ctx a
+witness' Witness' = witness
+
+-- | Symbols that act as witnesses of their result type
+class WitnessSat sym
+  where
+    type Context sym
+    witnessSat :: sym a -> Witness' (Context sym) (EvalResult a)
 
 -- | Type application for constraining the @ctx@ type of a parameterized symbol
 withContext :: sym ctx a -> Proxy ctx -> sym ctx a

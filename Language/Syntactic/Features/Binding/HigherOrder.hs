@@ -38,7 +38,7 @@ import Language.Syntactic.Features.Binding
 data HOLambda ctx dom a
   where
     HOLambda :: (Typeable a, Typeable b, Sat ctx a)
-        => (HOAST ctx dom (Full a) -> HOAST ctx dom (Full b))
+        => (HOASTF ctx dom a -> HOASTF ctx dom b)
         -> HOLambda ctx dom (Full (a -> b))
 
 type HOAST  ctx dom a = AST (HOLambda ctx dom :+: Variable ctx :+: dom) a
@@ -51,24 +51,23 @@ instance WitnessCons (HOLambda ctx dom)
 
 
 -- | Lambda binding
-lambda :: (Typeable a, Typeable b, Sat ctx a)
-    => (HOAST ctx dom (Full a) -> HOAST ctx dom (Full b))
-    -> HOAST ctx dom (Full (a -> b))
+lambda :: (Typeable a, Typeable b, Sat ctx a) =>
+    (HOASTF ctx dom a -> HOASTF ctx dom b) -> HOASTF ctx dom (a -> b)
 lambda = inject . HOLambda
 
 -- | N-ary lambda binding
 lambdaN :: forall ctx dom a
     .  NAry ctx a (HOLambda ctx dom :+: Variable ctx :+: dom)
-    => a -> HOAST ctx dom (Full (NAryEval a))
+    => a -> HOASTF ctx dom (NAryEval a)
 lambdaN = bindN (Proxy :: Proxy ctx) lambda
 
 -- | Let binding with explicit context
 letBindCtx :: forall ctxa ctxb dom a b
     .  (Typeable a, Typeable b, Let ctxa ctxb :<: dom, Sat ctxa a, Sat ctxb b)
     => Proxy ctxb
-    -> HOAST ctxa dom (Full a)
-    -> (HOAST ctxa dom (Full a) -> HOAST ctxa dom (Full b))
-    -> HOAST ctxa dom (Full b)
+    -> HOASTF ctxa dom a
+    -> (HOASTF ctxa dom a -> HOASTF ctxa dom b)
+    -> HOASTF ctxa dom b
 letBindCtx _ a f = inject let' :$: a :$: lambda f
   where
     let' :: Let ctxa ctxb (a :-> (a -> b) :-> Full b)
@@ -76,9 +75,9 @@ letBindCtx _ a f = inject let' :$: a :$: lambda f
 
 -- | Let binding
 letBind :: (Typeable a, Typeable b, Let Poly Poly :<: dom)
-    => HOAST Poly dom (Full a)
-    -> (HOAST Poly dom (Full a) -> HOAST Poly dom (Full b))
-    -> HOAST Poly dom (Full b)
+    => HOASTF Poly dom a
+    -> (HOASTF Poly dom a -> HOASTF Poly dom b)
+    -> HOASTF Poly dom b
 letBind = letBindCtx poly
 
 

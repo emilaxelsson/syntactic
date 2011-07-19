@@ -25,7 +25,7 @@ instance WitnessCons (Literal ctx)
 instance WitnessSat (Literal ctx)
   where
     type Context (Literal ctx) = ctx
-    witnessSat (Literal _) = witness
+    witnessSat (Literal _) = Witness'
 
 instance ExprEq (Literal ctx)
   where

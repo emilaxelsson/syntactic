@@ -61,6 +61,8 @@ Library
     Language.Syntactic.Features.TupleSyntacticPoly
     Language.Syntactic.Features.Binding
     Language.Syntactic.Features.Binding.HigherOrder
+    Language.Syntactic.Sharing.Graph
+    Language.Syntactic.Sharing.Reify
 
   Other-modules:
 

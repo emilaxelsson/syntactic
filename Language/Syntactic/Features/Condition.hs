@@ -22,7 +22,7 @@ instance WitnessCons (Condition ctx)
 instance WitnessSat (Condition ctx)
   where
     type Context (Condition ctx) = ctx
-    witnessSat Condition = witness
+    witnessSat Condition = Witness'
 
 instance ExprEq (Condition ctx)
   where
