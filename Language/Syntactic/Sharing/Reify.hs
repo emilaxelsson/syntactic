@@ -87,12 +87,12 @@ reifyGraphM canShare vSupp nSupp history = reifyNode
   where
     reifyNode :: Typeable b => HOASTF ctx dom b -> GraphMonad ctx dom (Full b)
     reifyNode a = case canShare a of
-        Nothing       -> reifyRec a
-        Just Witness' -> do
+        Nothing -> reifyRec a
+        Just Witness' | a `seq` True -> do
           st   <- liftIO $ makeStableName a
           hist <- liftIO $ readIORef history
           case lookHistory hist (StName st) of
-            Just n -> error "sdfsdf" -- return $ Symbol $ InjectL $ Node n
+            Just n -> return $ Symbol $ InjectL $ Node n
             _ -> do
               n  <- fresh nSupp
               liftIO $ modifyIORef history $ remember (StName st) n
