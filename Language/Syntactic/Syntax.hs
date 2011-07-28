@@ -50,10 +50,10 @@
 -- > conv12 :: (Num2 :<: dom, Add2 :<: dom) => Expr1 a -> ASTF dom a
 -- > conv21 :: (Num2 :<: dom, Add2 :<: dom) => ASTF dom a -> Expr1 a
 --
--- This way of encoding open data types is taken from /Data types à la carte/,
--- by Wouter Swierstra, in /Journal of Functional Programming/, 2008. However,
--- we do not need Swierstra's fixed-point machinery for recursive data types.
--- Instead we rely on 'AST' being recursive.
+-- This way of encoding open data types is taken from /Data types à la carte/
+-- (Wouter Swierstra, /Journal of Functional Programming/, 2008). However, we do
+-- not need Swierstra's fixed-point machinery for recursive data types. Instead
+-- we rely on 'AST' being recursive.
 
 module Language.Syntactic.Syntax
     ( -- * Syntax trees
@@ -472,7 +472,7 @@ transformNode f a = transform a Nil
 -- declares the reverse relationship).
 --
 -- This way of parameterizing over type classes was inspired by
--- /Restricted Data Types in Haskell/ (John Hughes, Haskell Workshop, 1999).
+-- /Restricted Data Types in Haskell/ (John Hughes, /Haskell Workshop/, 1999).
 class Sat ctx a
   where
     data Witness ctx a

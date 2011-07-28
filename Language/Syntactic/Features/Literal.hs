@@ -33,6 +33,8 @@ instance ExprEq (Literal ctx)
         Just a' -> a'==b
         Nothing -> False
 
+    exprHash (Literal a) = hash (show a)
+
 instance Render (Literal ctx)
   where
     render (Literal a) = show a
@@ -42,10 +44,6 @@ instance ToTree (Literal ctx)
 instance Eval (Literal ctx)
   where
     evaluate (Literal a) = fromEval a
-
-instance ExprHash (Literal ctx)
-  where
-    exprHash (Literal a) = hash (show a)
 
 
 

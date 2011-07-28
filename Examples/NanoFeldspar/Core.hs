@@ -14,8 +14,8 @@
 -- types at which constructors operate. Currently, all general features (such as
 -- 'Literal' and 'Tuple') use a 'Poly' context, which means that the types are
 -- not restricted. A real implementation would also probably use custom types
--- for primitive functions, since the 'PrimFunc' feature is quite unsafe (uses
--- only a 'String' to distinguish between functions).
+-- for primitive functions, since the 'Sym' feature is quite unsafe (uses only
+-- a 'String' to distinguish between functions).
 
 module NanoFeldspar.Core where
 
@@ -26,12 +26,14 @@ import qualified Prelude
 import Data.Typeable
 
 import Language.Syntactic
+import Language.Syntactic.Features.Symbol
 import Language.Syntactic.Features.Literal
-import Language.Syntactic.Features.PrimFunc
 import Language.Syntactic.Features.Condition
 import Language.Syntactic.Features.Tuple
 import Language.Syntactic.Features.Binding
 import Language.Syntactic.Features.Binding.HigherOrder
+import Language.Syntactic.Sharing.Graph
+import Language.Syntactic.Sharing.ReifyHO
 
 
 
@@ -56,19 +58,16 @@ data Parallel a
   where
     Parallel :: Parallel (Length :-> (Index -> a) :-> Full [a])
 
-instance Render Parallel
+instance IsSymbol Parallel
   where
-    render Parallel = "parallel"
+    toSym Parallel = Sym "parallel" parallel
+      where
+        parallel len ixf = map ixf [0 .. len-1]
 
+instance ExprEq Parallel where exprEq = exprEqFunc; exprHash = exprHashFunc
+instance Render Parallel where renderPart = renderPartFunc
+instance Eval   Parallel where evaluate   = evaluateFunc
 instance ToTree Parallel
-
-instance ExprEq Parallel
-  where
-    Parallel `exprEq` Parallel = True
-
-instance Eval Parallel
-  where
-    evaluate Parallel = fromEval $ \len ixf -> Prelude.map ixf [0 .. len-1]
 
 
 
@@ -80,19 +79,16 @@ data ForLoop a
   where
     ForLoop :: ForLoop (Length :-> st :-> (Index -> st -> st) :-> Full st)
 
-instance ExprEq ForLoop
+instance IsSymbol ForLoop
   where
-    ForLoop `exprEq` ForLoop = True
+    toSym ForLoop = Sym "forLoop" forLoop
+      where
+        forLoop len init body = foldl (flip body) init [0 .. len-1]
 
-instance Render ForLoop
-  where
-    render ForLoop = "forLoop"
-
+instance ExprEq ForLoop where exprEq = exprEqFunc; exprHash = exprHashFunc
+instance Render ForLoop where renderPart = renderPartFunc
+instance Eval   ForLoop where evaluate   = evaluateFunc
 instance ToTree ForLoop
-
-instance Eval ForLoop
-  where
-    evaluate ForLoop = fromEval $ \len init body -> foldr body init [0 .. len-1]
 
 
 
@@ -103,7 +99,7 @@ instance Eval ForLoop
 -- | The Feldspar domain
 type FeldDomain
     =   Literal Poly
-    :+: PrimFunc
+    :+: Sym
     :+: Condition Poly
     :+: Tuple Poly
     :+: Select Poly
@@ -151,6 +147,32 @@ printFeld = printExpr . reify
 drawFeld :: Reifiable Poly a FeldDomain internal => a -> IO ()
 drawFeld = drawAST . reify
 
+-- | A predicate deciding which constructs can be shared. Variables and literals
+-- are not shared.
+canShare :: HOASTF Poly FeldDomain a -> Maybe (Witness' Poly a)
+canShare (prjVariable poly -> Just _) = Nothing
+canShare (prjLiteral poly  -> Just _) = Nothing
+canShare _                            = Just Witness'
+
+-- | Draw the syntax graph after common sub-expression elimination
+drawFeldCSE :: Reifiable Poly a FeldDomain internal => a -> IO ()
+drawFeldCSE a = do
+    (g,_) <- reifyGraph canShare a
+    drawASG
+      $ reindexNodesFrom0
+      $ inlineSingle
+      $ cse
+      $ g
+
+-- | Draw the syntax graph after observing sharing
+drawFeldObs :: Reifiable Poly a FeldDomain internal => a -> IO ()
+drawFeldObs a = do
+    (g,_) <- reifyGraph canShare a
+    drawASG
+      $ reindexNodesFrom0
+      $ inlineSingle
+      $ g
+
 -- | Evaluation
 eval :: Reifiable Poly a FeldDomain internal => a -> NAryEval internal
 eval = evalLambda . reify
@@ -177,7 +199,7 @@ share a f = sugar $ letBind (desugar a) (desugarN f)
 -- | Alpha equivalence
 instance Eq (Data a)
   where
-    Data a == Data b = reify a `alphaEq` reify b
+    Data a == Data b = alphaEq poly (reify a) (reify b)
 
 instance Show (Data a)
   where
@@ -186,11 +208,11 @@ instance Show (Data a)
 instance (Type a, Num a) => Num (Data a)
   where
     fromInteger = value . fromInteger
-    abs         = sugarN $ primFunc1 "abs" abs
-    signum      = sugarN $ primFunc1 "signum" signum
-    (+)         = sugarN $ primFunc2 "(+)" (+)
-    (-)         = sugarN $ primFunc2 "(-)" (-)
-    (*)         = sugarN $ primFunc2 "(*)" (*)
+    abs         = sugarN $ sym1 "abs" abs
+    signum      = sugarN $ sym1 "signum" signum
+    (+)         = sugarN $ sym2 "(+)" (+)
+    (-)         = sugarN $ sym2 "(-)" (-)
+    (*)         = sugarN $ sym2 "(*)" (*)
 
 -- | Parallel array
 parallel :: Type a => Data Length -> (Data Index -> Data a) -> Data [a]
@@ -209,11 +231,11 @@ forLoop len init body
     :$: lambdaN (desugarN body)
 
 arrLength :: Type a => Data [a] -> Data Length
-arrLength = sugarN $ primFunc1 "arrLength" Prelude.length
+arrLength = sugarN $ sym1 "arrLength" Prelude.length
 
 -- | Array indexing
 getIx :: Type a => Data [a] -> Data Index -> Data a
-getIx = sugarN $ primFunc2 "getIx" eval
+getIx = sugarN $ sym2 "getIx" eval
   where
     eval as i
         | i >= len || i < 0 = error "getIx: index out of bounds"
@@ -222,8 +244,8 @@ getIx = sugarN $ primFunc2 "getIx" eval
         len = Prelude.length as
 
 max :: Type a => Data a -> Data a -> Data a
-max = sugarN $ primFunc2 "max" Prelude.max
+max = sugarN $ sym2 "max" Prelude.max
 
 min :: Type a => Data a -> Data a -> Data a
-min = sugarN $ primFunc2 "min" Prelude.min
+min = sugarN $ sym2 "min" Prelude.min
 

@@ -22,7 +22,7 @@ import Language.Syntactic
 
 -- | Variable identifier
 newtype VarId = VarId { varInteger :: Integer }
-  deriving (Eq, Ord, Num, Enum, Ix)
+  deriving (Eq, Ord, Num, Real, Integral, Enum, Ix)
 
 instance Show VarId
   where
@@ -48,10 +48,16 @@ instance WitnessSat (Variable ctx)
     type Context (Variable ctx) = ctx
     witnessSat (Variable _) = Witness'
 
--- | Strict identifier comparison; i.e. no alpha equivalence
+-- | 'exprEq' does strict identifier comparison; i.e. no alpha equivalence.
+--
+-- 'exprHash' assigns the same hash to all variables. This is a valid
+-- over-approximation that enables the following property:
+--
+-- @`alphaEq` a b  ==>  `exprHash` a == `exprHash` b@
 instance ExprEq (Variable ctx)
   where
     exprEq (Variable v1) (Variable v2) = v1==v2
+    exprHash (Variable _)              = hashInt 0
 
 instance Render (Variable ctx)
   where
@@ -83,10 +89,16 @@ instance WitnessCons (Lambda ctx)
   where
     witnessCons (Lambda _) = ConsWit
 
--- | Strict identifier comparison; i.e. no alpha equivalence
+-- | 'exprEq' does strict identifier comparison; i.e. no alpha equivalence.
+--
+-- 'exprHash' assigns the same hash to all 'Lambda' bindings. This is a valid
+-- over-approximation that enables the following property:
+--
+-- @`alphaEq` a b  ==>  `exprHash` a == `exprHash` b@
 instance ExprEq (Lambda ctx)
   where
     exprEq (Lambda v1) (Lambda v2) = v1==v2
+    exprHash (Lambda _)            = hashInt 0
 
 instance Render (Lambda ctx)
   where
@@ -101,49 +113,47 @@ prjLambda :: (Lambda ctx :<: sup) => Proxy ctx -> sup a -> Maybe (Lambda ctx a)
 prjLambda _ = project
 
 
+-- | Alpha equivalence in an environment of variable equivalences. The supplied
+-- equivalence function gets called when the argument expressions are not both
+-- 'Variable's, both 'Lambda's or both ':$:'.
+alphaEqM :: (Lambda ctx :<: dom, Variable ctx :<: dom)
+    => Proxy ctx
+    -> (forall a b . AST dom a -> AST dom b -> Reader [(VarId,VarId)] Bool)
+    -> (forall a b . AST dom a -> AST dom b -> Reader [(VarId,VarId)] Bool)
 
--- | Alpha-equivalence on 'Lambda' expressions. Free variables are taken to be
--- equvalent if they have the same identifier.
-alphaEqM :: ExprEq dom
-    => AST (Lambda ctx :+: Variable ctx :+: dom) a
-    -> AST (Lambda ctx :+: Variable ctx :+: dom) b
-    -> Reader [(VarId,VarId)] Bool
+-- TODO This function is not ideal, since the type says nothing about which
+--      cases have been handled when calling 'eq'.
 
-alphaEqM
-    (Symbol (InjectR (InjectL (Variable v1))))
-    (Symbol (InjectR (InjectL (Variable v2))))
-      = do env <- ask
-           case lookup v1 env of
-             Nothing  -> return (v1==v2)   -- Free variables
-             Just v2' -> return (v2==v2')
+alphaEqM ctx eq
+    ((prjLambda ctx -> Just (Lambda v1)) :$: a1)
+    ((prjLambda ctx -> Just (Lambda v2)) :$: a2) =
+        local ((v1,v2):) $ alphaEqM ctx eq a1 a2
 
-alphaEqM
-    (Symbol (InjectL (Lambda v1)) :$: a1)
-    (Symbol (InjectL (Lambda v2)) :$: a2)
-      = local ((v1,v2):) $ alphaEqM a1 a2
+alphaEqM ctx eq
+    (prjVariable ctx -> Just (Variable v1))
+    (prjVariable ctx -> Just (Variable v2)) = do
+        env <- ask
+        case lookup v1 env of
+          Nothing  -> return (v1==v2)   -- Free variables
+          Just v2' -> return (v2==v2')
 
-alphaEqM (f1 :$: a1) (f2 :$: a2) = do
-    e <- alphaEqM f1 f2
-    if e then alphaEqM a1 a2 else return False
+alphaEqM ctx eq (f1 :$: a1) (f2 :$: a2) = do
+    e <- alphaEqM ctx eq f1 f2
+    if e then alphaEqM ctx eq a1 a2 else return False
 
-alphaEqM
-    (Symbol (InjectR (InjectR a)))
-    (Symbol (InjectR (InjectR b)))
-      = return (exprEq a b)
-
-alphaEqM _ _ = return False
+alphaEqM _ eq a b = eq a b
 
 
 
-alphaEq :: ExprEq dom
-    => AST (Lambda ctx :+: Variable ctx :+: dom) a
-    -> AST (Lambda ctx :+: Variable ctx :+: dom) b
-    -> Bool
-alphaEq a b = runReader (alphaEqM a b) []
+-- | Alpha-equivalence on lambda expressions. Free variables are taken to be
+-- equivalent if they have the same identifier.
+alphaEq :: (Lambda ctx :<: dom, Variable ctx :<: dom, ExprEq dom) =>
+    Proxy ctx -> AST dom a -> AST dom b -> Bool
+alphaEq ctx a b = runReader (alphaEqM ctx (\a b -> return $ exprEq a b) a b) []
 
 
 
--- | Evaluation of possibly open 'LambdaAST' expressions
+-- | Evaluation of possibly open lambda expressions
 evalLambdaM :: (Eval dom, MonadReader [(VarId,Dynamic)] m) =>
     ASTF (Lambda ctx :+: Variable ctx :+: dom) a -> m a
 evalLambdaM = liftM result . eval
@@ -175,7 +185,7 @@ evalLambdaM = liftM result . eval
 
 
 
--- | Evaluation of closed 'Lambda' expressions
+-- | Evaluation of closed lambda expressions
 evalLambda :: Eval dom => ASTF (Lambda ctx :+: Variable ctx :+: dom) a -> a
 evalLambda = flip runReader [] . evalLambdaM
 
@@ -236,6 +246,8 @@ instance ExprEq (Let ctxa ctxb)
   where
     exprEq Let Let = True
 
+    exprHash Let = hashInt 0
+
 instance Render (Let ctxa ctxb)
   where
     renderPart []    Let = "Let"
@@ -251,10 +263,6 @@ instance ToTree (Let ctxa ctxb)
 instance Eval (Let ctxa ctxb)
   where
     evaluate Let = fromEval (flip ($))
-
-instance ExprHash (Let ctxa ctxb)
-  where
-    exprHash Let = hashInt 0
 
 -- | Partial `Let` projection with explicit context
 prjLet :: (Let ctxa ctxb :<: sup) =>

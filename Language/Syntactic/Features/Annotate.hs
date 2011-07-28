@@ -8,7 +8,6 @@ import Language.Syntactic.Syntax
 import Language.Syntactic.Analysis.Equality
 import Language.Syntactic.Analysis.Render
 import Language.Syntactic.Analysis.Evaluation
-import Language.Syntactic.Analysis.Hash
 
 
 
@@ -40,6 +39,7 @@ type AnnSTF info dom a = ASTF (Ann info dom) a
 instance ExprEq expr => ExprEq (Ann info expr)
   where
     exprEq a b = annExpr a `exprEq` annExpr b
+    exprHash   = exprHash . annExpr
 
 instance Render expr => Render (Ann info expr)
   where
@@ -52,10 +52,6 @@ instance ToTree expr => ToTree (Ann info expr)
 instance Eval expr => Eval (Ann info expr)
   where
     evaluate = evaluate . annExpr
-
-instance ExprHash expr => ExprHash (Ann info expr)
-  where
-    exprHash = exprHash . annExpr
 
 
 

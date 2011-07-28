@@ -51,3 +51,28 @@ test6_1 = drawFeld prog6
 test6_2 = printFeld prog6
 test6_3 = eval prog6 20
 
+
+
+--------------------------------------------------------------------------------
+-- Demonstration of common sub-expression elimination and observable sharing
+--------------------------------------------------------------------------------
+
+prog7 = index as 1 + sum as + sum as
+  where
+    as = map (*2) $ force (1...20)
+
+test7_1 = drawFeld prog7
+  -- Draws a tree with a lot of duplication
+
+test7_2 = drawFeldCSE prog7
+  -- Draws a graph with no duplication
+
+test7_3 = drawFeldObs prog7
+  -- Draws a graph with some duplication. The 'forLoop' introduced by 'sum' is
+  -- not shared, because 'sum as' is repeated twice in source code of 'prog7'.
+  -- But the 'parallel' introduced by 'force' is shared, because 'force' only
+  -- appears once.
+
+-- Note that we're still missing a way to rebuild an expression with let
+-- bindings from the graph. This is ongoing work.
+

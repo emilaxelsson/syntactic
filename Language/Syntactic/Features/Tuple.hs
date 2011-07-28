@@ -18,7 +18,7 @@ import Data.Proxy
 import Data.Tuple.Select
 
 import Language.Syntactic
-import Language.Syntactic.Features.PrimFunc
+import Language.Syntactic.Features.Symbol
 
 
 
@@ -55,20 +55,19 @@ instance WitnessSat (Tuple ctx)
     witnessSat Tup6 = Witness'
     witnessSat Tup7 = Witness'
 
-instance IsFunction (Tuple ctx)
+instance IsSymbol (Tuple ctx)
   where
-    toFunction Tup2 = PrimFunc "tup2" (,)
-    toFunction Tup3 = PrimFunc "tup3" (,,)
-    toFunction Tup4 = PrimFunc "tup4" (,,,)
-    toFunction Tup5 = PrimFunc "tup5" (,,,,)
-    toFunction Tup6 = PrimFunc "tup6" (,,,,,)
-    toFunction Tup7 = PrimFunc "tup7" (,,,,,,)
+    toSym Tup2 = Sym "tup2" (,)
+    toSym Tup3 = Sym "tup3" (,,)
+    toSym Tup4 = Sym "tup4" (,,,)
+    toSym Tup5 = Sym "tup5" (,,,,)
+    toSym Tup6 = Sym "tup6" (,,,,,)
+    toSym Tup7 = Sym "tup7" (,,,,,,)
 
-instance ExprEq   (Tuple ctx) where exprEq     = exprEqFunc
-instance Render   (Tuple ctx) where renderPart = renderPartFunc
-instance Eval     (Tuple ctx) where evaluate   = evaluateFunc
-instance ExprHash (Tuple ctx) where exprHash   = exprHashFunc
-instance ToTree   (Tuple ctx)
+instance ExprEq (Tuple ctx) where exprEq = exprEqFunc; exprHash = exprHashFunc
+instance Render (Tuple ctx) where renderPart = renderPartFunc
+instance Eval   (Tuple ctx) where evaluate   = evaluateFunc
+instance ToTree (Tuple ctx)
 
 -- | Partial `Tuple` projection with explicit context
 prjTuple :: (Tuple ctx :<: sup) => Proxy ctx -> sup a -> Maybe (Tuple ctx a)
@@ -222,21 +221,20 @@ instance WitnessSat (Select ctx)
     witnessSat Sel6 = Witness'
     witnessSat Sel7 = Witness'
 
-instance IsFunction (Select ctx)
+instance IsSymbol (Select ctx)
   where
-    toFunction Sel1 = PrimFunc "sel1" sel1
-    toFunction Sel2 = PrimFunc "sel2" sel2
-    toFunction Sel3 = PrimFunc "sel3" sel3
-    toFunction Sel4 = PrimFunc "sel4" sel4
-    toFunction Sel5 = PrimFunc "sel5" sel5
-    toFunction Sel6 = PrimFunc "sel6" sel6
-    toFunction Sel7 = PrimFunc "sel7" sel7
+    toSym Sel1 = Sym "sel1" sel1
+    toSym Sel2 = Sym "sel2" sel2
+    toSym Sel3 = Sym "sel3" sel3
+    toSym Sel4 = Sym "sel4" sel4
+    toSym Sel5 = Sym "sel5" sel5
+    toSym Sel6 = Sym "sel6" sel6
+    toSym Sel7 = Sym "sel7" sel7
 
-instance ExprEq   (Select ctx) where exprEq     = exprEqFunc
-instance Render   (Select ctx) where renderPart = renderPartFunc
-instance Eval     (Select ctx) where evaluate   = evaluateFunc
-instance ExprHash (Select ctx) where exprHash   = exprHashFunc
-instance ToTree   (Select ctx)
+instance ExprEq (Select ctx) where exprEq = exprEqFunc; exprHash = exprHashFunc
+instance Render (Select ctx) where renderPart = renderPartFunc
+instance Eval   (Select ctx) where evaluate   = evaluateFunc
+instance ToTree (Select ctx)
 
 -- | Partial `Select` projection with explicit context
 prjSelect :: (Select ctx :<: sup) => Proxy ctx -> sup a -> Maybe (Select ctx a)

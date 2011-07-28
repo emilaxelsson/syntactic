@@ -1,19 +1,32 @@
--- | A representation of abstract syntax graphs
+-- | Representation and manipulation of abstract syntax graphs
 
 module Language.Syntactic.Sharing.Graph where
 
 
 
+import Control.Arrow ((***))
+import Control.Monad.Reader
 import Data.Array
+import Data.Function
+import Data.List
 import Data.Typeable
 
+import Data.Hash
+import Data.Proxy
+
 import Language.Syntactic
+import Language.Syntactic.Features.Binding
+import Language.Syntactic.Sharing.Utils
 
 
+
+--------------------------------------------------------------------------------
+-- * Representation
+--------------------------------------------------------------------------------
 
 -- | Node identifier
 newtype NodeId = NodeId { nodeInteger :: Integer }
-  deriving (Eq, Ord, Num, Enum, Ix)
+  deriving (Eq, Ord, Num, Real, Integral, Enum, Ix)
 
 
 
@@ -35,15 +48,15 @@ instance WitnessCons (Node ctx)
   where
     witnessCons (Node _) = ConsWit
 
-instance ExprEq (Node ctx)
-  where
-    Node n1 `exprEq` Node n2 = n1==n2
-
 instance Render (Node ctx)
   where
     render (Node a) = showNode a
 
 instance ToTree (Node ctx)
+
+-- | Partial `Node` projection with explicit context
+prjNode :: (Node ctx :<: sup) => Proxy ctx -> sup a -> Maybe (Node ctx a)
+prjNode _ = project
 
 
 
@@ -56,12 +69,8 @@ data SomeAST dom
 
 -- | \"Abstract Syntax Graph\"
 --
--- A representation of a syntax tree with explicit
--- node sharing. It is assumed that nodes are enumerated from 0, so 'numNodes'
--- returns the number of identifiers as well as the next available identifier.
---
--- An 'ASG' is valid if and only if 'inline' succeeds (and the 'numNodes' field
--- is correct).
+-- A representation of a syntax tree with explicit sharing. An 'ASG' is valid if
+-- and only if 'inlineAll' succeeds (and the 'numNodes' field is correct).
 data ASG ctx dom a = ASG
     { topExpression :: ASTF (Node ctx :+: dom) a               -- ^ Top-level expression
     , graphNodes    :: [(NodeId, SomeAST (Node ctx :+: dom))]  -- ^ Mapping from node id to sub-expression
@@ -70,22 +79,73 @@ data ASG ctx dom a = ASG
 
 
 
--- | Convert an 'ASG' to an 'AST' by inlining all nodes
-inline :: forall ctx dom a . Typeable a => ASG ctx dom a -> ASTF dom a
-inline graph@(ASG {}) = rebuild (topExpression graph)
+-- | Show syntax graph using ASCII art
+showASG :: ToTree dom => ASG ctx dom a -> String
+showASG (ASG top nodes _) =
+    unlines ((line "top" ++ showAST top) : map showNode nodes)
   where
-    nodeMap = array (0, numNodes graph - 1) (graphNodes graph)
+    line str = "---- " ++ str ++ " " ++ rest ++ "\n"
+      where
+        rest = take (40 - length str) $ repeat '-'
 
-    rebuild :: forall b. (Typeable b, ConsType b) =>
-        AST (Node ctx :+: dom) b -> AST dom b
-    rebuild (f :$: a)                   = rebuild f :$: rebuild a
-    rebuild (Symbol (InjectL (Node n))) = case nodeMap ! n of
-        SomeAST a -> case gcast a of
-          Nothing -> error "inline: type mismatch"
-          Just a  -> rebuild a
-    rebuild (Symbol (InjectR a)) = Symbol a
+    showNode (n, SomeAST expr) = concat
+      [ line ("node:" ++ show n)
+      , showAST expr
+      ]
+
+-- | Print syntax graph using ASCII art
+drawASG :: ToTree dom => ASG ctx dom a -> IO ()
+drawASG = putStrLn . showASG
+
+-- | Update the node identifiers in an 'AST' using the supplied reindexing
+-- function
+reindexNodesAST ::
+    (NodeId -> NodeId) -> AST (Node ctx :+: dom) a -> AST (Node ctx :+: dom) a
+reindexNodesAST reix (Symbol (InjectL (Node n))) =
+    Symbol (InjectL (Node $ reix n))
+reindexNodesAST reix (f :$: a) =
+    reindexNodesAST reix f :$: reindexNodesAST reix a
+reindexNodesAST reix a = a
+
+-- | Reindex the nodes according to the given index mapping. The number of nodes
+-- is unchanged, so if the index mapping is not 1:1, the resulting graph will
+-- contain duplicates.
+reindexNodes :: (NodeId -> NodeId) -> ASG ctx dom a -> ASG ctx dom a
+reindexNodes reix (ASG top nodes n) = ASG top' nodes' n
+  where
+    top'   = reindexNodesAST reix top
+    nodes' =
+      [ (reix n, SomeAST $ reindexNodesAST reix a)
+        | (n, SomeAST a) <- nodes
+      ]
+
+-- | Reindex the nodes to be in the range @[0 .. l-1]@, where @l@ is the number
+-- of nodes in the graph
+reindexNodesFrom0 :: ASG ctx dom a -> ASG ctx dom a
+reindexNodesFrom0 graph = reindexNodes reix graph
+  where
+    reix = reindex $ map fst $ graphNodes graph
+
+-- | Remove duplicate nodes from a graph. The function only looks at the
+-- 'NodeId' of each node. The 'numNodes' field is updated accordingly.
+nubNodes :: ASG ctx dom a -> ASG ctx dom a
+nubNodes (ASG top nodes n) = ASG top nodes' n'
+  where
+    nodes' = nubBy ((==) `on` fst) nodes
+    n'     = genericLength nodes'
+
+liftSome2
+    :: (forall a b . ASTF (Node ctx :+: dom) a -> ASTF (Node ctx :+: dom) b -> c)
+    -> SomeAST (Node ctx :+: dom)
+    -> SomeAST (Node ctx :+: dom)
+    -> c
+liftSome2 f (SomeAST a) (SomeAST b) = f a b
 
 
+
+--------------------------------------------------------------------------------
+-- * Folding
+--------------------------------------------------------------------------------
 
 -- | Pattern functor representation of an 'AST' with 'Node's
 data SyntaxPF dom a
@@ -93,7 +153,7 @@ data SyntaxPF dom a
     AppPF  :: a -> a -> SyntaxPF dom a
     NodePF :: NodeId -> a -> SyntaxPF dom a
     DomPF  :: dom b -> SyntaxPF dom a
-  -- NOTE: The important constructor is 'NodePF', which makes a 'Noe' appear as
+  -- NOTE: The important constructor is 'NodePF', which makes a 'Node' appear as
   -- any other recursive constructor.
 
 instance Functor (SyntaxPF dom)
@@ -126,23 +186,139 @@ foldGraph alg graph@(ASG top ns nn) = (g top, (arr,nodes))
 
 
 
--- | Show syntax graph using ASCII art
-showASG :: ToTree dom => ASG ctx dom a -> String
-showASG (ASG {topExpression = top, graphNodes = nodes}) =
-    unlines ((line "top" ++ showAST top) : map showNode nodes)
+--------------------------------------------------------------------------------
+-- * Inlining
+--------------------------------------------------------------------------------
+
+-- | Convert an 'ASG' to an 'AST' by inlining all nodes
+inlineAll :: forall ctx dom a . Typeable a => ASG ctx dom a -> ASTF dom a
+inlineAll (ASG top nodes n) = inline top
   where
-    line str = "---- " ++ str ++ " " ++ rest ++ "\n"
-      where
-        rest = take (40 - length str) $ repeat '-'
+    nodeMap = array (0, n-1) nodes
 
-    showNode (n, SomeAST expr) = concat
-      [ line ("node:" ++ show n)
-      , showAST expr
-      ]
+    inline :: forall b. (Typeable b, ConsType b) =>
+        AST (Node ctx :+: dom) b -> AST dom b
+    inline (f :$: a) = inline f :$: inline a
+    inline (Symbol (InjectL (Node n))) = case nodeMap ! n of
+        SomeAST a -> case gcast a of
+          Nothing -> error "inlineAll: type mismatch"
+          Just a  -> inline a
+    inline (Symbol (InjectR a)) = Symbol a
 
 
 
--- | Print syntax graph using ASCII art
-drawASG :: ToTree dom => ASG ctx dom a -> IO ()
-drawASG = putStrLn . showASG
+-- | Find the child nodes of each node in an expression. The child nodes of a
+-- node @n@ are the first nodes along all paths from @n@.
+nodeChildren :: ASG ctx dom a -> [(NodeId, [NodeId])]
+nodeChildren = map (id *** fromDList) . snd . snd . foldGraph children
+  where
+    children :: SyntaxPF dom (DList NodeId) -> DList (NodeId)
+    children (AppPF ns1 ns2) = ns1 . ns2
+    children (NodePF n _)    = single n
+    children _               = empty
+
+-- | Count the number of occurrences of each node in an expression
+occurrences :: ASG ctx dom a -> Array NodeId Int
+occurrences graph
+    = count (0, numNodes graph - 1)
+    $ concatMap snd
+    $ nodeChildren graph
+
+-- | Inline all nodes that are not shared
+inlineSingle :: forall ctx dom a . Typeable a => ASG ctx dom a -> ASG ctx dom a
+inlineSingle graph@(ASG top nodes n) = ASG top' nodes' n'
+  where
+    nodeTab  = array (0, n-1) nodes
+    occs     = occurrences graph
+
+    top'   = inline top
+    nodes' = [(n, SomeAST (inline a)) | (n, SomeAST a) <- nodes, occs!n > 1]
+    n'     = genericLength nodes'
+
+    inline :: forall b. (Typeable b, ConsType b) =>
+        AST (Node ctx :+: dom) b -> AST (Node ctx :+: dom) b
+    inline (f :$: a) = inline f :$: inline a
+    inline (Symbol (InjectL (Node n)))
+        | occs!n > 1 = Symbol (InjectL (Node n))
+        | otherwise = case nodeTab ! n of
+            SomeAST a -> case gcast a of
+                Nothing -> error "inlineSingle: type mismatch"
+                Just a  -> inline a
+    inline (Symbol (InjectR a)) = Symbol (InjectR a)
+
+
+
+--------------------------------------------------------------------------------
+-- * Sharing
+--------------------------------------------------------------------------------
+
+-- | Compute a table (both array and list representation) of hash values for
+-- each node
+hashNodes :: ExprEq dom =>
+    ASG ctx dom a -> (Array NodeId Hash, [(NodeId, Hash)])
+hashNodes = snd . foldGraph hashNode
+  where
+    hashNode (AppPF h1 h2) = hashInt 0 `combine` h1 `combine` h2
+    hashNode (NodePF _ h)  = h
+    hashNode (DomPF a)     = hashInt 1 `combine` exprHash a
+
+
+
+-- | Partitions the nodes such that two nodes are in the same sub-list if and
+-- only if they are alpha-equivalent.
+partitionNodes :: forall ctx dom a
+    .  (Lambda ctx :<: dom, Variable ctx :<: dom, ExprEq dom)
+    => ASG ctx dom a -> [[NodeId]]
+partitionNodes graph = concatMap (fullPartition nodeEq) approxPartitioning
+  where
+    nTab          = array (0, numNodes graph - 1) (graphNodes graph)
+    (hTab,hashes) = hashNodes graph
+
+    -- | An approximate partitioning of the nodes: nodes in different partitions
+    -- are guaranteed to be inequivalent, while nodes in the same partition
+    -- might be equivalent.
+    approxPartitioning
+      = map (map fst)
+      $ groupBy ((==) `on` snd)
+      $ sortBy (compare `on` snd)
+      $ hashes
+
+    eqNode :: forall a b . ExprEq dom
+        => AST (Node ctx :+: dom) a
+        -> AST (Node ctx :+: dom) b
+        -> Reader [(VarId,VarId)] Bool
+    eqNode (Symbol (InjectL (Node n1))) (Symbol (InjectL (Node n2)))
+        | n1 == n2           = return True
+        | hTab!n1 /= hTab!n2 = return False
+        | otherwise          = case (nTab!n1, nTab!n2) of
+            (SomeAST a, SomeAST b) -> eqNodeAlpha a b
+              -- TODO The result could be memoized in a
+              -- @Map (NodeId,NodeId) Bool@
+    eqNode (Symbol (InjectR a)) (Symbol (InjectR b)) = return (exprEq a b)
+    eqNode _ _ = return False
+    -- Returns 'False' when one argument is a 'Node' and the other one isn't.
+    -- This is not really correct since 'Node's are just meta-variables and
+    -- shouldn't be part of the comparison. But as long as equivalent
+    -- expressions always have 'Node's at the same position, it doesn't matter.
+    -- This is just for simplicity; it would be easy to fix.
+
+    -- | Alpha-equivalence for expressions with 'Node's
+    eqNodeAlpha :: forall a b
+        .  AST (Node ctx :+: dom) a
+        -> AST (Node ctx :+: dom) b
+        -> Reader [(VarId,VarId)] Bool
+    eqNodeAlpha a b = alphaEqM (Proxy::Proxy ctx) eqNode a b
+
+    nodeEq :: NodeId -> NodeId -> Bool
+    nodeEq n1 n2 = runReader (liftSome2 eqNodeAlpha (nTab!n1) (nTab!n2)) []
+
+
+
+-- | Common sub-expression elimination based on alpha-equivalence
+cse :: (Lambda ctx :<: dom, Variable ctx :<: dom, ExprEq dom) =>
+    ASG ctx dom a -> ASG ctx dom a
+cse graph@(ASG top nodes n) = nubNodes $ reindexNodes (reixTab!) graph
+  where
+    parts   = partitionNodes graph
+    reixTab = array (0,n-1) [(n,p) | (part,p) <- parts `zip` [0..], n <- part]
 

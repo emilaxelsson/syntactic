@@ -16,7 +16,7 @@ module Language.Syntactic.Features.Binding.HigherOrder
     , letBindCtx
     , letBind
     , reifyM
-    , reifyHOAST
+    , reifyTop
     , Reifiable
     , reifyCtx
     , reify
@@ -41,7 +41,7 @@ data HOLambda ctx dom a
         => (HOASTF ctx dom a -> HOASTF ctx dom b)
         -> HOLambda ctx dom (Full (a -> b))
 
-type HOAST  ctx dom a = AST (HOLambda ctx dom :+: Variable ctx :+: dom) a
+type HOAST  ctx dom   = AST (HOLambda ctx dom :+: Variable ctx :+: dom)
 type HOASTF ctx dom a = HOAST ctx dom (Full a)
 
 instance WitnessCons (HOLambda ctx dom)
@@ -97,9 +97,9 @@ reifyM (Symbol (InjectL (HOLambda f))) = do
 
 -- | Translating expressions with higher-order binding to corresponding
 -- expressions using first-order binding
-reifyHOAST :: Typeable a =>
+reifyTop :: Typeable a =>
     HOAST ctx dom a -> AST (Lambda ctx :+: Variable ctx :+: dom) a
-reifyHOAST = flip evalState 0 . reifyM
+reifyTop = flip evalState 0 . reifyM
   -- It is assumed that there are no 'Variable' constructors (i.e. no free
   -- variables) in the argument. This is guaranteed by the exported interface.
 
@@ -125,7 +125,7 @@ reifyCtx :: Reifiable ctx a dom internal
     => Proxy ctx
     -> a
     -> ASTF (Lambda ctx :+: Variable ctx :+: dom) (NAryEval internal)
-reifyCtx _ = reifyHOAST . lambdaN . desugarN
+reifyCtx _ = reifyTop . lambdaN . desugarN
 
 -- | Reifying an n-ary syntactic function
 reify :: Reifiable Poly a dom internal =>

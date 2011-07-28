@@ -27,6 +27,7 @@ instance WitnessSat (Condition ctx)
 instance ExprEq (Condition ctx)
   where
     exprEq Condition Condition = True
+    exprHash Condition         = hashInt 0
 
 instance Render (Condition ctx)
   where
@@ -38,10 +39,6 @@ instance Eval (Condition ctx)
   where
     evaluate Condition = fromEval $
         \cond tHEN eLSE -> if cond then tHEN else eLSE
-
-instance ExprHash (Condition ctx)
-  where
-    exprHash Condition = hashInt 0
 
 
 

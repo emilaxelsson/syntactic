@@ -24,6 +24,3 @@ instance (Eval expr1, Eval expr2) => Eval (expr1 :+: expr2)
 evalFull :: Eval dom => ASTF dom a -> a
 evalFull = result . evaluate
 
-evalSyn :: (Syntactic a dom, Eval dom) => a -> Internal a
-evalSyn = evalFull . desugar
-
