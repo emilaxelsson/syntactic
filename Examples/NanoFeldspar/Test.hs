@@ -69,9 +69,9 @@ test7_2 = drawFeldCSE prog7
 
 test7_3 = drawFeldObs prog7
   -- Draws a graph with some duplication. The 'forLoop' introduced by 'sum' is
-  -- not shared, because 'sum as' is repeated twice in source code of 'prog7'.
-  -- But the 'parallel' introduced by 'force' is shared, because 'force' only
-  -- appears once.
+  -- not shared, because 'sum as' is repeated twice in source code. But the
+  -- 'parallel' introduced by 'force' is shared, because 'force' only appears
+  -- once.
 
 -- Note that we're still missing a way to rebuild an expression with let
 -- bindings from the graph. This is ongoing work.

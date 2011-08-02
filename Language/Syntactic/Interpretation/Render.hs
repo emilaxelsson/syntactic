@@ -1,4 +1,4 @@
-module Language.Syntactic.Analysis.Render
+module Language.Syntactic.Interpretation.Render
     ( Render (..)
     , printExpr
     , ToTree (..)

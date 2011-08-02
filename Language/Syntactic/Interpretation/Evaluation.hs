@@ -1,4 +1,4 @@
-module Language.Syntactic.Analysis.Evaluation where
+module Language.Syntactic.Interpretation.Evaluation where
 
 
 

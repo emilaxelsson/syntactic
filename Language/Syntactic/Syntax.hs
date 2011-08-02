@@ -84,6 +84,7 @@ module Language.Syntactic.Syntax
       -- * AST processing
     , queryNodeI
     , queryNode
+    , transformNodeC
     , transformNode
       -- * Restricted syntax trees
     , Sat (..)
@@ -97,6 +98,7 @@ module Language.Syntactic.Syntax
 
 
 
+import Control.Monad.Identity
 import Data.Typeable
 
 import Data.Proxy
@@ -316,7 +318,7 @@ instance (expr1 :<: expr3) => ((:<:) expr1 (expr2 :+: expr3))
 --
 -- > eval a == eval (desugar $ (id :: A -> A) $ sugar a)
 --
--- (using 'Language.Syntactic.Analysis.Evaluation.eval')
+-- (using 'Language.Syntactic.Interpretation.Evaluation.eval')
 class Typeable (Internal a) => Syntactic a dom | a -> dom
     -- Note: using a functional dependency rather than an associated type,
     -- because this makes it possible to make a class alias constraining dom.
@@ -379,6 +381,9 @@ instance
 -- * AST processing
 --------------------------------------------------------------------------------
 
+newtype Wrap a b = Wrap {unWrap :: a}
+  -- Only used in the definition of 'queryNode'
+
 -- | Like 'queryNode' but with the result indexed by the constructor's result
 -- type
 queryNodeI :: forall dom a b
@@ -389,9 +394,6 @@ queryNodeI f a = query a Nil
     query :: AST dom c -> HList (AST dom) c -> b (EvalResult c)
     query (Symbol a) args = f a args
     query (c :$: a)  args = query c (a :*: args)
-
-newtype Wrap a b = Wrap {unWrap :: a}
-  -- Only used in the definition of 'queryNode'
 
 -- | Query an 'AST' using a function that gets direct access to the top-most
 -- constructor and its sub-trees
@@ -431,9 +433,22 @@ newtype Wrap a b = Wrap {unWrap :: a}
 queryNode :: forall dom a b
     .  (forall a . ConsType a => dom a -> HList (AST dom) a -> b)
     -> ASTF dom a -> b
-queryNode f a = unWrap $ queryNodeI (\c args -> Wrap $ f c args) a
+queryNode f a = unWrap $ queryNodeI (\c -> Wrap . f c) a
 
 
+
+-- | Like 'transformNode' but with the result wrapped in a type constructor @c@
+transformNodeC :: forall dom dom' c a
+    .  (  forall a . ConsType a
+       => dom a -> HList (AST dom) a -> c (ASTF dom' (EvalResult a))
+       )
+    -> ASTF dom a
+    -> c (ASTF dom' a)
+transformNodeC f a = transform a Nil
+  where
+    transform :: AST dom b -> HList (AST dom) b -> c (ASTF dom' (EvalResult b))
+    transform (Symbol a) args = f a args
+    transform (c :$: a)  args = transform c (a :*: args)
 
 -- | Transform an 'AST' using a function that gets direct access to the top-most
 -- constructor and its sub-trees. This function is similar to 'queryNode', but
@@ -442,12 +457,9 @@ transformNode :: forall dom dom' a
     .  (  forall a . ConsType a
        => dom a -> HList (AST dom) a -> ASTF dom' (EvalResult a)
        )
-    -> ASTF dom a -> ASTF dom' a
-transformNode f a = transform a Nil
-  where
-    transform :: AST dom b -> HList (AST dom) b -> ASTF dom' (EvalResult b)
-    transform (Symbol a) args = f a args
-    transform (c :$: a)  args = transform c (a :*: args)
+    -> ASTF dom a
+    -> ASTF dom' a
+transformNode f a = runIdentity $ transformNodeC (\c -> Identity . f c) a
 
 
 

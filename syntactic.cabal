@@ -1,5 +1,5 @@
 Name:           syntactic
-Version:        0.5
+Version:        0.6
 Synopsis:       Generic abstract syntax, and utilities for embedded languages
 Description:    This library provides:
                 .
@@ -49,9 +49,9 @@ Library
   Exposed-modules:
     Language.Syntactic
     Language.Syntactic.Syntax
-    Language.Syntactic.Analysis.Equality
-    Language.Syntactic.Analysis.Render
-    Language.Syntactic.Analysis.Evaluation
+    Language.Syntactic.Interpretation.Equality
+    Language.Syntactic.Interpretation.Render
+    Language.Syntactic.Interpretation.Evaluation
     Language.Syntactic.Features.Annotate
     Language.Syntactic.Features.Symbol
     Language.Syntactic.Features.Literal

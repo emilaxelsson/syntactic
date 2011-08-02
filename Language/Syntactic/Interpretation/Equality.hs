@@ -1,4 +1,4 @@
-module Language.Syntactic.Analysis.Equality where
+module Language.Syntactic.Interpretation.Equality where
 
 
 

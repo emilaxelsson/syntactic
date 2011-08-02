@@ -5,9 +5,9 @@ module Language.Syntactic.Features.Annotate where
 
 
 import Language.Syntactic.Syntax
-import Language.Syntactic.Analysis.Equality
-import Language.Syntactic.Analysis.Render
-import Language.Syntactic.Analysis.Evaluation
+import Language.Syntactic.Interpretation.Equality
+import Language.Syntactic.Interpretation.Render
+import Language.Syntactic.Interpretation.Evaluation
 
 
 
