@@ -64,9 +64,9 @@ instance IsSymbol (Tuple ctx)
     toSym Tup6 = Sym "tup6" (,,,,,)
     toSym Tup7 = Sym "tup7" (,,,,,,)
 
-instance ExprEq (Tuple ctx) where exprEq = exprEqFunc; exprHash = exprHashFunc
-instance Render (Tuple ctx) where renderPart = renderPartFunc
-instance Eval   (Tuple ctx) where evaluate   = evaluateFunc
+instance ExprEq (Tuple ctx) where exprEq = exprEqSym; exprHash = exprHashSym
+instance Render (Tuple ctx) where renderPart = renderPartSym
+instance Eval   (Tuple ctx) where evaluate   = evaluateSym
 instance ToTree (Tuple ctx)
 
 -- | Partial `Tuple` projection with explicit context
@@ -231,9 +231,9 @@ instance IsSymbol (Select ctx)
     toSym Sel6 = Sym "sel6" sel6
     toSym Sel7 = Sym "sel7" sel7
 
-instance ExprEq (Select ctx) where exprEq = exprEqFunc; exprHash = exprHashFunc
-instance Render (Select ctx) where renderPart = renderPartFunc
-instance Eval   (Select ctx) where evaluate   = evaluateFunc
+instance ExprEq (Select ctx) where exprEq = exprEqSym; exprHash = exprHashSym
+instance Render (Select ctx) where renderPart = renderPartSym
+instance Eval   (Select ctx) where evaluate   = evaluateSym
 instance ToTree (Select ctx)
 
 -- | Partial `Select` projection with explicit context

@@ -10,7 +10,6 @@
 -- This module is based on /Type-Safe Observable Sharing in Haskell/ (Andy Gill,
 -- /Haskell Symposium/, 2009).
 
-
 module Language.Syntactic.Sharing.ReifyHO
     ( reifyGraphTop
     , reifyGraph

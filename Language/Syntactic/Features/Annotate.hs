@@ -4,6 +4,8 @@ module Language.Syntactic.Features.Annotate where
 
 
 
+import Data.Tree
+
 import Language.Syntactic.Syntax
 import Language.Syntactic.Interpretation.Equality
 import Language.Syntactic.Interpretation.Render
@@ -75,4 +77,23 @@ getInfo (f :$: _)             = getInfo f
 collectInfo :: (forall a . info a -> b) -> AST (Ann info dom) a -> [b]
 collectInfo coll (Symbol (Ann info _)) = [coll info]
 collectInfo coll (f :$: a) = collectInfo coll f ++ collectInfo coll a
+
+-- | Rendering of annotated syntax trees
+toTreeAnn :: forall info dom a . (Render info, ToTree dom) =>
+    ASTF (Ann info dom) a -> Tree String
+toTreeAnn a = mkTree [] a
+  where
+    mkTree :: [Tree String] -> AST (Ann info dom) b -> Tree String
+    mkTree args (Symbol (Ann info expr)) = Node infoStr [toTreePart args expr]
+      where
+        infoStr = "<<" ++ render info ++ ">>"
+    mkTree args (f :$: a) = mkTree (mkTree [] a : args) f
+
+-- | Show an annotated syntax tree using ASCII art
+showANN :: (Render info, ToTree dom) => ASTF (Ann info dom) a -> String
+showANN = drawTree . toTreeAnn
+
+-- | Print an annotated syntax tree using ASCII art
+drawANN :: (Render info, ToTree dom) => ASTF (Ann info dom) a -> IO ()
+drawANN = putStrLn . showANN
 

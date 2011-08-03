@@ -8,6 +8,7 @@ import Data.Hash
 import Data.Proxy
 
 import Language.Syntactic
+import Language.Syntactic.Features.Symbol
 
 
 
@@ -24,21 +25,14 @@ instance WitnessSat (Condition ctx)
     type Context (Condition ctx) = ctx
     witnessSat Condition = Witness'
 
-instance ExprEq (Condition ctx)
+instance IsSymbol (Condition ctx)
   where
-    exprEq Condition Condition = True
-    exprHash Condition         = hashInt 0
+    toSym Condition = Sym "condition" (\c t e -> if c then t else e)
 
-instance Render (Condition ctx)
-  where
-    render Condition = "condition"
-
+instance ExprEq (Condition ctx) where exprEq = exprEqSym; exprHash = exprHashSym
+instance Render (Condition ctx) where renderPart = renderPartSym
+instance Eval   (Condition ctx) where evaluate   = evaluateSym
 instance ToTree (Condition ctx)
-
-instance Eval (Condition ctx)
-  where
-    evaluate Condition = fromEval $
-        \cond tHEN eLSE -> if cond then tHEN else eLSE
 
 
 

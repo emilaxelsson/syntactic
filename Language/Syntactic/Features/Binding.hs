@@ -113,83 +113,6 @@ prjLambda :: (Lambda ctx :<: sup) => Proxy ctx -> sup a -> Maybe (Lambda ctx a)
 prjLambda _ = project
 
 
--- | Alpha equivalence in an environment of variable equivalences. The supplied
--- equivalence function gets called when the argument expressions are not both
--- 'Variable's, both 'Lambda's or both ':$:'.
-alphaEqM :: (Lambda ctx :<: dom, Variable ctx :<: dom)
-    => Proxy ctx
-    -> (forall a b . AST dom a -> AST dom b -> Reader [(VarId,VarId)] Bool)
-    -> (forall a b . AST dom a -> AST dom b -> Reader [(VarId,VarId)] Bool)
-
--- TODO This function is not ideal, since the type says nothing about which
---      cases have been handled when calling 'eq'.
-
-alphaEqM ctx eq
-    ((prjLambda ctx -> Just (Lambda v1)) :$: a1)
-    ((prjLambda ctx -> Just (Lambda v2)) :$: a2) =
-        local ((v1,v2):) $ alphaEqM ctx eq a1 a2
-
-alphaEqM ctx eq
-    (prjVariable ctx -> Just (Variable v1))
-    (prjVariable ctx -> Just (Variable v2)) = do
-        env <- ask
-        case lookup v1 env of
-          Nothing  -> return (v1==v2)   -- Free variables
-          Just v2' -> return (v2==v2')
-
-alphaEqM ctx eq (f1 :$: a1) (f2 :$: a2) = do
-    e <- alphaEqM ctx eq f1 f2
-    if e then alphaEqM ctx eq a1 a2 else return False
-
-alphaEqM _ eq a b = eq a b
-
-
-
--- | Alpha-equivalence on lambda expressions. Free variables are taken to be
--- equivalent if they have the same identifier.
-alphaEq :: (Lambda ctx :<: dom, Variable ctx :<: dom, ExprEq dom) =>
-    Proxy ctx -> AST dom a -> AST dom b -> Bool
-alphaEq ctx a b = runReader (alphaEqM ctx (\a b -> return $ exprEq a b) a b) []
-
-
-
--- | Evaluation of possibly open lambda expressions
-evalLambdaM :: (Eval dom, MonadReader [(VarId,Dynamic)] m) =>
-    ASTF (Lambda ctx :+: Variable ctx :+: dom) a -> m a
-evalLambdaM = liftM result . eval
-  where
-    eval :: (Eval dom, MonadReader [(VarId,Dynamic)] m) =>
-        AST (Lambda ctx :+: Variable ctx :+: dom) a -> m a
-    eval (Symbol (InjectR (InjectL (Variable v)))) = do
-        env <- ask
-        case lookup v env of
-          Nothing -> return $ error "eval: evaluating free variable"
-          Just a  -> case fromDynamic a of
-            Just a -> return (Full a)
-            _      -> return $ error "eval: internal type error"
-
-    eval (Symbol (InjectL (Lambda v)) :$: body) = do
-        env <- ask
-        return
-            $ Full
-            $ \a -> flip runReader ((v,toDyn a):env)
-            $ liftM result
-            $ eval body
-
-    eval (f :$: a) = do
-        f' <- eval f
-        a' <- eval a
-        return (f' $: result a')
-
-    eval (Symbol (InjectR (InjectR a))) = return (evaluate a)
-
-
-
--- | Evaluation of closed lambda expressions
-evalLambda :: Eval dom => ASTF (Lambda ctx :+: Variable ctx :+: dom) a -> a
-evalLambda = flip runReader [] . evalLambdaM
-
-
 
 -- | The class of n-ary binding functions
 class NAry ctx a dom | a -> dom
@@ -268,4 +191,86 @@ instance Eval (Let ctxa ctxb)
 prjLet :: (Let ctxa ctxb :<: sup) =>
     Proxy ctxa -> Proxy ctxb -> sup a -> Maybe (Let ctxa ctxb a)
 prjLet _ _ = project
+
+
+
+--------------------------------------------------------------------------------
+-- * Interpretation
+--------------------------------------------------------------------------------
+
+-- | Alpha equivalence in an environment of variable equivalences. The supplied
+-- equivalence function gets called when the argument expressions are not both
+-- 'Variable's, both 'Lambda's or both ':$:'.
+alphaEqM :: (Lambda ctx :<: dom, Variable ctx :<: dom)
+    => Proxy ctx
+    -> (forall a b . AST dom a -> AST dom b -> Reader [(VarId,VarId)] Bool)
+    -> (forall a b . AST dom a -> AST dom b -> Reader [(VarId,VarId)] Bool)
+
+-- TODO This function is not ideal, since the type says nothing about which
+--      cases have been handled when calling 'eq'.
+
+alphaEqM ctx eq
+    ((prjLambda ctx -> Just (Lambda v1)) :$: a1)
+    ((prjLambda ctx -> Just (Lambda v2)) :$: a2) =
+        local ((v1,v2):) $ alphaEqM ctx eq a1 a2
+
+alphaEqM ctx eq
+    (prjVariable ctx -> Just (Variable v1))
+    (prjVariable ctx -> Just (Variable v2)) = do
+        env <- ask
+        case lookup v1 env of
+          Nothing  -> return (v1==v2)   -- Free variables
+          Just v2' -> return (v2==v2')
+
+alphaEqM ctx eq (f1 :$: a1) (f2 :$: a2) = do
+    e <- alphaEqM ctx eq f1 f2
+    if e then alphaEqM ctx eq a1 a2 else return False
+
+alphaEqM _ eq a b = eq a b
+
+
+
+-- | Alpha-equivalence on lambda expressions. Free variables are taken to be
+-- equivalent if they have the same identifier.
+alphaEq :: (Lambda ctx :<: dom, Variable ctx :<: dom, ExprEq dom) =>
+    Proxy ctx -> AST dom a -> AST dom b -> Bool
+alphaEq ctx a b = runReader (alphaEqM ctx (\a b -> return $ exprEq a b) a b) []
+
+
+
+-- | Evaluation of possibly open lambda expressions
+evalLambdaM :: (Eval dom, MonadReader [(VarId,Dynamic)] m) =>
+    ASTF (Lambda ctx :+: Variable ctx :+: dom) a -> m a
+evalLambdaM = liftM result . eval
+  where
+    eval :: (Eval dom, MonadReader [(VarId,Dynamic)] m) =>
+        AST (Lambda ctx :+: Variable ctx :+: dom) a -> m a
+    eval (Symbol (InjectR (InjectL (Variable v)))) = do
+        env <- ask
+        case lookup v env of
+          Nothing -> return $ error "eval: evaluating free variable"
+          Just a  -> case fromDynamic a of
+            Just a -> return (Full a)
+            _      -> return $ error "eval: internal type error"
+
+    eval (Symbol (InjectL (Lambda v)) :$: body) = do
+        env <- ask
+        return
+            $ Full
+            $ \a -> flip runReader ((v,toDyn a):env)
+            $ liftM result
+            $ eval body
+
+    eval (f :$: a) = do
+        f' <- eval f
+        a' <- eval a
+        return (f' $: result a')
+
+    eval (Symbol (InjectR (InjectR a))) = return (evaluate a)
+
+
+
+-- | Evaluation of closed lambda expressions
+evalLambda :: Eval dom => ASTF (Lambda ctx :+: Variable ctx :+: dom) a -> a
+evalLambda = flip runReader [] . evalLambdaM
 

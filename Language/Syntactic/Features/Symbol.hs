@@ -12,25 +12,43 @@ module Language.Syntactic.Features.Symbol where
 import Data.Typeable
 
 import Data.Hash
+import Data.Proxy
 
 import Language.Syntactic
 
 
 
-data Sym a
+data Sym ctx a
   where
-    Sym :: ConsType a => String -> ConsEval a -> Sym a
+    Sym :: (ConsType a, Sat ctx (EvalResult a)) =>
+        String -> ConsEval a -> Sym ctx a
 
-instance WitnessCons Sym
+instance WitnessCons (Sym ctx)
   where
     witnessCons (Sym _ _) = ConsWit
 
-instance ExprEq Sym
+instance WitnessSat (Sym ctx)
+  where
+    type Context (Sym ctx) = ctx
+    witnessSat (Sym _ _) = Witness'
+
+witnessSatSym :: forall ctx dom a . (Sym ctx :<: dom)
+    => Proxy ctx
+    -> ASTF dom a
+    -> Maybe (Witness' ctx a)
+witnessSatSym ctx = witSym
+  where
+    witSym :: (EvalResult b ~ a) => AST dom b -> Maybe (Witness' ctx a)
+    witSym (prjSym ctx -> Just (Sym _ _)) = Just Witness'
+    witSym (f :$: _) = witSym f
+    witSym _         = Nothing
+
+instance ExprEq (Sym ctx)
   where
     exprEq (Sym a _) (Sym b _) = a==b
     exprHash (Sym name _)      = hash name
 
-instance Render Sym
+instance Render (Sym ctx)
   where
     renderPart [] (Sym name _) = name
     renderPart args (Sym name _)
@@ -45,9 +63,9 @@ instance Render Sym
           && last name == ')'
           && length args == 2
 
-instance ToTree Sym
+instance ToTree (Sym ctx)
 
-instance Eval Sym
+instance Eval (Sym ctx)
   where
     evaluate (Sym _ a) = fromEval a
 
@@ -55,52 +73,59 @@ instance Eval Sym
 
 -- | A zero-argument symbol
 sym0
-    :: ( Typeable a
-       , Sym :<: dom
+    :: ( Sat ctx a
+       , Sym ctx :<: dom
        )
-    => String
+    => Proxy ctx
+    -> String
     -> a
     -> ASTF dom a
-sym0 name a = inject (Sym name a)
+sym0 ctx name a = inject (Sym name a `withContext` ctx)
 
 -- | A one-argument symbol
 sym1
     :: ( Typeable a
-       , Sym :<: dom
+       , Sat ctx b
+       , Sym ctx :<: dom
        )
-    => String
+    => Proxy ctx
+    -> String
     -> (a -> b)
     -> ASTF dom a
     -> ASTF dom b
-sym1 name f a = inject (Sym name f) :$: a
+sym1 ctx name f a = inject (Sym name f `withContext` ctx) :$: a
 
 -- | A two-argument symbol
 sym2
     :: ( Typeable a
        , Typeable b
-       , Sym :<: dom
+       , Sat ctx c
+       , Sym ctx :<: dom
        )
-    => String
+    => Proxy ctx
+    -> String
     -> (a -> b -> c)
     -> ASTF dom a
     -> ASTF dom b
     -> ASTF dom c
-sym2 name f a b = inject (Sym name f) :$: a :$: b
+sym2 ctx name f a b = inject (Sym name f `withContext` ctx) :$: a :$: b
 
 -- | A three-argument symbol
 sym3
     :: ( Typeable a
        , Typeable b
        , Typeable c
-       , Sym :<: dom
+       , Sat ctx d
+       , Sym ctx :<: dom
        )
-    => String
+    => Proxy ctx
+    -> String
     -> (a -> b -> c -> d)
     -> ASTF dom a
     -> ASTF dom b
     -> ASTF dom c
     -> ASTF dom d
-sym3 name f a b c = inject (Sym name f) :$: a :$: b :$: c
+sym3 ctx name f a b c = inject (Sym name f `withContext` ctx) :$: a :$: b :$: c
 
 -- | A four-argument symbol
 sym4
@@ -108,37 +133,47 @@ sym4
        , Typeable b
        , Typeable c
        , Typeable d
-       , Sym :<: dom
+       , Sat ctx e
+       , Sym ctx :<: dom
        )
-    => String
+    => Proxy ctx
+    -> String
     -> (a -> b -> c -> d -> e)
     -> ASTF dom a
     -> ASTF dom b
     -> ASTF dom c
     -> ASTF dom d
     -> ASTF dom e
-sym4 name f a b c d = inject (Sym name f) :$: a :$: b :$: c :$: d
+sym4 ctx name f a b c d =
+    inject (Sym name f `withContext` ctx) :$: a :$: b :$: c :$: d
+
+
+
+-- | Partial symbol projection with explicit context
+prjSym :: (Sym ctx :<: sup) =>
+    Proxy ctx -> sup a -> Maybe (Sym ctx a)
+prjSym _ = project
 
 
 
 -- | Class of expressions that can be treated as symbols
 class IsSymbol expr
   where
-    toSym :: expr a -> Sym a
+    toSym :: expr a -> Sym Poly a
 
 -- | Default implementation of 'exprEq'
-exprEqFunc :: IsSymbol expr => expr a -> expr b -> Bool
-exprEqFunc a b = exprEq (toSym a) (toSym b)
+exprEqSym :: IsSymbol expr => expr a -> expr b -> Bool
+exprEqSym a b = exprEq (toSym a) (toSym b)
 
 -- | Default implementation of 'exprHash'
-exprHashFunc :: IsSymbol expr => expr a -> Hash
-exprHashFunc = exprHash . toSym
+exprHashSym :: IsSymbol expr => expr a -> Hash
+exprHashSym = exprHash . toSym
 
 -- | Default implementation of 'renderPart'
-renderPartFunc :: IsSymbol expr => [String] -> expr a -> String
-renderPartFunc args = renderPart args . toSym
+renderPartSym :: IsSymbol expr => [String] -> expr a -> String
+renderPartSym args = renderPart args . toSym
 
 -- | Default implementation of 'evaluate'
-evaluateFunc :: IsSymbol expr => expr a -> a
-evaluateFunc = evaluate . toSym
+evaluateSym :: IsSymbol expr => expr a -> a
+evaluateSym = evaluate . toSym
 

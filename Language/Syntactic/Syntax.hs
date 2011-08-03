@@ -70,6 +70,7 @@ module Language.Syntactic.Syntax
     , listHList
     , listHListM
     , mapHList
+    , mapHListM
     , appHList
     , ($:)
     , AST (..)
@@ -88,12 +89,23 @@ module Language.Syntactic.Syntax
     , transformNode
       -- * Restricted syntax trees
     , Sat (..)
+    , Witness (PolyWit, SimpleWit)
+        -- TODO A warning reports that these are already exported by 'Sat (..)',
+        --      but that is actually not the case. This seems to have been fixed
+        --      recently:
+        --
+        --        http://hackage.haskell.org/trac/ghc/ticket/2436#comment:12
+        --
+        --      I don't know if the fix just removes the warning, or if it means
+        --      that 'Sat (..)' is enough.
     , Witness' (..)
     , witness'
     , WitnessSat (..)
     , withContext
     , Poly
     , poly
+    , SimpleCtx
+    , simpleCtx
     ) where
 
 
@@ -148,6 +160,7 @@ class ConsType' a
     listHList'  :: (forall a . c (Full a) -> b) -> HList c a -> [b]
     listHListM' :: Monad m => (forall a . c (Full a) -> m b) -> HList c a -> m [b]
     mapHList'   :: (forall a . c1 (Full a) -> c2 (Full a)) -> HList c1 a -> HList c2 a
+    mapHListM'  :: Monad m => (forall a . c1 (Full a) -> m (c2 (Full a))) -> HList c1 a -> m (HList c2 a)
     appHList'   :: AST dom a -> HList (AST dom) a -> ASTF dom (EvalResult a)
 
 
@@ -161,7 +174,8 @@ instance ConsType' (Full a)
     listHList'  f Nil = []
     listHListM' f Nil = return []
     mapHList'   f Nil = Nil
-    appHList' a Nil   = a
+    mapHListM'  f Nil = return Nil
+    appHList'   a Nil = a
 
 instance ConsType' b => ConsType' (a :-> b)
   where
@@ -173,7 +187,8 @@ instance ConsType' b => ConsType' (a :-> b)
     listHList'  f (a :*: as) = f a : listHList' f as
     listHListM' f (a :*: as) = sequence (f a : listHList' f as)
     mapHList'   f (a :*: as) = f a :*: mapHList' f as
-    appHList' c (a :*: as)   = appHList' (c :$: a) as
+    mapHListM'  f (a :*: as) = liftM2 (:*:) (f a) (mapHListM' f as)
+    appHList'   c (a :*: as) = appHList' (c :$: a) as
 
 -- | Fully or partially applied constructor
 --
@@ -227,6 +242,12 @@ listHListM = listHListM'
 mapHList :: ConsType a =>
     (forall a . c1 (Full a) -> c2 (Full a)) -> HList c1 a -> HList c2 a
 mapHList = mapHList'
+
+-- | Change the container of each element in a heterogeneous list, monadic
+-- version
+mapHListM :: (Monad m, ConsType a) =>
+    (forall a . c1 (Full a) -> m (c2 (Full a))) -> HList c1 a -> m (HList c2 a)
+mapHListM = mapHListM'
 
 -- | Apply the syntax tree to listed arguments
 appHList :: ConsType a =>
@@ -522,4 +543,16 @@ instance Sat Poly a
 
 poly :: Proxy Poly
 poly = Proxy
+
+-- | Representation of \"simple\" types: types satisfying
+-- @(`Eq` a, `Show` a, `Typeable` a)@
+data SimpleCtx
+
+instance (Eq a, Show a, Typeable a) => Sat SimpleCtx a
+  where
+    data Witness SimpleCtx a = (Eq a, Show a, Typeable a) => SimpleWit
+    witness = SimpleWit
+
+simpleCtx :: Proxy SimpleCtx
+simpleCtx = Proxy
 

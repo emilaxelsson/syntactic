@@ -4,6 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | A minimal Feldspar core language implementation. The intention of this
@@ -12,10 +13,10 @@
 --
 -- A more realistic implementation would use custom contexts to restrict the
 -- types at which constructors operate. Currently, all general features (such as
--- 'Literal' and 'Tuple') use a 'Poly' context, which means that the types are
--- not restricted. A real implementation would also probably use custom types
--- for primitive functions, since the 'Sym' feature is quite unsafe (uses only
--- a 'String' to distinguish between functions).
+-- 'Literal' and 'Tuple') use a 'SimpleCtx' context, which means that the types
+-- are quite unrestricted. A real implementation would also probably use custom
+-- types for primitive functions, since the 'Sym' feature is quite unsafe (uses
+-- only a 'String' to distinguish between functions).
 
 module NanoFeldspar.Core where
 
@@ -32,8 +33,6 @@ import Language.Syntactic.Features.Condition
 import Language.Syntactic.Features.Tuple
 import Language.Syntactic.Features.Binding
 import Language.Syntactic.Features.Binding.HigherOrder
-import Language.Syntactic.Sharing.Graph
-import Language.Syntactic.Sharing.ReifyHO
 
 
 
@@ -56,7 +55,11 @@ type Index  = Int
 
 data Parallel a
   where
-    Parallel :: Parallel (Length :-> (Index -> a) :-> Full [a])
+    Parallel :: Type a => Parallel (Length :-> (Index -> a) :-> Full [a])
+
+instance WitnessCons Parallel
+  where
+    witnessCons Parallel = ConsWit
 
 instance IsSymbol Parallel
   where
@@ -64,9 +67,9 @@ instance IsSymbol Parallel
       where
         parallel len ixf = map ixf [0 .. len-1]
 
-instance ExprEq Parallel where exprEq = exprEqFunc; exprHash = exprHashFunc
-instance Render Parallel where renderPart = renderPartFunc
-instance Eval   Parallel where evaluate   = evaluateFunc
+instance ExprEq Parallel where exprEq = exprEqSym; exprHash = exprHashSym
+instance Render Parallel where renderPart = renderPartSym
+instance Eval   Parallel where evaluate   = evaluateSym
 instance ToTree Parallel
 
 
@@ -77,7 +80,12 @@ instance ToTree Parallel
 
 data ForLoop a
   where
-    ForLoop :: ForLoop (Length :-> st :-> (Index -> st -> st) :-> Full st)
+    ForLoop :: Type st =>
+        ForLoop (Length :-> st :-> (Index -> st -> st) :-> Full st)
+
+instance WitnessCons ForLoop
+  where
+    witnessCons ForLoop = ConsWit
 
 instance IsSymbol ForLoop
   where
@@ -85,9 +93,9 @@ instance IsSymbol ForLoop
       where
         forLoop len init body = foldl (flip body) init [0 .. len-1]
 
-instance ExprEq ForLoop where exprEq = exprEqFunc; exprHash = exprHashFunc
-instance Render ForLoop where renderPart = renderPartFunc
-instance Eval   ForLoop where evaluate   = evaluateFunc
+instance ExprEq ForLoop where exprEq = exprEqSym; exprHash = exprHashSym
+instance Render ForLoop where renderPart = renderPartSym
+instance Eval   ForLoop where evaluate   = evaluateSym
 instance ToTree ForLoop
 
 
@@ -98,18 +106,19 @@ instance ToTree ForLoop
 
 -- | The Feldspar domain
 type FeldDomain
-    =   Literal Poly
-    :+: Sym
-    :+: Condition Poly
-    :+: Tuple Poly
-    :+: Select Poly
-    :+: Let Poly Poly
+    =   Literal SimpleCtx
+    :+: Sym SimpleCtx
+    :+: Condition SimpleCtx
+    :+: Tuple SimpleCtx
+    :+: Select SimpleCtx
+    :+: Let SimpleCtx SimpleCtx
     :+: Parallel
     :+: ForLoop
 
-data Data a = Type a => Data { unData :: HOAST Poly FeldDomain (Full a) }
+data Data a = Type a => Data { unData :: HOAST SimpleCtx FeldDomain (Full a) }
 
-type FeldDomainAll = HOLambda Poly FeldDomain :+: Variable Poly :+: FeldDomain
+type FeldDomainAll =
+    HOLambda SimpleCtx FeldDomain :+: Variable SimpleCtx :+: FeldDomain
 
 -- | Declaring 'Data' as syntactic sugar
 instance Type a => Syntactic (Data a) FeldDomainAll
@@ -140,42 +149,16 @@ instance
 --------------------------------------------------------------------------------
 
 -- | Print the expression
-printFeld :: Reifiable Poly a FeldDomain internal => a -> IO ()
-printFeld = printExpr . reify
+printFeld :: Reifiable SimpleCtx a FeldDomain internal => a -> IO ()
+printFeld = printExpr . reifyCtx simpleCtx
 
 -- | Draw the syntax tree
-drawFeld :: Reifiable Poly a FeldDomain internal => a -> IO ()
-drawFeld = drawAST . reify
-
--- | A predicate deciding which constructs can be shared. Variables and literals
--- are not shared.
-canShare :: HOASTF Poly FeldDomain a -> Maybe (Witness' Poly a)
-canShare (prjVariable poly -> Just _) = Nothing
-canShare (prjLiteral poly  -> Just _) = Nothing
-canShare _                            = Just Witness'
-
--- | Draw the syntax graph after common sub-expression elimination
-drawFeldCSE :: Reifiable Poly a FeldDomain internal => a -> IO ()
-drawFeldCSE a = do
-    (g,_) <- reifyGraph canShare a
-    drawASG
-      $ reindexNodesFrom0
-      $ inlineSingle
-      $ cse
-      $ g
-
--- | Draw the syntax graph after observing sharing
-drawFeldObs :: Reifiable Poly a FeldDomain internal => a -> IO ()
-drawFeldObs a = do
-    (g,_) <- reifyGraph canShare a
-    drawASG
-      $ reindexNodesFrom0
-      $ inlineSingle
-      $ g
+drawFeld :: Reifiable SimpleCtx a FeldDomain internal => a -> IO ()
+drawFeld = drawAST . reifyCtx simpleCtx
 
 -- | Evaluation
-eval :: Reifiable Poly a FeldDomain internal => a -> NAryEval internal
-eval = evalLambda . reify
+eval :: Reifiable SimpleCtx a FeldDomain internal => a -> NAryEval internal
+eval = evalLambda . reifyCtx simpleCtx
 
 
 
@@ -185,7 +168,7 @@ eval = evalLambda . reify
 
 -- | Literal
 value :: Syntax a => Internal a -> a
-value = sugar . lit
+value = sugar . litCtx simpleCtx
 
 -- | For types containing some kind of \"thunk\", this function can be used to
 -- force computation
@@ -194,25 +177,30 @@ force = resugar
 
 -- | Share a value using let binding
 share :: (Syntax a, Syntax b) => a -> (a -> b) -> b
-share a f = sugar $ letBind (desugar a) (desugarN f)
+share a f = sugar $ letBindCtx simpleCtx (desugar a) (desugarN f)
 
 -- | Alpha equivalence
 instance Eq (Data a)
   where
-    Data a == Data b = alphaEq poly (reify a) (reify b)
+    Data a == Data b =
+        alphaEq simpleCtx (reifyCtx simpleCtx a) (reifyCtx simpleCtx b)
 
 instance Show (Data a)
   where
-    show (Data a) = render $ reify a
+    show (Data a) = render $ reifyCtx simpleCtx a
 
 instance (Type a, Num a) => Num (Data a)
   where
     fromInteger = value . fromInteger
-    abs         = sugarN $ sym1 "abs" abs
-    signum      = sugarN $ sym1 "signum" signum
-    (+)         = sugarN $ sym2 "(+)" (+)
-    (-)         = sugarN $ sym2 "(-)" (-)
-    (*)         = sugarN $ sym2 "(*)" (*)
+    abs         = sugarN $ sym1 simpleCtx "abs" abs
+    signum      = sugarN $ sym1 simpleCtx "signum" signum
+    (+)         = sugarN $ sym2 simpleCtx "(+)" (+)
+    (-)         = sugarN $ sym2 simpleCtx "(-)" (-)
+    (*)         = sugarN $ sym2 simpleCtx "(*)" (*)
+
+(?) :: Syntax a => Data Bool -> (a,a) -> a
+cond ? (t,e) = sugar $
+    conditionCtx simpleCtx (desugar cond) (desugar t) (desugar e)
 
 -- | Parallel array
 parallel :: Type a => Data Length -> (Data Index -> Data a) -> Data [a]
@@ -231,11 +219,11 @@ forLoop len init body
     :$: lambdaN (desugarN body)
 
 arrLength :: Type a => Data [a] -> Data Length
-arrLength = sugarN $ sym1 "arrLength" Prelude.length
+arrLength = sugarN $ sym1 simpleCtx "arrLength" Prelude.length
 
 -- | Array indexing
 getIx :: Type a => Data [a] -> Data Index -> Data a
-getIx = sugarN $ sym2 "getIx" eval
+getIx = sugarN $ sym2 simpleCtx "getIx" eval
   where
     eval as i
         | i >= len || i < 0 = error "getIx: index out of bounds"
@@ -244,8 +232,8 @@ getIx = sugarN $ sym2 "getIx" eval
         len = Prelude.length as
 
 max :: Type a => Data a -> Data a -> Data a
-max = sugarN $ sym2 "max" Prelude.max
+max = sugarN $ sym2 simpleCtx "max" Prelude.max
 
 min :: Type a => Data a -> Data a -> Data a
-min = sugarN $ sym2 "min" Prelude.min
+min = sugarN $ sym2 simpleCtx "min" Prelude.min
 

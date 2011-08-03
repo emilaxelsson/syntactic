@@ -38,6 +38,7 @@ Cabal-version:  >=1.6
 Extra-source-files:
   Examples/ALaCarte.hs
   Examples/NanoFeldspar/Core.hs
+  Examples/NanoFeldspar/Extra.hs
   Examples/NanoFeldspar/Vector.hs
   Examples/NanoFeldspar/Test.hs
 
@@ -58,8 +59,10 @@ Library
     Language.Syntactic.Features.Condition
     Language.Syntactic.Features.Tuple
     Language.Syntactic.Features.TupleSyntacticPoly
+    Language.Syntactic.Features.TupleSyntacticSimple
     Language.Syntactic.Features.Binding
     Language.Syntactic.Features.Binding.HigherOrder
+    Language.Syntactic.Features.Binding.PartialEval
     Language.Syntactic.Sharing.Utils
     Language.Syntactic.Sharing.Graph
     Language.Syntactic.Sharing.StableName
