@@ -22,8 +22,6 @@ module NanoFeldspar.Core where
 
 
 
-import Prelude hiding (max, min)
-import qualified Prelude
 import Data.Typeable
 
 import Language.Syntactic
@@ -33,6 +31,7 @@ import Language.Syntactic.Features.Condition
 import Language.Syntactic.Features.Tuple
 import Language.Syntactic.Features.Binding
 import Language.Syntactic.Features.Binding.HigherOrder
+import Language.Syntactic.Sharing.SimpleCodeMotion
 
 
 
@@ -61,16 +60,26 @@ instance WitnessCons Parallel
   where
     witnessCons Parallel = ConsWit
 
+instance WitnessSat Parallel
+  where
+    type SatContext Parallel = SimpleCtx
+    witnessSat Parallel = SatWit
+
+instance MaybeWitnessSat SimpleCtx Parallel
+  where
+    maybeWitnessSat = maybeWitnessSatDefault
+
 instance IsSymbol Parallel
   where
     toSym Parallel = Sym "parallel" parallel
       where
         parallel len ixf = map ixf [0 .. len-1]
 
-instance ExprEq Parallel where exprEq = exprEqSym; exprHash = exprHashSym
-instance Render Parallel where renderPart = renderPartSym
-instance Eval   Parallel where evaluate   = evaluateSym
-instance ToTree Parallel
+instance ExprEq   Parallel where exprEq = exprEqSym; exprHash = exprHashSym
+instance Render   Parallel where renderPart = renderPartSym
+instance Eval     Parallel where evaluate   = evaluateSym
+instance ToTree   Parallel
+instance EvalBind Parallel where evalBindFeat = evalBindFeatDefault
 
 
 
@@ -87,16 +96,26 @@ instance WitnessCons ForLoop
   where
     witnessCons ForLoop = ConsWit
 
+instance WitnessSat ForLoop
+  where
+    type SatContext ForLoop = SimpleCtx
+    witnessSat ForLoop = SatWit
+
+instance MaybeWitnessSat SimpleCtx ForLoop
+  where
+    maybeWitnessSat = maybeWitnessSatDefault
+
 instance IsSymbol ForLoop
   where
     toSym ForLoop = Sym "forLoop" forLoop
       where
         forLoop len init body = foldl (flip body) init [0 .. len-1]
 
-instance ExprEq ForLoop where exprEq = exprEqSym; exprHash = exprHashSym
-instance Render ForLoop where renderPart = renderPartSym
-instance Eval   ForLoop where evaluate   = evaluateSym
-instance ToTree ForLoop
+instance ExprEq   ForLoop where exprEq = exprEqSym; exprHash = exprHashSym
+instance Render   ForLoop where renderPart = renderPartSym
+instance Eval     ForLoop where evaluate   = evaluateSym
+instance ToTree   ForLoop
+instance EvalBind ForLoop where evalBindFeat = evalBindFeatDefault
 
 
 
@@ -106,8 +125,8 @@ instance ToTree ForLoop
 
 -- | The Feldspar domain
 type FeldDomain
-    =   Literal SimpleCtx
-    :+: Sym SimpleCtx
+    =   Sym SimpleCtx
+    :+: Literal SimpleCtx
     :+: Condition SimpleCtx
     :+: Tuple SimpleCtx
     :+: Select SimpleCtx
@@ -115,7 +134,7 @@ type FeldDomain
     :+: Parallel
     :+: ForLoop
 
-data Data a = Type a => Data { unData :: HOAST SimpleCtx FeldDomain (Full a) }
+data Data a = Type a => Data { unData :: HOASTF SimpleCtx FeldDomain a }
 
 type FeldDomainAll =
     HOLambda SimpleCtx FeldDomain :+: Variable SimpleCtx :+: FeldDomain
@@ -150,15 +169,15 @@ instance
 
 -- | Print the expression
 printFeld :: Reifiable SimpleCtx a FeldDomain internal => a -> IO ()
-printFeld = printExpr . reifyCtx simpleCtx
+printFeld = printExpr . reifySmartCtx simpleCtx
 
 -- | Draw the syntax tree
 drawFeld :: Reifiable SimpleCtx a FeldDomain internal => a -> IO ()
-drawFeld = drawAST . reifyCtx simpleCtx
+drawFeld = drawAST . reifySmartCtx simpleCtx
 
 -- | Evaluation
 eval :: Reifiable SimpleCtx a FeldDomain internal => a -> NAryEval internal
-eval = evalLambda . reifyCtx simpleCtx
+eval = evalBind . reifySmartCtx simpleCtx
 
 
 
@@ -169,6 +188,12 @@ eval = evalLambda . reifyCtx simpleCtx
 -- | Literal
 value :: Syntax a => Internal a -> a
 value = sugar . litCtx simpleCtx
+
+false :: Data Bool
+false = value False
+
+true :: Data Bool
+true = value True
 
 -- | For types containing some kind of \"thunk\", this function can be used to
 -- force computation
@@ -230,6 +255,12 @@ getIx = sugarN $ sym2 simpleCtx "getIx" eval
         | otherwise         = as !! i
       where
         len = Prelude.length as
+
+not :: Data Bool -> Data Bool
+not = sugarN $ sym1 simpleCtx "not" Prelude.not
+
+(==) :: Type a => Data a -> Data a -> Data Bool
+(==) = sugarN $ sym2 simpleCtx "(==)" (Prelude.==)
 
 max :: Type a => Data a -> Data a -> Data a
 max = sugarN $ sym2 simpleCtx "max" Prelude.max

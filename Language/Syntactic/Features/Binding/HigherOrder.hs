@@ -6,9 +6,9 @@
 
 module Language.Syntactic.Features.Binding.HigherOrder
     ( Variable
-    , evalLambda
     , Let (..)
     , HOLambda (..)
+    , HODomain
     , HOAST
     , HOASTF
     , lambda
@@ -41,12 +41,17 @@ data HOLambda ctx dom a
         => (HOASTF ctx dom a -> HOASTF ctx dom b)
         -> HOLambda ctx dom (Full (a -> b))
 
-type HOAST  ctx dom   = AST (HOLambda ctx dom :+: Variable ctx :+: dom)
-type HOASTF ctx dom a = HOAST ctx dom (Full a)
+type HODomain ctx dom   = HOLambda ctx dom :+: Variable ctx :+: dom
+type HOAST    ctx dom   = AST (HODomain ctx dom)
+type HOASTF   ctx dom a = HOAST ctx dom (Full a)
 
 instance WitnessCons (HOLambda ctx dom)
   where
     witnessCons (HOLambda _) = ConsWit
+
+instance MaybeWitnessSat ctx1 (HOLambda ctx2 dom)
+  where
+    maybeWitnessSat _ _ = Nothing
 
 
 
@@ -56,9 +61,8 @@ lambda :: (Typeable a, Typeable b, Sat ctx a) =>
 lambda = inject . HOLambda
 
 -- | N-ary lambda binding
-lambdaN :: forall ctx dom a
-    .  NAry ctx a (HOLambda ctx dom :+: Variable ctx :+: dom)
-    => a -> HOASTF ctx dom (NAryEval a)
+lambdaN :: forall ctx dom a . NAry ctx a (HODomain ctx dom) =>
+    a -> HOASTF ctx dom (NAryEval a)
 lambdaN = bindN (Proxy :: Proxy ctx) lambda
 
 -- | Let binding with explicit context
@@ -108,14 +112,14 @@ reifyTop = flip evalState 0 . reifyM
 -- | Convenient class alias for n-ary syntactic functions
 class
     ( SyntacticN a internal
-    , NAry ctx internal (HOLambda ctx dom :+: Variable ctx :+: dom)
+    , NAry ctx internal (HODomain ctx dom)
     , Typeable (NAryEval internal)
     ) =>
       Reifiable ctx a dom internal | a -> dom internal
 
 instance
     ( SyntacticN a internal
-    , NAry ctx internal (HOLambda ctx dom :+: Variable ctx :+: dom)
+    , NAry ctx internal (HODomain ctx dom)
     , Typeable (NAryEval internal)
     ) =>
       Reifiable ctx a dom internal

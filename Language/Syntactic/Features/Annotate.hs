@@ -38,6 +38,19 @@ type AnnSTF info dom a = ASTF (Ann info dom) a
 
 
 
+instance WitnessCons dom => WitnessCons (Ann info dom)
+  where
+    witnessCons (Ann _ a) = witnessCons a
+
+instance WitnessSat expr => WitnessSat (Ann info expr)
+  where
+    type SatContext (Ann info expr) = SatContext expr
+    witnessSat (Ann _ a) = witnessSat a
+
+instance MaybeWitnessSat ctx dom => MaybeWitnessSat ctx (Ann info dom)
+  where
+    maybeWitnessSat ctx (Ann _ a) = maybeWitnessSat ctx a
+
 instance ExprEq expr => ExprEq (Ann info expr)
   where
     exprEq a b = annExpr a `exprEq` annExpr b

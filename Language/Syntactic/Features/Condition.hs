@@ -1,3 +1,5 @@
+{-# LANGUAGE OverlappingInstances #-}
+
 -- | Conditional expressions
 
 module Language.Syntactic.Features.Condition where
@@ -22,8 +24,16 @@ instance WitnessCons (Condition ctx)
 
 instance WitnessSat (Condition ctx)
   where
-    type Context (Condition ctx) = ctx
-    witnessSat Condition = Witness'
+    type SatContext (Condition ctx) = ctx
+    witnessSat Condition = SatWit
+
+instance MaybeWitnessSat ctx (Condition ctx)
+  where
+    maybeWitnessSat = maybeWitnessSatDefault
+
+instance MaybeWitnessSat ctx1 (Condition ctx2)
+  where
+    maybeWitnessSat _ _ = Nothing
 
 instance IsSymbol (Condition ctx)
   where

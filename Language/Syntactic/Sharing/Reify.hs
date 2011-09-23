@@ -32,7 +32,7 @@ type GraphMonad ctx dom a = WriterT
 
 
 reifyGraphM :: forall ctx dom a . Typeable a
-    => (forall a . ASTF dom a -> Maybe (Witness' ctx a))
+    => (forall a . ASTF dom a -> Maybe (SatWit ctx a))
     -> IORef NodeId
     -> IORef (History (AST dom))
     -> ASTF dom a
@@ -43,7 +43,7 @@ reifyGraphM canShare nSupp history = reifyNode
     reifyNode :: Typeable b => ASTF dom b -> GraphMonad ctx dom (Full b)
     reifyNode a = case canShare a of
         Nothing -> reifyRec a
-        Just Witness' | a `seq` True -> do
+        Just SatWit | a `seq` True -> do
           st   <- liftIO $ makeStableName a
           hist <- liftIO $ readIORef history
           case lookHistory hist (StName st) of
@@ -67,11 +67,11 @@ reifyGraphM canShare nSupp history = reifyNode
 -- is well-behaved in the sense that the worst thing that could happen is that
 -- sharing is lost. It is not possible to get false sharing.
 reifyGraph :: Typeable a
-    => (forall a . ASTF dom a -> Maybe (Witness' ctx a))
+    => (forall a . ASTF dom a -> Maybe (SatWit ctx a))
          -- ^ A function that decides whether a given node can be shared.
          -- 'Nothing' means \"don't share\"; 'Just' means \"share\". Nodes whose
          -- result type fulfills @(`Sat` ctx a)@ can be shared, which is why the
-         -- function returns a 'Witness''.
+         -- function returns a 'SatWit'.
     -> ASTF dom a
     -> IO (ASG ctx dom a)
 reifyGraph canShare a = do

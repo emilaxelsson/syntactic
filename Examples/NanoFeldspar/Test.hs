@@ -1,4 +1,4 @@
-import Prelude hiding (length, map, max, min, reverse, sum, unzip, zip, zipWith)
+import Prelude hiding (length, map, (==), max, min, reverse, sum, unzip, zip, zipWith)
 
 import Language.Syntactic.Features.TupleSyntacticSimple
 
@@ -16,7 +16,7 @@ test1_2 = printFeld prog1
 test1_3 = eval prog1 0 10
 
 prog2 :: Data Int -> Data Int
-prog2 a = share (min a a) $ \b -> max b b
+prog2 a = let b = min a a in max b b
 
 test2_1 = drawFeld prog2
 test2_2 = printFeld prog2
@@ -63,7 +63,7 @@ prog7 = index as 1 + sum as + sum as
     as = map (*2) $ force (1...20)
 
 test7_1 = drawFeld prog7
-  -- Draws a tree with a lot of duplication
+  -- Draws a tree with no duplication
 
 test7_2 = drawFeldCSE prog7
   -- Draws a graph with no duplication
@@ -74,6 +74,20 @@ test7_3 = drawFeldObs prog7
   -- 'parallel' introduced by 'force' is shared, because 'force' only appears
   -- once.
 
--- Note that we're still missing a way to rebuild an expression with let
--- bindings from the graph. This is ongoing work.
+
+
+--------------------------------------------------------------------------------
+-- Demonstration of partial evaluation
+--------------------------------------------------------------------------------
+
+prog8 :: Data Int -> Data Int
+prog8 a = (a==10) ? (max 5 (6+7), max 5 (6+7))
+
+test8 = drawFeldPart prog8
+
+prog9 a = expensiveCond ? (parallel a (+a), parallel a (+a))
+  where
+    expensiveCond = getIx (parallel (a*a*a*a) (+a)) 10 == 23
+
+test9 = drawFeldPart prog9
 

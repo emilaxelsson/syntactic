@@ -1,4 +1,5 @@
 :set -XDeriveDataTypeable
+:set -XDeriveFunctor
 :set -XFlexibleContexts
 :set -XFlexibleInstances
 :set -XFunctionalDependencies
@@ -7,6 +8,7 @@
 :set -XMultiParamTypeClasses
 :set -XRank2Types
 :set -XScopedTypeVariables
+:set -XStandaloneDeriving
 :set -XTypeFamilies
 :set -XTypeOperators
 :set -XTypeSynonymInstances

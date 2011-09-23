@@ -1,3 +1,5 @@
+{-# LANGUAGE OverlappingInstances #-}
+
 -- | Simple symbols
 --
 -- 'Sym' provides a simple way to make syntactic symbols for prototyping.
@@ -29,19 +31,16 @@ instance WitnessCons (Sym ctx)
 
 instance WitnessSat (Sym ctx)
   where
-    type Context (Sym ctx) = ctx
-    witnessSat (Sym _ _) = Witness'
+    type SatContext (Sym ctx) = ctx
+    witnessSat (Sym _ _) = SatWit
 
-witnessSatSym :: forall ctx dom a . (Sym ctx :<: dom)
-    => Proxy ctx
-    -> ASTF dom a
-    -> Maybe (Witness' ctx a)
-witnessSatSym ctx = witSym
+instance MaybeWitnessSat ctx (Sym ctx)
   where
-    witSym :: (EvalResult b ~ a) => AST dom b -> Maybe (Witness' ctx a)
-    witSym (prjSym ctx -> Just (Sym _ _)) = Just Witness'
-    witSym (f :$: _) = witSym f
-    witSym _         = Nothing
+    maybeWitnessSat = maybeWitnessSatDefault
+
+instance MaybeWitnessSat ctx1 (Sym ctx2)
+  where
+    maybeWitnessSat _ _ = Nothing
 
 instance ExprEq (Sym ctx)
   where

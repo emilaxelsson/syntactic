@@ -1,3 +1,5 @@
+{-# LANGUAGE OverlappingInstances #-}
+
 -- | Construction and projection of tuples in the object language
 --
 -- The function pairs @desugarTupX@/@sugarTupX@ could be used directly in
@@ -47,13 +49,21 @@ instance WitnessCons (Tuple ctx)
 
 instance WitnessSat (Tuple ctx)
   where
-    type Context (Tuple ctx) = ctx
-    witnessSat Tup2 = Witness'
-    witnessSat Tup3 = Witness'
-    witnessSat Tup4 = Witness'
-    witnessSat Tup5 = Witness'
-    witnessSat Tup6 = Witness'
-    witnessSat Tup7 = Witness'
+    type SatContext (Tuple ctx) = ctx
+    witnessSat Tup2 = SatWit
+    witnessSat Tup3 = SatWit
+    witnessSat Tup4 = SatWit
+    witnessSat Tup5 = SatWit
+    witnessSat Tup6 = SatWit
+    witnessSat Tup7 = SatWit
+
+instance MaybeWitnessSat ctx (Tuple ctx)
+  where
+    maybeWitnessSat = maybeWitnessSatDefault
+
+instance MaybeWitnessSat ctx1 (Tuple ctx2)
+  where
+    maybeWitnessSat _ _ = Nothing
 
 instance IsSymbol (Tuple ctx)
   where
@@ -189,16 +199,61 @@ desugarTup7 ctx (a,b,c,d,e,f,g) = inject (Tup7 `withContext` ctx)
 -- * Projection
 --------------------------------------------------------------------------------
 
+-- | These families ('Sel1'' - 'Sel7'') are needed because of the problem
+-- described in:
+--
+-- <http://emil-fp.blogspot.com/2011/08/fundeps-weaker-than-type-families.html>
+type family Sel1' a
+type instance Sel1' (a,b)           = a
+type instance Sel1' (a,b,c)         = a
+type instance Sel1' (a,b,c,d)       = a
+type instance Sel1' (a,b,c,d,e)     = a
+type instance Sel1' (a,b,c,d,e,f)   = a
+type instance Sel1' (a,b,c,d,e,f,g) = a
+
+type family Sel2' a
+type instance Sel2' (a,b)           = b
+type instance Sel2' (a,b,c)         = b
+type instance Sel2' (a,b,c,d)       = b
+type instance Sel2' (a,b,c,d,e)     = b
+type instance Sel2' (a,b,c,d,e,f)   = b
+type instance Sel2' (a,b,c,d,e,f,g) = b
+
+type family Sel3' a
+type instance Sel3' (a,b,c)         = c
+type instance Sel3' (a,b,c,d)       = c
+type instance Sel3' (a,b,c,d,e)     = c
+type instance Sel3' (a,b,c,d,e,f)   = c
+type instance Sel3' (a,b,c,d,e,f,g) = c
+
+type family Sel4' a
+type instance Sel4' (a,b,c,d)       = d
+type instance Sel4' (a,b,c,d,e)     = d
+type instance Sel4' (a,b,c,d,e,f)   = d
+type instance Sel4' (a,b,c,d,e,f,g) = d
+
+type family Sel5' a
+type instance Sel5' (a,b,c,d,e)     = e
+type instance Sel5' (a,b,c,d,e,f)   = e
+type instance Sel5' (a,b,c,d,e,f,g) = e
+
+type family Sel6' a
+type instance Sel6' (a,b,c,d,e,f)   = f
+type instance Sel6' (a,b,c,d,e,f,g) = f
+
+type family Sel7' a
+type instance Sel7' (a,b,c,d,e,f,g) = g
+
 -- | Expressions for selecting elements of a tuple
 data Select ctx a
   where
-    Sel1 :: (Sel1 a b, Sat ctx b) => Select ctx (a :-> Full b)
-    Sel2 :: (Sel2 a b, Sat ctx b) => Select ctx (a :-> Full b)
-    Sel3 :: (Sel3 a b, Sat ctx b) => Select ctx (a :-> Full b)
-    Sel4 :: (Sel4 a b, Sat ctx b) => Select ctx (a :-> Full b)
-    Sel5 :: (Sel5 a b, Sat ctx b) => Select ctx (a :-> Full b)
-    Sel6 :: (Sel6 a b, Sat ctx b) => Select ctx (a :-> Full b)
-    Sel7 :: (Sel7 a b, Sat ctx b) => Select ctx (a :-> Full b)
+    Sel1 :: (Sel1 a b, Sel1' a ~ b, Sat ctx b) => Select ctx (a :-> Full b)
+    Sel2 :: (Sel2 a b, Sel2' a ~ b, Sat ctx b) => Select ctx (a :-> Full b)
+    Sel3 :: (Sel3 a b, Sel3' a ~ b, Sat ctx b) => Select ctx (a :-> Full b)
+    Sel4 :: (Sel4 a b, Sel4' a ~ b, Sat ctx b) => Select ctx (a :-> Full b)
+    Sel5 :: (Sel5 a b, Sel5' a ~ b, Sat ctx b) => Select ctx (a :-> Full b)
+    Sel6 :: (Sel6 a b, Sel6' a ~ b, Sat ctx b) => Select ctx (a :-> Full b)
+    Sel7 :: (Sel7 a b, Sel7' a ~ b, Sat ctx b) => Select ctx (a :-> Full b)
 
 instance WitnessCons (Select ctx)
   where
@@ -212,14 +267,22 @@ instance WitnessCons (Select ctx)
 
 instance WitnessSat (Select ctx)
   where
-    type Context (Select ctx) = ctx
-    witnessSat Sel1 = Witness'
-    witnessSat Sel2 = Witness'
-    witnessSat Sel3 = Witness'
-    witnessSat Sel4 = Witness'
-    witnessSat Sel5 = Witness'
-    witnessSat Sel6 = Witness'
-    witnessSat Sel7 = Witness'
+    type SatContext (Select ctx) = ctx
+    witnessSat Sel1 = SatWit
+    witnessSat Sel2 = SatWit
+    witnessSat Sel3 = SatWit
+    witnessSat Sel4 = SatWit
+    witnessSat Sel5 = SatWit
+    witnessSat Sel6 = SatWit
+    witnessSat Sel7 = SatWit
+
+instance MaybeWitnessSat ctx (Select ctx)
+  where
+    maybeWitnessSat = maybeWitnessSatDefault
+
+instance MaybeWitnessSat ctx1 (Select ctx2)
+  where
+    maybeWitnessSat _ _ = Nothing
 
 instance IsSymbol (Select ctx)
   where

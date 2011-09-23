@@ -1,9 +1,12 @@
+{-# LANGUAGE OverlappingInstances #-}
+
 -- | General binding constructs
 
 module Language.Syntactic.Features.Binding where
 
 
 
+import Control.Monad.Identity
 import Control.Monad.Reader
 import Data.Dynamic
 import Data.Ix
@@ -13,6 +16,10 @@ import Data.Hash
 import Data.Proxy
 
 import Language.Syntactic
+import Language.Syntactic.Features.Symbol
+import Language.Syntactic.Features.Literal
+import Language.Syntactic.Features.Condition
+import Language.Syntactic.Features.Tuple
 
 
 
@@ -37,7 +44,7 @@ showVar v = "var" ++ show v
 data Variable ctx a
   where
     Variable :: (Typeable a, Sat ctx a) => VarId -> Variable ctx (Full a)
-      -- 'Typeable' needed by the dynamic types in 'evalLambda'.
+      -- 'Typeable' needed by the dynamic types in 'evalBind'.
 
 instance WitnessCons (Variable ctx)
   where
@@ -45,8 +52,16 @@ instance WitnessCons (Variable ctx)
 
 instance WitnessSat (Variable ctx)
   where
-    type Context (Variable ctx) = ctx
-    witnessSat (Variable _) = Witness'
+    type SatContext (Variable ctx) = ctx
+    witnessSat (Variable _) = SatWit
+
+instance MaybeWitnessSat ctx (Variable ctx)
+  where
+    maybeWitnessSat = maybeWitnessSatDefault
+
+instance MaybeWitnessSat ctx1 (Variable ctx2)
+  where
+    maybeWitnessSat _ _ = Nothing
 
 -- | 'exprEq' does strict identifier comparison; i.e. no alpha equivalence.
 --
@@ -83,11 +98,15 @@ data Lambda ctx a
   where
     Lambda :: (Typeable a, Sat ctx a) =>
         VarId -> Lambda ctx (b :-> Full (a -> b))
-      -- 'Typeable' needed by the dynamic types in 'evalLambda'.
+      -- 'Typeable' needed by the dynamic types in 'evalBind'.
 
 instance WitnessCons (Lambda ctx)
   where
     witnessCons (Lambda _) = ConsWit
+
+instance MaybeWitnessSat ctx1 (Lambda ctx2)
+  where
+    maybeWitnessSat _ _ = Nothing
 
 -- | 'exprEq' does strict identifier comparison; i.e. no alpha equivalence.
 --
@@ -131,7 +150,7 @@ class NAry ctx a dom | a -> dom
          )
       -> a -> ASTF dom (NAryEval a)
 
-instance Sat ctx a => NAry ctx (ASTF dom a) dom
+instance NAry ctx (ASTF dom a) dom
   where
     type NAryEval (ASTF dom a) = a
     bindN _ _ = id
@@ -162,8 +181,16 @@ instance WitnessCons (Let ctxa ctxb)
 
 instance WitnessSat (Let ctxa ctxb)
   where
-    type Context (Let ctxa ctxb) = ctxb
-    witnessSat Let = Witness'
+    type SatContext (Let ctxa ctxb) = ctxb
+    witnessSat Let = SatWit
+
+instance MaybeWitnessSat ctxb (Let ctxa ctxb)
+  where
+    maybeWitnessSat = maybeWitnessSatDefault
+
+instance MaybeWitnessSat ctx (Let ctxa ctxb)
+  where
+    maybeWitnessSat _ _ = Nothing
 
 instance ExprEq (Let ctxa ctxb)
   where
@@ -178,7 +205,9 @@ instance Render (Let ctxa ctxb)
 
 instance ToTree (Let ctxa ctxb)
   where
-    toTreePart [a,body] Let = Node ("Let " ++ var) [a,body']
+    toTreePart [a,body] Let = case splitAt 7 node of
+        ("Lambda ", var) -> Node ("Let " ++ var) [a,body']
+        _                -> Node "Let" [a,body]
       where
         Node node [body'] = body
         var               = drop 7 node  -- Drop the "Lambda " prefix
@@ -238,39 +267,62 @@ alphaEq ctx a b = runReader (alphaEqM ctx (\a b -> return $ exprEq a b) a b) []
 
 
 
--- | Evaluation of possibly open lambda expressions
-evalLambdaM :: (Eval dom, MonadReader [(VarId,Dynamic)] m) =>
-    ASTF (Lambda ctx :+: Variable ctx :+: dom) a -> m a
-evalLambdaM = liftM result . eval
+class EvalBind feature
   where
-    eval :: (Eval dom, MonadReader [(VarId,Dynamic)] m) =>
-        AST (Lambda ctx :+: Variable ctx :+: dom) a -> m a
-    eval (Symbol (InjectR (InjectL (Variable v)))) = do
-        env <- ask
-        case lookup v env of
-          Nothing -> return $ error "eval: evaluating free variable"
-          Just a  -> case fromDynamic a of
-            Just a -> return (Full a)
-            _      -> return $ error "eval: internal type error"
+    evalBindFeat
+        :: (EvalBind dom, ConsType a)
+        => feature a
+        -> HList (AST dom) a
+        -> Reader [(VarId,Dynamic)] (EvalResult a)
 
-    eval (Symbol (InjectL (Lambda v)) :$: body) = do
+instance (EvalBind sub1, EvalBind sub2) => EvalBind (sub1 :+: sub2)
+  where
+    evalBindFeat (InjectL a) = evalBindFeat a
+    evalBindFeat (InjectR a) = evalBindFeat a
+
+-- | Evaluation of possibly open expressions
+evalBindM :: EvalBind dom => ASTF dom a -> Reader [(VarId,Dynamic)] a
+evalBindM = liftM result . queryNode (\a -> liftM Full . evalBindFeat a)
+
+-- | Evaluation of closed expressions
+evalBind :: EvalBind dom => ASTF dom a -> a
+evalBind = flip runReader [] . evalBindM
+
+-- | Convenient default implementation of 'evalBindFeat'
+evalBindFeatDefault :: (Eval feature, ConsType a, EvalBind dom)
+    => feature a
+    -> HList (AST dom) a
+    -> Reader [(VarId,Dynamic)] (EvalResult a)
+evalBindFeatDefault feature args = do
+    args' <- mapHListM (liftM (Identity . Full) . evalBindM) args
+    return $ appEvalHList (toEval $ evaluate feature) args'
+
+instance EvalBind (Sym ctx)       where evalBindFeat = evalBindFeatDefault
+instance EvalBind (Literal ctx)   where evalBindFeat = evalBindFeatDefault
+instance EvalBind (Condition ctx) where evalBindFeat = evalBindFeatDefault
+instance EvalBind (Tuple ctx)     where evalBindFeat = evalBindFeatDefault
+instance EvalBind (Select ctx)    where evalBindFeat = evalBindFeatDefault
+instance EvalBind (Let ctxa ctxb) where evalBindFeat = evalBindFeatDefault
+
+instance EvalBind dom => EvalBind (Ann info dom)
+  where
+    evalBindFeat (Ann _ a) args = evalBindFeat a args
+
+instance EvalBind (Lambda ctx)
+  where
+    evalBindFeat (Lambda v) (body :*: Nil) = do
         env <- ask
         return
-            $ Full
             $ \a -> flip runReader ((v,toDyn a):env)
-            $ liftM result
-            $ eval body
+            $ evalBindM body
 
-    eval (f :$: a) = do
-        f' <- eval f
-        a' <- eval a
-        return (f' $: result a')
-
-    eval (Symbol (InjectR (InjectR a))) = return (evaluate a)
-
-
-
--- | Evaluation of closed lambda expressions
-evalLambda :: Eval dom => ASTF (Lambda ctx :+: Variable ctx :+: dom) a -> a
-evalLambda = flip runReader [] . evalLambdaM
+instance EvalBind (Variable ctx)
+  where
+    evalBindFeat (Variable v) Nil = do
+        env <- ask
+        case lookup v env of
+            Nothing -> return $ error "evalBind: evaluating free variable"
+            Just a  -> case fromDynamic a of
+              Just a -> return a
+              _      -> return $ error "evalBind: internal type error"
 

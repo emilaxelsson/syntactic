@@ -1,5 +1,5 @@
 Name:           syntactic
-Version:        0.6
+Version:        0.7
 Synopsis:       Generic abstract syntax, and utilities for embedded languages
 Description:    This library provides:
                 .
@@ -20,6 +20,10 @@ Description:    This library provides:
                 Note: The library is probably mostly useful for /functional/
                 object languages, such as Feldspar. Currently, it does not
                 support cyclic programs.
+                .
+                The following people have contributed to Syntactic:
+                .
+                  * Anders Persson
                 .
                 \[1\] /Data types à la carte/, by Wouter Swierstra, in
                 /Journal of Functional Programming/, 2008
@@ -62,7 +66,12 @@ Library
     Language.Syntactic.Features.TupleSyntacticSimple
     Language.Syntactic.Features.Binding
     Language.Syntactic.Features.Binding.HigherOrder
-    Language.Syntactic.Features.Binding.PartialEval
+    Language.Syntactic.Features.Binding.Optimize
+    Language.Syntactic.Features.Monad
+    Language.Syntactic.Features.Mutable
+    Language.Syntactic.Features.MutableReference
+    Language.Syntactic.Features.MutableArray
+    Language.Syntactic.Sharing.SimpleCodeMotion
     Language.Syntactic.Sharing.Utils
     Language.Syntactic.Sharing.Graph
     Language.Syntactic.Sharing.StableName
@@ -83,6 +92,7 @@ Library
 
   Extensions:
     DeriveDataTypeable
+    DeriveFunctor
     FlexibleContexts
     FlexibleInstances
     FunctionalDependencies
@@ -91,6 +101,7 @@ Library
     MultiParamTypeClasses
     Rank2Types
     ScopedTypeVariables
+    StandaloneDeriving
     TypeFamilies
     TypeOperators
     TypeSynonymInstances

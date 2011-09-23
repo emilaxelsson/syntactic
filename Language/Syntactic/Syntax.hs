@@ -60,6 +60,7 @@ module Language.Syntactic.Syntax
       Full (..)
     , (:->) (..)
     , HList (..)
+    , WrapFull (..)
     , ConsType
     , ConsEval
     , EvalResult
@@ -72,6 +73,7 @@ module Language.Syntactic.Syntax
     , mapHList
     , mapHListM
     , appHList
+    , appEvalHList
     , ($:)
     , AST (..)
     , ASTF
@@ -82,10 +84,15 @@ module Language.Syntactic.Syntax
     , Syntactic (..)
     , resugar
     , SyntacticN (..)
+    , fun1
+    , fun2
+    , fun3
+    , fun4
+    , fun5
+    , fun6
       -- * AST processing
-    , queryNodeI
     , queryNode
-    , transformNodeC
+    , queryNodeSimple
     , transformNode
       -- * Restricted syntax trees
     , Sat (..)
@@ -98,9 +105,12 @@ module Language.Syntactic.Syntax
         --
         --      I don't know if the fix just removes the warning, or if it means
         --      that 'Sat (..)' is enough.
-    , Witness' (..)
-    , witness'
+    , witnessByProxy
+    , SatWit (..)
+    , fromSatWit
     , WitnessSat (..)
+    , MaybeWitnessSat (..)
+    , maybeWitnessSatDefault
     , withContext
     , Poly
     , poly
@@ -139,6 +149,21 @@ data instance HList c (a :-> b) = Typeable a => c (Full a) :*: HList c b
 
 infixr :->, :*:
 
+-- | Can be used to turn a type constructor indexed by @a@ to a type constructor
+-- indexed by @(`Full` a)@. This is useful together with 'HList', which assumes
+-- its constructor to be indexed by @(`Full` a)@. That is, use
+--
+-- > HList (WrapFull c) ...
+--
+-- instead of
+--
+-- > HList c ...
+--
+-- if @c@ is not indexed by @(`Full` a)@.
+data WrapFull c a
+  where
+    WrapFull :: { unwrapFull :: c a } -> WrapFull c (Full a)
+
 -- | Fully or partially applied constructor
 --
 -- This class is private to the module to guarantee that all members of the
@@ -155,40 +180,42 @@ class ConsType' a
     type ConsEval' a
     type EvalResult' a
 
-    fromEval'   :: ConsEval' a -> a
-    toEval'     :: a -> ConsEval' a
-    listHList'  :: (forall a . c (Full a) -> b) -> HList c a -> [b]
-    listHListM' :: Monad m => (forall a . c (Full a) -> m b) -> HList c a -> m [b]
-    mapHList'   :: (forall a . c1 (Full a) -> c2 (Full a)) -> HList c1 a -> HList c2 a
-    mapHListM'  :: Monad m => (forall a . c1 (Full a) -> m (c2 (Full a))) -> HList c1 a -> m (HList c2 a)
-    appHList'   :: AST dom a -> HList (AST dom) a -> ASTF dom (EvalResult a)
-
+    fromEval'     :: ConsEval' a -> a
+    toEval'       :: a -> ConsEval' a
+    listHList'    :: (forall a . c (Full a) -> b) -> HList c a -> [b]
+    listHListM'   :: Monad m => (forall a . c (Full a) -> m b) -> HList c a -> m [b]
+    mapHList'     :: (forall a . c1 (Full a) -> c2 (Full a)) -> HList c1 a -> HList c2 a
+    mapHListM'    :: Monad m => (forall a . c1 (Full a) -> m (c2 (Full a))) -> HList c1 a -> m (HList c2 a)
+    appHList'     :: AST dom a -> HList (AST dom) a -> ASTF dom (EvalResult a)
+    appEvalHList' :: ConsEval a -> HList Identity a -> EvalResult a
 
 instance ConsType' (Full a)
   where
     type ConsEval'   (Full a) = a
     type EvalResult' (Full a) = a
 
-    fromEval'         = Full
-    toEval'           = result
-    listHList'  f Nil = []
-    listHListM' f Nil = return []
-    mapHList'   f Nil = Nil
-    mapHListM'  f Nil = return Nil
-    appHList'   a Nil = a
+    fromEval'           = Full
+    toEval'             = result
+    listHList'    f Nil = []
+    listHListM'   f Nil = return []
+    mapHList'     f Nil = Nil
+    mapHListM'    f Nil = return Nil
+    appHList'     a Nil = a
+    appEvalHList' a Nil = a
 
 instance ConsType' b => ConsType' (a :-> b)
   where
     type ConsEval'   (a :-> b) = a -> ConsEval' b
     type EvalResult' (a :-> b) = EvalResult' b
 
-    fromEval'                = Partial . (fromEval' .)
-    toEval' (Partial f)      = toEval' . f
-    listHList'  f (a :*: as) = f a : listHList' f as
-    listHListM' f (a :*: as) = sequence (f a : listHList' f as)
-    mapHList'   f (a :*: as) = f a :*: mapHList' f as
-    mapHListM'  f (a :*: as) = liftM2 (:*:) (f a) (mapHListM' f as)
-    appHList'   c (a :*: as) = appHList' (c :$: a) as
+    fromEval'                  = Partial . (fromEval' .)
+    toEval' (Partial f)        = toEval' . f
+    listHList'    f (a :*: as) = f a : listHList' f as
+    listHListM'   f (a :*: as) = sequence (f a : listHList' f as)
+    mapHList'     f (a :*: as) = f a :*: mapHList' f as
+    mapHListM'    f (a :*: as) = liftM2 (:*:) (f a) (mapHListM' f as)
+    appHList'     c (a :*: as) = appHList' (c :$: a) as
+    appEvalHList' f (a :*: as) = appEvalHList' (f $ result $ runIdentity a) as
 
 -- | Fully or partially applied constructor
 --
@@ -249,10 +276,15 @@ mapHListM :: (Monad m, ConsType a) =>
     (forall a . c1 (Full a) -> m (c2 (Full a))) -> HList c1 a -> m (HList c2 a)
 mapHListM = mapHListM'
 
--- | Apply the syntax tree to listed arguments
+-- | Apply the syntax tree to the listed arguments
 appHList :: ConsType a =>
     AST dom a -> HList (AST dom) a -> ASTF dom (EvalResult a)
 appHList = appHList'
+
+-- | Apply the evaluation function to the listed arguments
+appEvalHList :: ConsType a =>
+    ConsEval a -> HList Identity a -> EvalResult a
+appEvalHList = appEvalHList'
 
 -- | Semantic constructor application
 ($:) :: (a :-> b) -> a -> b
@@ -397,27 +429,45 @@ instance
     sugarN f   = sugarN . f . desugar
 
 
+fun1 feat = sugarN $ \a -> inject feat :$: a
+fun2 feat = sugarN $ \a b -> inject feat :$: a :$: b
+fun3 feat = sugarN $ \a b c -> inject feat :$: a :$: b :$: c
+fun4 feat = sugarN $ \a b c d -> inject feat :$: a :$: b :$: c :$: d
+fun5 feat = sugarN $ \a b c d e -> inject feat :$: a :$: b :$: c :$: d :$: e
+fun6 feat = sugarN $ \a b c d e f -> inject feat :$: a :$: b :$: c :$: d :$: e :$: f
 
 --------------------------------------------------------------------------------
 -- * AST processing
 --------------------------------------------------------------------------------
 
-newtype Wrap a b = Wrap {unWrap :: a}
-  -- Only used in the definition of 'queryNode'
+newtype Const a b = Const {unConst :: a}
+  -- Only used in the definition of 'queryNodeSimple'
 
--- | Like 'queryNode' but with the result indexed by the constructor's result
--- type
-queryNodeI :: forall dom a b
-    .  (forall a . ConsType a => dom a -> HList (AST dom) a -> b (EvalResult a))
-    -> ASTF dom a -> b a
-queryNodeI f a = query a Nil
-  where
-    query :: AST dom c -> HList (AST dom) c -> b (EvalResult c)
-    query (Symbol a) args = f a args
-    query (c :$: a)  args = query c (a :*: args)
+newtype WrapAST c dom a = WrapAST { unWrapAST :: c (AST dom a) }
+  -- Only used in the definition of 'transformNode'
 
 -- | Query an 'AST' using a function that gets direct access to the top-most
 -- constructor and its sub-trees
+--
+-- Note that, by instantiating the type @c@ with @`AST` dom'@, we get the
+-- following type, which shows that 'queryNode' can be directly used to
+-- transform syntax trees (see also 'transformNode'):
+--
+-- > (forall a . ConsType a => dom a -> HList (AST dom) a -> ASTF dom' (EvalResult a))
+-- > -> ASTF dom a
+-- > -> ASTF dom' a
+queryNode :: forall dom a c
+    .  (forall a . ConsType a =>
+          dom a -> HList (AST dom) a -> c (Full (EvalResult a)))
+    -> ASTF dom a
+    -> c (Full a)
+queryNode f a = query a Nil
+  where
+    query :: AST dom b -> HList (AST dom) b -> c (Full (EvalResult b))
+    query (Symbol a) args = f a args
+    query (c :$: a)  args = query c (a :*: args)
+
+-- | A simpler version of 'queryNode'
 --
 -- This function can be used to create 'AST' traversal functions indexed by the
 -- symbol types, for example:
@@ -432,7 +482,7 @@ queryNodeI f a = query a Nil
 -- >     count' (InjectR a) args = count' a args
 -- >
 -- > count :: Count dom => ASTF dom a -> Int
--- > count = queryNode count'
+-- > count = queryNodeSimple count'
 --
 -- Here, @count@ represents some static analysis on an 'AST'. Each constructor
 -- in the tree will be queried by @count'@ indexed by the corresponding symbol
@@ -451,36 +501,21 @@ queryNodeI f a = query a Nil
 -- > instance Count Add
 -- >   where
 -- >     count' Add (a :*: b :*: Nil) = 1 + count a + count b
-queryNode :: forall dom a b
+queryNodeSimple :: forall dom a b
     .  (forall a . ConsType a => dom a -> HList (AST dom) a -> b)
-    -> ASTF dom a -> b
-queryNode f a = unWrap $ queryNodeI (\c -> Wrap . f c) a
+    -> ASTF dom a
+    -> b
+queryNodeSimple f a = unConst $ queryNode (\c -> Const . f c) a
 
-
-
--- | Like 'transformNode' but with the result wrapped in a type constructor @c@
-transformNodeC :: forall dom dom' c a
+-- | A version of 'queryNode' where the result is a transformed syntax tree,
+-- wrapped in a type constructor @c@
+transformNode :: forall dom dom' c a
     .  (  forall a . ConsType a
        => dom a -> HList (AST dom) a -> c (ASTF dom' (EvalResult a))
        )
     -> ASTF dom a
     -> c (ASTF dom' a)
-transformNodeC f a = transform a Nil
-  where
-    transform :: AST dom b -> HList (AST dom) b -> c (ASTF dom' (EvalResult b))
-    transform (Symbol a) args = f a args
-    transform (c :$: a)  args = transform c (a :*: args)
-
--- | Transform an 'AST' using a function that gets direct access to the top-most
--- constructor and its sub-trees. This function is similar to 'queryNode', but
--- returns a transformed 'AST' rather than abstract interpretation.
-transformNode :: forall dom dom' a
-    .  (  forall a . ConsType a
-       => dom a -> HList (AST dom) a -> ASTF dom' (EvalResult a)
-       )
-    -> ASTF dom a
-    -> ASTF dom' a
-transformNode f a = runIdentity $ transformNodeC (\c -> Identity . f c) a
+transformNode f a = unWrapAST $ queryNode (\a args -> WrapAST (f a args)) a
 
 
 
@@ -511,22 +546,48 @@ class Sat ctx a
     data Witness ctx a
     witness :: Witness ctx a
 
+witnessByProxy :: Sat ctx a => Proxy ctx -> Proxy a -> Witness ctx a
+witnessByProxy _ _ = witness
+
 -- | Witness of a @(`Sat` ctx a)@ constraint. This is different from
 -- @(`Witness` ctx a)@, which witnesses the class encoded by @ctx@. 'Witness''
 -- has a single constructor for all contexts, while 'Witness' has different
 -- constructors for different contexts.
-data Witness' ctx a
+data SatWit ctx a
   where
-    Witness' :: Sat ctx a => Witness' ctx a
+    SatWit :: Sat ctx a => SatWit ctx a
 
-witness' :: Witness' ctx a -> Witness ctx a
-witness' Witness' = witness
+fromSatWit :: SatWit ctx a -> Witness ctx a
+fromSatWit SatWit = witness
 
--- | Symbols that act as witnesses of their result type
-class WitnessSat sym
+-- | Expressions that act as witnesses of their result type
+class WitnessSat expr
   where
-    type Context sym
-    witnessSat :: sym a -> Witness' (Context sym) (EvalResult a)
+    type SatContext expr
+    witnessSat :: expr a -> SatWit (SatContext expr) (EvalResult a)
+
+-- | Expressions that act as witnesses of their result type
+class MaybeWitnessSat ctx expr
+  where
+    maybeWitnessSat :: Proxy ctx -> expr a -> Maybe (SatWit ctx (EvalResult a))
+
+instance MaybeWitnessSat ctx dom => MaybeWitnessSat ctx (AST dom)
+  where
+    maybeWitnessSat ctx (Symbol a) = maybeWitnessSat ctx a
+    maybeWitnessSat ctx (f :$: _)  = maybeWitnessSat ctx f
+
+instance (MaybeWitnessSat ctx sub1, MaybeWitnessSat ctx sub2) =>
+    MaybeWitnessSat ctx (sub1 :+: sub2)
+  where
+    maybeWitnessSat ctx (InjectL a) = maybeWitnessSat ctx a
+    maybeWitnessSat ctx (InjectR a) = maybeWitnessSat ctx a
+
+-- | Convenient default implementation of 'maybeWitnessSat'
+maybeWitnessSatDefault :: WitnessSat expr
+    => Proxy (SatContext expr)
+    -> expr a
+    -> Maybe (SatWit (SatContext expr) (EvalResult a))
+maybeWitnessSatDefault _ = Just . witnessSat
 
 -- | Type application for constraining the @ctx@ type of a parameterized symbol
 withContext :: sym ctx a -> Proxy ctx -> sym ctx a

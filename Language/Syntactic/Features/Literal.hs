@@ -1,3 +1,5 @@
+{-# LANGUAGE OverlappingInstances #-}
+
 -- | Literal expressions
 
 module Language.Syntactic.Features.Literal where
@@ -24,8 +26,16 @@ instance WitnessCons (Literal ctx)
 
 instance WitnessSat (Literal ctx)
   where
-    type Context (Literal ctx) = ctx
-    witnessSat (Literal _) = Witness'
+    type SatContext (Literal ctx) = ctx
+    witnessSat (Literal _) = SatWit
+
+instance MaybeWitnessSat ctx (Literal ctx)
+  where
+    maybeWitnessSat = maybeWitnessSatDefault
+
+instance MaybeWitnessSat ctx1 (Literal ctx2)
+  where
+    maybeWitnessSat _ _ = Nothing
 
 instance ExprEq (Literal ctx)
   where
