@@ -78,18 +78,19 @@ module Language.Syntactic.Syntax
     , AST (..)
     , ASTF
     , (:+:) (..)
+    , ApplySym
+    , appSym
+    , appSymCtx
       -- * Subsumption
     , (:<:) (..)
+    , injCtx
+    , prjCtx
       -- * Syntactic sugar
     , Syntactic (..)
     , resugar
     , SyntacticN (..)
-    , fun1
-    , fun2
-    , fun3
-    , fun4
-    , fun5
-    , fun6
+    , sugarSym
+    , sugarSymCtx
       -- * AST processing
     , queryNode
     , queryNodeSimple
@@ -322,6 +323,37 @@ infixr :+:
 
 
 
+-- | Class that performs the type-level recursion needed by 'appSym'
+class ApplySym a f dom | a dom -> f, f -> a dom
+  where
+    appSym' :: AST dom a -> f
+
+instance ApplySym (Full a) (ASTF dom a) dom
+  where
+    appSym' = id
+
+instance (Typeable a, ApplySym b f' dom) =>
+    ApplySym (a :-> b) (ASTF dom a -> f') dom
+  where
+    appSym' sym a = appSym' (sym :$: a)
+
+-- | Generic symbol application
+--
+-- 'appSym' has any type of the form:
+--
+-- > appSym :: (expr :<: AST dom, Typeable a, Typeable b, ..., Typeable x)
+-- >     => expr (a :-> b :-> ... :-> Full x)
+-- >     -> (ASTF dom a -> ASTF dom b -> ... -> ASTF dom x)
+appSym :: (ApplySym a f dom, ConsType a, sym :<: AST dom) => sym a -> f
+appSym sym = appSym' (inject sym)
+
+-- | Generic symbol application with explicit context
+appSymCtx  :: (ApplySym a f dom, ConsType a, sym ctx :<: dom) =>
+    Proxy ctx -> sym ctx a -> f
+appSymCtx _ = appSym
+
+
+
 --------------------------------------------------------------------------------
 -- * Subsumption
 --------------------------------------------------------------------------------
@@ -360,6 +392,16 @@ instance (expr1 :<: expr3) => ((:<:) expr1 (expr2 :+: expr3))
 
     project (InjectR a) = project a
     project _           = Nothing
+
+
+
+-- | 'inject' with explicit context
+injCtx :: (sub ctx :<: sup, ConsType a) => Proxy ctx -> sub ctx a -> sup a
+injCtx _ = inject
+
+-- | 'project' with explicit context
+prjCtx :: (sub ctx :<: sup) => Proxy ctx -> sup a -> Maybe (sub ctx a)
+prjCtx _ = project
 
 
 
@@ -429,12 +471,31 @@ instance
     sugarN f   = sugarN . f . desugar
 
 
-fun1 feat = sugarN $ \a -> inject feat :$: a
-fun2 feat = sugarN $ \a b -> inject feat :$: a :$: b
-fun3 feat = sugarN $ \a b c -> inject feat :$: a :$: b :$: c
-fun4 feat = sugarN $ \a b c d -> inject feat :$: a :$: b :$: c :$: d
-fun5 feat = sugarN $ \a b c d e -> inject feat :$: a :$: b :$: c :$: d :$: e
-fun6 feat = sugarN $ \a b c d e f -> inject feat :$: a :$: b :$: c :$: d :$: e :$: f
+
+-- | \"Sugared\" symbol application
+--
+-- 'sugarSym' has any type of the form:
+--
+-- > sugarSym ::
+-- >     ( expr :<: AST dom
+-- >     , Syntactic a dom
+-- >     , Syntactic b dom
+-- >     , ...
+-- >     , Syntactic x dom
+-- >     ) => expr (Internal a :-> Internal b :-> ... :-> Full (Internal x))
+-- >       -> (a -> b -> ... -> x)
+sugarSym
+    :: (ConsType a, expr :<: AST dom, ApplySym a b dom, SyntacticN c b)
+    => expr a -> c
+sugarSym = sugarN . appSym
+
+-- | \"Sugared\" symbol application with explicit context
+sugarSymCtx
+    :: (ConsType a, sym ctx :<: dom, ApplySym a b dom, SyntacticN c b)
+    => Proxy ctx -> sym ctx a -> c
+sugarSymCtx _ = sugarSym
+
+
 
 --------------------------------------------------------------------------------
 -- * AST processing

@@ -134,10 +134,9 @@ type FeldDomain
     :+: Parallel
     :+: ForLoop
 
-data Data a = Type a => Data { unData :: HOASTF SimpleCtx FeldDomain a }
+type FeldDomainAll = HODomain SimpleCtx FeldDomain
 
-type FeldDomainAll =
-    HOLambda SimpleCtx FeldDomain :+: Variable SimpleCtx :+: FeldDomain
+newtype Data a = Data { unData :: ASTF FeldDomainAll a }
 
 -- | Declaring 'Data' as syntactic sugar
 instance Type a => Syntactic (Data a) FeldDomainAll
@@ -147,19 +146,8 @@ instance Type a => Syntactic (Data a) FeldDomainAll
     sugar   = Data
 
 -- | Specialization of the 'Syntactic' class for the Feldspar domain
-class
-    ( Syntactic a FeldDomainAll
-    , Type (Internal a)
-    , SyntacticN a (ASTF FeldDomainAll (Internal a))
-    ) =>
-      Syntax a
-
-instance
-    ( Syntactic a FeldDomainAll
-    , Type (Internal a)
-    , SyntacticN a (ASTF FeldDomainAll (Internal a))
-    ) =>
-      Syntax a
+class    (Syntactic a FeldDomainAll, Type (Internal a)) => Syntax a
+instance (Syntactic a FeldDomainAll, Type (Internal a)) => Syntax a
 
 
 
@@ -168,16 +156,16 @@ instance
 --------------------------------------------------------------------------------
 
 -- | Print the expression
-printFeld :: Reifiable SimpleCtx a FeldDomain internal => a -> IO ()
-printFeld = printExpr . reifySmartCtx simpleCtx
+printFeld :: Syntactic a FeldDomainAll => a -> IO ()
+printFeld = printExpr . reifySmart simpleCtx
 
 -- | Draw the syntax tree
-drawFeld :: Reifiable SimpleCtx a FeldDomain internal => a -> IO ()
-drawFeld = drawAST . reifySmartCtx simpleCtx
+drawFeld :: Syntactic a FeldDomainAll => a -> IO ()
+drawFeld = drawAST . reifySmart simpleCtx
 
 -- | Evaluation
-eval :: Reifiable SimpleCtx a FeldDomain internal => a -> NAryEval internal
-eval = evalBind . reifySmartCtx simpleCtx
+eval :: Syntactic a FeldDomainAll => a -> Internal a
+eval = evalBind . reifySmart simpleCtx
 
 
 
@@ -187,7 +175,7 @@ eval = evalBind . reifySmartCtx simpleCtx
 
 -- | Literal
 value :: Syntax a => Internal a -> a
-value = sugar . litCtx simpleCtx
+value = sugarSymCtx simpleCtx . Literal
 
 false :: Data Bool
 false = value False
@@ -202,53 +190,43 @@ force = resugar
 
 -- | Share a value using let binding
 share :: (Syntax a, Syntax b) => a -> (a -> b) -> b
-share a f = sugar $ letBindCtx simpleCtx (desugar a) (desugarN f)
+share = sugarSym (letBind simpleCtx)
 
 -- | Alpha equivalence
-instance Eq (Data a)
+instance Type a => Eq (Data a)
   where
     Data a == Data b =
-        alphaEq simpleCtx (reifyCtx simpleCtx a) (reifyCtx simpleCtx b)
+        alphaEq simpleCtx (reify simpleCtx a) (reify simpleCtx b)
 
-instance Show (Data a)
+instance Type a => Show (Data a)
   where
-    show (Data a) = render $ reifyCtx simpleCtx a
+    show (Data a) = render $ reify simpleCtx a
 
 instance (Type a, Num a) => Num (Data a)
   where
     fromInteger = value . fromInteger
-    abs         = sugarN $ sym1 simpleCtx "abs" abs
-    signum      = sugarN $ sym1 simpleCtx "signum" signum
-    (+)         = sugarN $ sym2 simpleCtx "(+)" (+)
-    (-)         = sugarN $ sym2 simpleCtx "(-)" (-)
-    (*)         = sugarN $ sym2 simpleCtx "(*)" (*)
+    abs         = sugarSymCtx simpleCtx $ Sym "abs" abs
+    signum      = sugarSymCtx simpleCtx $ Sym "signum" signum
+    (+)         = sugarSymCtx simpleCtx $ Sym "(+)" (+)
+    (-)         = sugarSymCtx simpleCtx $ Sym "(-)" (-)
+    (*)         = sugarSymCtx simpleCtx $ Sym "(*)" (*)
 
 (?) :: Syntax a => Data Bool -> (a,a) -> a
-cond ? (t,e) = sugar $
-    conditionCtx simpleCtx (desugar cond) (desugar t) (desugar e)
+cond ? (t,e) = sugarSymCtx simpleCtx Condition cond t e
 
 -- | Parallel array
 parallel :: Type a => Data Length -> (Data Index -> Data a) -> Data [a]
-parallel len ixf
-    =   sugar
-    $   inject Parallel
-    :$: desugar len
-    :$: lambda (desugarN ixf)
+parallel = sugarSym Parallel
 
 forLoop :: Syntax st => Data Length -> st -> (Data Index -> st -> st) -> st
-forLoop len init body
-    =   sugar
-    $   inject ForLoop
-    :$: desugar len
-    :$: desugar init
-    :$: lambdaN (desugarN body)
+forLoop = sugarSym ForLoop
 
 arrLength :: Type a => Data [a] -> Data Length
-arrLength = sugarN $ sym1 simpleCtx "arrLength" Prelude.length
+arrLength = sugarSymCtx simpleCtx $ Sym "arrLength" Prelude.length
 
 -- | Array indexing
 getIx :: Type a => Data [a] -> Data Index -> Data a
-getIx = sugarN $ sym2 simpleCtx "getIx" eval
+getIx = sugarSymCtx simpleCtx $ Sym "getIx" eval
   where
     eval as i
         | i >= len || i < 0 = error "getIx: index out of bounds"
@@ -257,14 +235,14 @@ getIx = sugarN $ sym2 simpleCtx "getIx" eval
         len = Prelude.length as
 
 not :: Data Bool -> Data Bool
-not = sugarN $ sym1 simpleCtx "not" Prelude.not
+not = sugarSymCtx simpleCtx $ Sym "not" Prelude.not
 
 (==) :: Type a => Data a -> Data a -> Data Bool
-(==) = sugarN $ sym2 simpleCtx "(==)" (Prelude.==)
+(==) = sugarSymCtx simpleCtx $ Sym "(==)" (Prelude.==)
 
 max :: Type a => Data a -> Data a -> Data a
-max = sugarN $ sym2 simpleCtx "max" Prelude.max
+max = sugarSymCtx simpleCtx $ Sym "max" Prelude.max
 
 min :: Type a => Data a -> Data a -> Data a
-min = sugarN $ sym2 simpleCtx "min" Prelude.min
+min = sugarSymCtx simpleCtx $ Sym "min" Prelude.min
 

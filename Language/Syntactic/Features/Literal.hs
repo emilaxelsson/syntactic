@@ -55,19 +55,3 @@ instance Eval (Literal ctx)
   where
     evaluate (Literal a) = fromEval a
 
-
-
--- | Literal with explicit context
-litCtx :: (Eq a, Show a, Typeable a, Sat ctx a, Literal ctx :<: dom) =>
-    Proxy ctx -> a -> ASTF dom a
-litCtx ctx = inject . (`withContext` ctx) . Literal
-
--- | Literal
-lit :: (Eq a, Show a, Typeable a, Literal Poly :<: dom) => a -> ASTF dom a
-lit = litCtx poly
-
--- | Partial literal projection with explicit context
-prjLiteral :: (Literal ctx :<: sup) =>
-    Proxy ctx -> sup a -> Maybe (Literal ctx a)
-prjLiteral _ = project
-

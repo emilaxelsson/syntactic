@@ -6,7 +6,6 @@
 
 module Language.Syntactic.Sharing.SimpleCodeMotion
     ( codeMotion
-    , reifySmartCtx
     , reifySmart
     ) where
 
@@ -76,7 +75,7 @@ data Env ctx dom = Env
     }
 
 independent :: (Variable ctx :<: dom) => Env ctx dom -> AST dom a -> Bool
-independent env (prjVariable (context env) -> Just (Variable v)) =
+independent env (prjCtx (context env) -> Just (Variable v)) =
     not (v `member` dependencies env)
 independent env (f :$: a) = independent env f && independent env a
 independent _ _           = True
@@ -128,7 +127,7 @@ chooseEnv env a
 chooseEnvSub
     :: (Variable ctx :<: dom, Lambda ctx :<: dom, MaybeWitnessSat ctx dom)
     => Env ctx dom -> AST dom a -> Maybe (SomeAST ctx dom)
-chooseEnvSub env ((prjLambda (context env) -> Just (Lambda v)) :$: a) =
+chooseEnvSub env ((prjCtx (context env) -> Just (Lambda v)) :$: a) =
     chooseEnv env' a
   where
     env' = env
@@ -161,13 +160,9 @@ codeMotion ctx a
         let x = inject (Variable v `withContext` ctx)
         body <- codeMotion ctx $ substitute ctx b x a
         return
-            $   inject (let_ ctx)
+            $   inject (letBind ctx)
             :$: b'
             :$: (inject (Lambda v `withContext` ctx) :$: body)
-
-let_ :: (Sat ctx b, Sat ctx a) =>
-    Proxy ctx -> Let ctx ctx (a :-> ((a -> b) :-> Full b))
-let_ _ = Let
 
 descend
     :: ( Variable ctx :<: dom
@@ -180,28 +175,16 @@ descend
 descend ctx (f :$: a) = liftM2 (:$:) (descend ctx f) (codeMotion ctx a)
 descend _ a = return a
 
--- | Like 'reifyCtx' but with common sub-expression elimination and variable
--- hoisting
-reifySmartCtx
-    :: ( Let ctx ctx :<: dom
-       , ExprEq dom
-       , MaybeWitnessSat ctx dom
-       , Reifiable ctx a dom internal
-       )
-    => Proxy ctx
-    -> a
-    -> ASTF (Lambda ctx :+: Variable ctx :+: dom) (NAryEval internal)
-reifySmartCtx ctx =
-    flip evalState 0 . (codeMotion ctx <=< reifyM) . lambdaN . desugarN
-
 -- | Like 'reify' but with common sub-expression elimination and variable
 -- hoisting
 reifySmart
-    :: ( Let Poly Poly :<: dom
+    :: ( Let ctx ctx :<: dom
        , ExprEq dom
-       , MaybeWitnessSat Poly dom
-       , Reifiable Poly a dom internal
+       , MaybeWitnessSat ctx dom
+       , Syntactic a (HODomain ctx dom)
        )
-    => a -> ASTF (Lambda Poly :+: Variable Poly :+: dom) (NAryEval internal)
-reifySmart = reifySmartCtx poly
+    => Proxy ctx
+    -> a
+    -> ASTF (Lambda ctx :+: Variable ctx :+: dom) (Internal a)
+reifySmart ctx = flip evalState 0 . (codeMotion ctx <=< reifyM) . desugar
 

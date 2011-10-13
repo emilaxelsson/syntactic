@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fcontext-stack=30 #-}
+
 {-# LANGUAGE OverlappingInstances #-}
 
 -- | Construction and projection of tuples in the object language
@@ -17,6 +19,7 @@ module Language.Syntactic.Features.Tuple where
 
 import Data.Hash
 import Data.Proxy
+import Data.Tuple.Curry
 import Data.Tuple.Select
 
 import Language.Syntactic
@@ -79,10 +82,6 @@ instance Render (Tuple ctx) where renderPart = renderPartSym
 instance Eval   (Tuple ctx) where evaluate   = evaluateSym
 instance ToTree (Tuple ctx)
 
--- | Partial `Tuple` projection with explicit context
-prjTuple :: (Tuple ctx :<: sup) => Proxy ctx -> sup a -> Maybe (Tuple ctx a)
-prjTuple _ = project
-
 
 
 desugarTup2
@@ -94,9 +93,7 @@ desugarTup2
     => Proxy ctx
     -> (a,b)
     -> ASTF dom (Internal a, Internal b)
-desugarTup2 ctx (a,b) = inject (Tup2 `withContext` ctx)
-    :$: desugar a
-    :$: desugar b
+desugarTup2 ctx = uncurryN $ sugarSymCtx ctx Tup2
 
 desugarTup3
     :: ( Syntactic a dom
@@ -108,10 +105,7 @@ desugarTup3
     => Proxy ctx
     -> (a,b,c)
     -> ASTF dom (Internal a, Internal b, Internal c)
-desugarTup3 ctx (a,b,c) = inject (Tup3 `withContext` ctx)
-    :$: desugar a
-    :$: desugar b
-    :$: desugar c
+desugarTup3 ctx = uncurryN $ sugarSymCtx ctx Tup3
 
 desugarTup4
     :: ( Syntactic a dom
@@ -124,11 +118,7 @@ desugarTup4
     => Proxy ctx
     -> (a,b,c,d)
     -> ASTF dom (Internal a, Internal b, Internal c, Internal d)
-desugarTup4 ctx (a,b,c,d) = inject (Tup4 `withContext` ctx)
-    :$: desugar a
-    :$: desugar b
-    :$: desugar c
-    :$: desugar d
+desugarTup4 ctx = uncurryN $ sugarSymCtx ctx Tup4
 
 desugarTup5
     :: ( Syntactic a dom
@@ -142,12 +132,7 @@ desugarTup5
     => Proxy ctx
     -> (a,b,c,d,e)
     -> ASTF dom (Internal a, Internal b, Internal c, Internal d, Internal e)
-desugarTup5 ctx (a,b,c,d,e) = inject (Tup5 `withContext` ctx)
-    :$: desugar a
-    :$: desugar b
-    :$: desugar c
-    :$: desugar d
-    :$: desugar e
+desugarTup5 ctx = uncurryN $ sugarSymCtx ctx Tup5
 
 desugarTup6
     :: ( Syntactic a dom
@@ -162,13 +147,7 @@ desugarTup6
     => Proxy ctx
     -> (a,b,c,d,e,f)
     -> ASTF dom (Internal a, Internal b, Internal c, Internal d, Internal e, Internal f)
-desugarTup6 ctx (a,b,c,d,e,f) = inject (Tup6 `withContext` ctx)
-    :$: desugar a
-    :$: desugar b
-    :$: desugar c
-    :$: desugar d
-    :$: desugar e
-    :$: desugar f
+desugarTup6 ctx = uncurryN $ sugarSymCtx ctx Tup6
 
 desugarTup7
     :: ( Syntactic a dom
@@ -184,14 +163,7 @@ desugarTup7
     => Proxy ctx
     -> (a,b,c,d,e,f,g)
     -> ASTF dom (Internal a, Internal b, Internal c, Internal d, Internal e, Internal f, Internal g)
-desugarTup7 ctx (a,b,c,d,e,f,g) = inject (Tup7 `withContext` ctx)
-    :$: desugar a
-    :$: desugar b
-    :$: desugar c
-    :$: desugar d
-    :$: desugar e
-    :$: desugar f
-    :$: desugar g
+desugarTup7 ctx = uncurryN $ sugarSymCtx ctx Tup7
 
 
 
@@ -299,10 +271,6 @@ instance Render (Select ctx) where renderPart = renderPartSym
 instance Eval   (Select ctx) where evaluate   = evaluateSym
 instance ToTree (Select ctx)
 
--- | Partial `Select` projection with explicit context
-prjSelect :: (Select ctx :<: sup) => Proxy ctx -> sup a -> Maybe (Select ctx a)
-prjSelect _ = project
-
 -- | Return the selected position, e.g.
 --
 -- > selectPos (Sel3 poly :: Select Poly ((Int,Int,Int,Int) :-> Full Int)) = 3
@@ -328,8 +296,8 @@ sugarTup2
     -> ASTF dom (Internal a, Internal b)
     -> (a,b)
 sugarTup2 ctx a =
-    ( sugar $ inject (Sel1 `withContext` ctx) :$: a
-    , sugar $ inject (Sel2 `withContext` ctx) :$: a
+    ( sugarSymCtx ctx Sel1 a
+    , sugarSymCtx ctx Sel2 a
     )
 
 sugarTup3
@@ -345,9 +313,9 @@ sugarTup3
     -> ASTF dom (Internal a, Internal b, Internal c)
     -> (a,b,c)
 sugarTup3 ctx a =
-    ( sugar $ inject (Sel1 `withContext` ctx) :$: a
-    , sugar $ inject (Sel2 `withContext` ctx) :$: a
-    , sugar $ inject (Sel3 `withContext` ctx) :$: a
+    ( sugarSymCtx ctx Sel1 a
+    , sugarSymCtx ctx Sel2 a
+    , sugarSymCtx ctx Sel3 a
     )
 
 sugarTup4
@@ -365,10 +333,10 @@ sugarTup4
     -> ASTF dom (Internal a, Internal b, Internal c, Internal d)
     -> (a,b,c,d)
 sugarTup4 ctx a =
-    ( sugar $ inject (Sel1 `withContext` ctx) :$: a
-    , sugar $ inject (Sel2 `withContext` ctx) :$: a
-    , sugar $ inject (Sel3 `withContext` ctx) :$: a
-    , sugar $ inject (Sel4 `withContext` ctx) :$: a
+    ( sugarSymCtx ctx Sel1 a
+    , sugarSymCtx ctx Sel2 a
+    , sugarSymCtx ctx Sel3 a
+    , sugarSymCtx ctx Sel4 a
     )
 
 sugarTup5
@@ -388,11 +356,11 @@ sugarTup5
     -> ASTF dom (Internal a, Internal b, Internal c, Internal d, Internal e)
     -> (a,b,c,d,e)
 sugarTup5 ctx a =
-    ( sugar $ inject (Sel1 `withContext` ctx) :$: a
-    , sugar $ inject (Sel2 `withContext` ctx) :$: a
-    , sugar $ inject (Sel3 `withContext` ctx) :$: a
-    , sugar $ inject (Sel4 `withContext` ctx) :$: a
-    , sugar $ inject (Sel5 `withContext` ctx) :$: a
+    ( sugarSymCtx ctx Sel1 a
+    , sugarSymCtx ctx Sel2 a
+    , sugarSymCtx ctx Sel3 a
+    , sugarSymCtx ctx Sel4 a
+    , sugarSymCtx ctx Sel5 a
     )
 
 sugarTup6
@@ -414,12 +382,12 @@ sugarTup6
     -> ASTF dom (Internal a, Internal b, Internal c, Internal d, Internal e, Internal f)
     -> (a,b,c,d,e,f)
 sugarTup6 ctx a =
-    ( sugar $ inject (Sel1 `withContext` ctx) :$: a
-    , sugar $ inject (Sel2 `withContext` ctx) :$: a
-    , sugar $ inject (Sel3 `withContext` ctx) :$: a
-    , sugar $ inject (Sel4 `withContext` ctx) :$: a
-    , sugar $ inject (Sel5 `withContext` ctx) :$: a
-    , sugar $ inject (Sel6 `withContext` ctx) :$: a
+    ( sugarSymCtx ctx Sel1 a
+    , sugarSymCtx ctx Sel2 a
+    , sugarSymCtx ctx Sel3 a
+    , sugarSymCtx ctx Sel4 a
+    , sugarSymCtx ctx Sel5 a
+    , sugarSymCtx ctx Sel6 a
     )
 
 sugarTup7
@@ -443,12 +411,12 @@ sugarTup7
     -> ASTF dom (Internal a, Internal b, Internal c, Internal d, Internal e, Internal f, Internal g)
     -> (a,b,c,d,e,f,g)
 sugarTup7 ctx a =
-    ( sugar $ inject (Sel1 `withContext` ctx) :$: a
-    , sugar $ inject (Sel2 `withContext` ctx) :$: a
-    , sugar $ inject (Sel3 `withContext` ctx) :$: a
-    , sugar $ inject (Sel4 `withContext` ctx) :$: a
-    , sugar $ inject (Sel5 `withContext` ctx) :$: a
-    , sugar $ inject (Sel6 `withContext` ctx) :$: a
-    , sugar $ inject (Sel7 `withContext` ctx) :$: a
+    ( sugarSymCtx ctx Sel1 a
+    , sugarSymCtx ctx Sel2 a
+    , sugarSymCtx ctx Sel3 a
+    , sugarSymCtx ctx Sel4 a
+    , sugarSymCtx ctx Sel5 a
+    , sugarSymCtx ctx Sel6 a
+    , sugarSymCtx ctx Sel7 a
     )
 

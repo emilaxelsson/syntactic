@@ -1,14 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Language.Syntactic.Features.MutableArray
-  ( MutableArray(..)
-  , MArr
-  , newArr
-  , getArr
-  , setArr
-  , modifyArr
-  , getBounds
-  )
 where
 
 import Language.Syntactic
@@ -78,88 +70,4 @@ instance (MutableArray :<: dom, Optimize dom ctx dom) =>
     optimizeFeat = optimizeFeatDefault
 
 type MArr i a = Arr.IOArray i a
-
-newArr' :: (MutableArray :<: dom, Typeable a, Typeable i, Arr.Ix i)
-        => HOASTF ctx dom (i, i) -> HOASTF ctx dom a -> HOASTF ctx dom (IO (MArr i a))
-newArr' ii a = inject NewArr :$: ii :$: a
-
-getArr' :: (MutableArray :<: dom, Typeable a, Typeable i, Arr.Ix i)
-        => HOASTF ctx dom (MArr i a) -> HOASTF ctx dom i -> HOASTF ctx dom (IO a)
-getArr' r i = inject GetArr :$: r :$: i
-
-setArr' :: (MutableArray :<: dom, Typeable a, Typeable i, Arr.Ix i)
-        => HOASTF ctx dom (MArr i a) -> HOASTF ctx dom i -> HOASTF ctx dom a -> HOASTF ctx dom (IO ())
-setArr' r i a = inject SetArr :$: r :$: i :$: a
-
-getBounds' :: (MutableArray :<: dom, Typeable a, Typeable i, Arr.Ix i)
-           => HOASTF ctx dom (MArr i a) -> HOASTF ctx dom (IO (i, i))
-getBounds' r = inject GetBounds :$: r
-
-------------------------------------------------------------------
--- Sugared interface
-------------------------------------------------------------------
-newArr :: ( MutableArray :<: dom
-          , MonadF IO :<: dom
-          , Typeable a, Typeable i
-          , Arr.Ix i
-          , Sat ctx (MArr i (Internal a))
-          , Internal b ~ MArr i (Internal a)
-          , Internal ii ~ (i, i)
-          , Syntactic a (HODomain ctx dom)
-          , Syntactic b (HODomain ctx dom)
-          , Syntactic ii (HODomain ctx dom)
-          )
-       => ii -> a -> M ctx dom b
-newArr = sugarN newArr'
-
-getArr :: ( MutableArray :<: dom
-          , MonadF IO :<: dom
-          , Arr.Ix (Internal i)
-          , Internal v ~ MArr (Internal i) (Internal a)
-          , Sat ctx (Internal a)
-          , Syntactic a (HODomain ctx dom)
-          , Syntactic v (HODomain ctx dom)
-          , Syntactic i (HODomain ctx dom)
-          )
-       => v -> i -> M ctx dom a
-getArr = sugarN getArr'
-
-setArr :: ( MutableArray :<: dom
-          , MonadF IO :<: dom
-          , Arr.Ix (Internal i)
-          , Internal v ~ MArr (Internal i) (Internal a)
-          , Internal u ~ ()
-          , Sat ctx ()
-          , Sat ctx (Internal a)
-          , Syntactic i (HODomain ctx dom)
-          , Syntactic a (HODomain ctx dom)
-          , Syntactic v (HODomain ctx dom)
-          , Syntactic u (HODomain ctx dom)
-          )
-       => v -> i -> a -> M ctx dom u
-setArr = sugarN setArr'
-
-getBounds :: ( MutableArray :<: dom
-             , SyntacticN f (HOASTF ctx dom (MArr i a) -> HOASTF ctx dom (IO (i, i)))
-             , Typeable a
-             , Typeable i
-             , Arr.Ix i
-             )
-          => f
-getBounds = sugarN getBounds'
-
-modifyArr :: ( MutableArray :<: dom
-             , MonadF IO :<: dom
-             , Arr.Ix (Internal i)
-             , Internal v ~ MArr (Internal i) (Internal a)
-             , Internal u ~ ()
-             , Sat ctx ()
-             , Sat ctx (Internal a)
-             , Syntactic i (HODomain ctx dom)
-             , Syntactic a (HODomain ctx dom)
-             , Syntactic v (HODomain ctx dom)
-             , Syntactic u (HODomain ctx dom)
-             )
-          => v -> i -> (a -> a) -> M ctx dom u
-modifyArr a i f = getArr a i >>= setArr a i . f
 

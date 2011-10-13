@@ -1,13 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Language.Syntactic.Features.MutableReference
-  ( MutableReference(..)
-  , Ref
-  , newRef
-  , getRef
-  , setRef
-  , modifyRef
-  )
 where
 
 import Language.Syntactic
@@ -75,66 +68,4 @@ type Ref a = Ref.IORef a
 instance Show (Ref a)
   where
     show _ = "ref"
-
-newRef' :: (MutableReference :<: dom, Typeable a)
-        => HOASTF ctx dom a -> HOASTF ctx dom (IO (Ref a))
-newRef' a = inject NewRef :$: a
-
-getRef' :: (MutableReference :<: dom, Typeable a)
-        => HOASTF ctx dom (Ref a) -> HOASTF ctx dom (IO a)
-getRef' r = inject GetRef :$: r
-
-setRef' :: (MutableReference :<: dom, Typeable a)
-        => HOASTF ctx dom (Ref a) -> HOASTF ctx dom a -> HOASTF ctx dom (IO ())
-setRef' r a = inject SetRef :$: r :$: a
-
-------------------------------------------------------------------
--- Sugared interface
-------------------------------------------------------------------
-newRef :: ( MutableReference :<: dom
-          , MonadF IO :<: dom
-          , Typeable a
-          , Sat ctx (Ref (Internal a))
-          , Internal b ~ Ref (Internal a)
-          , Syntactic a (HODomain ctx dom)
-          , Syntactic b (HODomain ctx dom)
-          )
-       => a -> M ctx dom b
-newRef = sugarN newRef'
-
-getRef :: ( MutableReference :<: dom
-          , MonadF IO :<: dom
-          , Internal v ~ Ref (Internal a)
-          , Sat ctx (Internal a)
-          , Syntactic a (HODomain ctx dom)
-          , Syntactic v (HODomain ctx dom)
-          )
-       => v -> M ctx dom a
-getRef = sugarN getRef'
-
-setRef :: ( MutableReference :<: dom
-          , MonadF IO :<: dom
-          , Internal v ~ Ref (Internal a)
-          , Internal u ~ ()
-          , Sat ctx ()
-          , Sat ctx (Internal a)
-          , Syntactic a (HODomain ctx dom)
-          , Syntactic v (HODomain ctx dom)
-          , Syntactic u (HODomain ctx dom)
-          )
-       => v -> a -> M ctx dom u
-setRef = sugarN setRef'
-
-modifyRef :: ( MutableReference :<: dom
-             , MonadF IO :<: dom
-             , Internal v ~ Ref (Internal a)
-             , Internal u ~ ()
-             , Sat ctx ()
-             , Sat ctx (Internal a)
-             , Syntactic a (HODomain ctx dom)
-             , Syntactic v (HODomain ctx dom)
-             , Syntactic u (HODomain ctx dom)
-             )
-          => v -> (a -> a) -> M ctx dom u
-modifyRef r f = getRef r >>= setRef r . f
 

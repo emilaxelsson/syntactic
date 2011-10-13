@@ -8,6 +8,7 @@ module Language.Syntactic.Features.Condition where
 
 import Data.Hash
 import Data.Proxy
+import Data.Typeable
 
 import Language.Syntactic
 import Language.Syntactic.Features.Symbol
@@ -43,25 +44,4 @@ instance ExprEq (Condition ctx) where exprEq = exprEqSym; exprHash = exprHashSym
 instance Render (Condition ctx) where renderPart = renderPartSym
 instance Eval   (Condition ctx) where evaluate   = evaluateSym
 instance ToTree (Condition ctx)
-
-
-
--- | Conditional expression with explicit context
-conditionCtx
-    :: (Sat ctx (Internal a), Syntactic a dom, Condition ctx :<: dom)
-    => Proxy ctx -> ASTF dom Bool -> a -> a -> a
-conditionCtx ctx cond tHEN eLSE = sugar $ inject (Condition `withContext` ctx)
-    :$: cond
-    :$: desugar tHEN
-    :$: desugar eLSE
-
--- | Conditional expression
-condition :: (Condition Poly :<: dom, Syntactic a dom) =>
-    ASTF dom Bool -> a -> a -> a
-condition = conditionCtx poly
-
--- | Partial `Condition` projection with explicit context
-prjCondition :: (Condition ctx :<: sup) =>
-    Proxy ctx -> sup a -> Maybe (Condition ctx a)
-prjCondition _ = project
 

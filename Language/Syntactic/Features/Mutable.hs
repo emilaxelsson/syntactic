@@ -1,10 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Language.Syntactic.Features.Mutable
-  ( Mutable(..)
-  , M
-  , runMutable
-  )
 where
 
 import Language.Syntactic
@@ -53,21 +49,4 @@ instance (Mutable :<: dom, Optimize dom ctx dom) =>
     optimizeFeat = optimizeFeatDefault
 
 type M ctx dom a = MonadS ctx dom IO a
-
-runMutable' :: forall ctx dom a
-            .  (Mutable :<: dom, Typeable a)
-            => HOASTF ctx dom (IO a) -> HOASTF ctx dom a
-runMutable' ma = inject Run :$: (ma :: HOASTF ctx dom (IO a))
-
-------------------------------------------------------------------
--- Sugared interface
-------------------------------------------------------------------
-runMutable :: forall ctx dom a
-           .  ( Mutable :<: dom
-              , MonadF IO :<: dom
-              , Sat ctx (Internal a)
-              , Syntactic a (HODomain ctx dom)
-              )
-           => M ctx dom a -> a
-runMutable ma = sugar $ inject Run :$: desugar (ma :: M ctx dom a)
 

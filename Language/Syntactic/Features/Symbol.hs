@@ -1,6 +1,6 @@
 {-# LANGUAGE OverlappingInstances #-}
 
--- | Simple symbols
+-- | Generic symbols
 --
 -- 'Sym' provides a simple way to make syntactic symbols for prototyping.
 -- However, note that 'Sym' is quite unsafe as it only uses 'String' to
@@ -67,91 +67,6 @@ instance ToTree (Sym ctx)
 instance Eval (Sym ctx)
   where
     evaluate (Sym _ a) = fromEval a
-
-
-
--- | A zero-argument symbol
-sym0
-    :: ( Sat ctx a
-       , Sym ctx :<: dom
-       )
-    => Proxy ctx
-    -> String
-    -> a
-    -> ASTF dom a
-sym0 ctx name a = inject (Sym name a `withContext` ctx)
-
--- | A one-argument symbol
-sym1
-    :: ( Typeable a
-       , Sat ctx b
-       , Sym ctx :<: dom
-       )
-    => Proxy ctx
-    -> String
-    -> (a -> b)
-    -> ASTF dom a
-    -> ASTF dom b
-sym1 ctx name f a = inject (Sym name f `withContext` ctx) :$: a
-
--- | A two-argument symbol
-sym2
-    :: ( Typeable a
-       , Typeable b
-       , Sat ctx c
-       , Sym ctx :<: dom
-       )
-    => Proxy ctx
-    -> String
-    -> (a -> b -> c)
-    -> ASTF dom a
-    -> ASTF dom b
-    -> ASTF dom c
-sym2 ctx name f a b = inject (Sym name f `withContext` ctx) :$: a :$: b
-
--- | A three-argument symbol
-sym3
-    :: ( Typeable a
-       , Typeable b
-       , Typeable c
-       , Sat ctx d
-       , Sym ctx :<: dom
-       )
-    => Proxy ctx
-    -> String
-    -> (a -> b -> c -> d)
-    -> ASTF dom a
-    -> ASTF dom b
-    -> ASTF dom c
-    -> ASTF dom d
-sym3 ctx name f a b c = inject (Sym name f `withContext` ctx) :$: a :$: b :$: c
-
--- | A four-argument symbol
-sym4
-    :: ( Typeable a
-       , Typeable b
-       , Typeable c
-       , Typeable d
-       , Sat ctx e
-       , Sym ctx :<: dom
-       )
-    => Proxy ctx
-    -> String
-    -> (a -> b -> c -> d -> e)
-    -> ASTF dom a
-    -> ASTF dom b
-    -> ASTF dom c
-    -> ASTF dom d
-    -> ASTF dom e
-sym4 ctx name f a b c d =
-    inject (Sym name f `withContext` ctx) :$: a :$: b :$: c :$: d
-
-
-
--- | Partial symbol projection with explicit context
-prjSym :: (Sym ctx :<: sup) =>
-    Proxy ctx -> sup a -> Maybe (Sym ctx a)
-prjSym _ = project
 
 
 

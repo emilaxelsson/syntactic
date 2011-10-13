@@ -9,16 +9,9 @@ module Language.Syntactic.Features.Binding.HigherOrder
     , Let (..)
     , HOLambda (..)
     , HODomain
-    , HOAST
-    , HOASTF
     , lambda
-    , lambdaN
-    , letBindCtx
-    , letBind
     , reifyM
     , reifyTop
-    , Reifiable
-    , reifyCtx
     , reify
     ) where
 
@@ -38,12 +31,10 @@ import Language.Syntactic.Features.Binding
 data HOLambda ctx dom a
   where
     HOLambda :: (Typeable a, Typeable b, Sat ctx a)
-        => (HOASTF ctx dom a -> HOASTF ctx dom b)
+        => (ASTF (HODomain ctx dom) a -> ASTF (HODomain ctx dom) b)
         -> HOLambda ctx dom (Full (a -> b))
 
-type HODomain ctx dom   = HOLambda ctx dom :+: Variable ctx :+: dom
-type HOAST    ctx dom   = AST (HODomain ctx dom)
-type HOASTF   ctx dom a = HOAST ctx dom (Full a)
+type HODomain ctx dom = HOLambda ctx dom :+: Variable ctx :+: dom
 
 instance WitnessCons (HOLambda ctx dom)
   where
@@ -56,38 +47,28 @@ instance MaybeWitnessSat ctx1 (HOLambda ctx2 dom)
 
 
 -- | Lambda binding
-lambda :: (Typeable a, Typeable b, Sat ctx a) =>
-    (HOASTF ctx dom a -> HOASTF ctx dom b) -> HOASTF ctx dom (a -> b)
+lambda :: (Typeable a, Typeable b, Sat ctx a)
+    => (ASTF (HODomain ctx dom) a -> ASTF (HODomain ctx dom) b)
+    -> ASTF (HODomain ctx dom) (a -> b)
 lambda = inject . HOLambda
 
--- | N-ary lambda binding
-lambdaN :: forall ctx dom a . NAry ctx a (HODomain ctx dom) =>
-    a -> HOASTF ctx dom (NAryEval a)
-lambdaN = bindN (Proxy :: Proxy ctx) lambda
-
--- | Let binding with explicit context
-letBindCtx :: forall ctxa ctxb dom a b
-    .  (Typeable a, Typeable b, Let ctxa ctxb :<: dom, Sat ctxa a, Sat ctxb b)
-    => Proxy ctxb
-    -> HOASTF ctxa dom a
-    -> (HOASTF ctxa dom a -> HOASTF ctxa dom b)
-    -> HOASTF ctxa dom b
-letBindCtx _ a f = inject let' :$: a :$: lambda f
+instance
+    ( Syntactic a (HODomain ctx dom)
+    , Syntactic b (HODomain ctx dom)
+    , Sat ctx (Internal a)
+    ) =>
+      Syntactic (a -> b) (HODomain ctx dom)
   where
-    let' :: Let ctxa ctxb (a :-> (a -> b) :-> Full b)
-    let' = Let
-
--- | Let binding
-letBind :: (Typeable a, Typeable b, Let Poly Poly :<: dom)
-    => HOASTF Poly dom a
-    -> (HOASTF Poly dom a -> HOASTF Poly dom b)
-    -> HOASTF Poly dom b
-letBind = letBindCtx poly
+    type Internal (a -> b) = Internal a -> Internal b
+    desugar f = lambda (desugar . f . sugar)
+    sugar     = error "sugar not implemented for (a -> b)"
+      -- TODO An implementation of sugar would require dom to have some kind of
+      --      application. Perhaps use Let for this?
 
 
 
 reifyM :: forall ctx dom a . Typeable a
-    => HOAST ctx dom a
+    => AST (HODomain ctx dom) a
     -> State VarId (AST (Lambda ctx :+: Variable ctx :+: dom) a)
 reifyM (f :$: a)            = liftM2 (:$:) (reifyM f) (reifyM a)
 reifyM (Symbol (InjectR a)) = return $ Symbol $ InjectR a
@@ -98,41 +79,18 @@ reifyM (Symbol (InjectL (HOLambda f))) = do
   where
     ctx = Proxy :: Proxy ctx
 
-
 -- | Translating expressions with higher-order binding to corresponding
 -- expressions using first-order binding
 reifyTop :: Typeable a =>
-    HOAST ctx dom a -> AST (Lambda ctx :+: Variable ctx :+: dom) a
+    AST (HODomain ctx dom) a -> AST (Lambda ctx :+: Variable ctx :+: dom) a
 reifyTop = flip evalState 0 . reifyM
   -- It is assumed that there are no 'Variable' constructors (i.e. no free
   -- variables) in the argument. This is guaranteed by the exported interface.
 
-
-
--- | Convenient class alias for n-ary syntactic functions
-class
-    ( SyntacticN a internal
-    , NAry ctx internal (HODomain ctx dom)
-    , Typeable (NAryEval internal)
-    ) =>
-      Reifiable ctx a dom internal | a -> dom internal
-
-instance
-    ( SyntacticN a internal
-    , NAry ctx internal (HODomain ctx dom)
-    , Typeable (NAryEval internal)
-    ) =>
-      Reifiable ctx a dom internal
-
--- | Reifying an n-ary syntactic function with explicit context
-reifyCtx :: Reifiable ctx a dom internal
+-- | Reifying an n-ary syntactic function
+reify :: Syntactic a (HODomain ctx dom)
     => Proxy ctx
     -> a
-    -> ASTF (Lambda ctx :+: Variable ctx :+: dom) (NAryEval internal)
-reifyCtx _ = reifyTop . lambdaN . desugarN
-
--- | Reifying an n-ary syntactic function
-reify :: Reifiable Poly a dom internal =>
-    a -> ASTF (Lambda Poly :+: Variable Poly :+: dom) (NAryEval internal)
-reify = reifyCtx poly
+    -> ASTF (Lambda ctx :+: Variable ctx :+: dom) (Internal a)
+reify _ = reifyTop . desugar
 

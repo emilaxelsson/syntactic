@@ -82,11 +82,6 @@ instance ToTree (Variable ctx)
   where
     toTreePart [] (Variable v) = Node ("var:" ++ show v) []
 
--- | Partial `Variable` projection with explicit context
-prjVariable :: (Variable ctx :<: sup) =>
-    Proxy ctx -> sup a -> Maybe (Variable ctx a)
-prjVariable _ = project
-
 
 
 --------------------------------------------------------------------------------
@@ -126,40 +121,6 @@ instance Render (Lambda ctx)
 instance ToTree (Lambda ctx)
   where
     toTreePart [body] (Lambda v) = Node ("Lambda " ++ show v) [body]
-
--- | Partial `Lambda` projection with explicit context
-prjLambda :: (Lambda ctx :<: sup) => Proxy ctx -> sup a -> Maybe (Lambda ctx a)
-prjLambda _ = project
-
-
-
--- | The class of n-ary binding functions
-class NAry ctx a dom | a -> dom
-    -- Note: using a functional dependency rather than an associated type,
-    -- because this makes it possible to make a class alias constraining dom.
-    -- GHC doesn't yet handle equality super classes.
-  where
-    type NAryEval a
-
-    -- | N-ary binding by nested use of the supplied binder
-    bindN
-      :: Proxy ctx
-      -> (  forall b c . (Typeable b, Typeable c, Sat ctx b)
-         => (ASTF dom b -> ASTF dom c)
-         -> ASTF dom (b -> c)
-         )
-      -> a -> ASTF dom (NAryEval a)
-
-instance NAry ctx (ASTF dom a) dom
-  where
-    type NAryEval (ASTF dom a) = a
-    bindN _ _ = id
-
-instance (Typeable a, Sat ctx a, NAry ctx b dom, Typeable (NAryEval b)) =>
-    NAry ctx (ASTF dom a -> b) dom
-  where
-    type NAryEval (ASTF dom a -> b) = a -> NAryEval b
-    bindN ctx lambda = lambda . (bindN ctx lambda .)
 
 
 
@@ -216,6 +177,11 @@ instance Eval (Let ctxa ctxb)
   where
     evaluate Let = fromEval (flip ($))
 
+-- | Let binding with explicit context
+letBind :: (Sat ctx a, Sat ctx b) =>
+    Proxy ctx -> Let ctx ctx (a :-> (a -> b) :-> Full b)
+letBind _ = Let
+
 -- | Partial `Let` projection with explicit context
 prjLet :: (Let ctxa ctxb :<: sup) =>
     Proxy ctxa -> Proxy ctxb -> sup a -> Maybe (Let ctxa ctxb a)
@@ -239,13 +205,13 @@ alphaEqM :: (Lambda ctx :<: dom, Variable ctx :<: dom)
 --      cases have been handled when calling 'eq'.
 
 alphaEqM ctx eq
-    ((prjLambda ctx -> Just (Lambda v1)) :$: a1)
-    ((prjLambda ctx -> Just (Lambda v2)) :$: a2) =
+    ((prjCtx ctx -> Just (Lambda v1)) :$: a1)
+    ((prjCtx ctx -> Just (Lambda v2)) :$: a2) =
         local ((v1,v2):) $ alphaEqM ctx eq a1 a2
 
 alphaEqM ctx eq
-    (prjVariable ctx -> Just (Variable v1))
-    (prjVariable ctx -> Just (Variable v2)) = do
+    (prjCtx ctx -> Just (Variable v1))
+    (prjCtx ctx -> Just (Variable v2)) = do
         env <- ask
         case lookup v1 env of
           Nothing  -> return (v1==v2)   -- Free variables

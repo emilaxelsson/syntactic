@@ -54,10 +54,6 @@ instance Render (Node ctx)
 
 instance ToTree (Node ctx)
 
--- | Partial `Node` projection with explicit context
-prjNode :: (Node ctx :<: sup) => Proxy ctx -> sup a -> Maybe (Node ctx a)
-prjNode _ = project
-
 
 
 -- | An 'ASTF' with hidden result type

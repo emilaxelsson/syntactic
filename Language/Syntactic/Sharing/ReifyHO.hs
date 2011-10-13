@@ -1,8 +1,9 @@
 -- | This module is similar to "Language.Syntactic.Sharing.Reify", but operates
--- on 'HOAST' rather than a general 'AST'. The reason for having this module is
--- that when using 'HOAST', it is important to do simultaneous sharing analysis
--- and 'HOLambda' reification. Obviously we cannot do sharing analysis first
--- (using 'Language.Syntactic.Sharing.Reify.reifyGraph' from
+-- on @`AST` (`HODomain` ctx dom)@ rather than a general 'AST'. The reason for
+-- having this module is that when using 'HODomain', it is important to do
+-- simultaneous sharing analysis and 'HOLambda' reification. Obviously we cannot
+-- do sharing analysis first (using
+-- 'Language.Syntactic.Sharing.Reify.reifyGraph' from
 -- "Language.Syntactic.Sharing.Reify"), since it needs to be able to look inside
 -- 'HOLambda'. On the other hand, if we did 'HOLambda' reification first (using
 -- 'reify'), we would destroy the sharing.
@@ -45,16 +46,17 @@ type GraphMonad ctx dom a = WriterT
 
 
 reifyGraphM :: forall ctx dom a . Typeable a
-    => (forall a . HOASTF ctx dom a -> Maybe (SatWit ctx a))
+    => (forall a . ASTF (HODomain ctx dom) a -> Maybe (SatWit ctx a))
     -> IORef VarId
     -> IORef NodeId
-    -> IORef (History (HOAST ctx dom))
-    -> HOASTF ctx dom a
+    -> IORef (History (AST (HODomain ctx dom)))
+    -> ASTF (HODomain ctx dom) a
     -> GraphMonad ctx dom (Full a)
 
 reifyGraphM canShare vSupp nSupp history = reifyNode
   where
-    reifyNode :: Typeable b => HOASTF ctx dom b -> GraphMonad ctx dom (Full b)
+    reifyNode :: Typeable b =>
+        ASTF (HODomain ctx dom) b -> GraphMonad ctx dom (Full b)
     reifyNode a = case canShare a of
         Nothing -> reifyRec a
         Just SatWit | a `seq` True -> do
@@ -69,7 +71,7 @@ reifyGraphM canShare vSupp nSupp history = reifyNode
               tell [(n, SomeAST a')]
               return $ Symbol $ InjectL $ Node n
 
-    reifyRec :: HOAST ctx dom b -> GraphMonad ctx dom b
+    reifyRec :: AST (HODomain ctx dom) b -> GraphMonad ctx dom b
     reifyRec (f :$: a)            = liftM2 (:$:) (reifyRec f) (reifyNode a)
     reifyRec (Symbol (InjectR a)) = return $ Symbol (InjectR (InjectR a))
     reifyRec (Symbol (InjectL (HOLambda f))) = do
@@ -83,8 +85,8 @@ reifyGraphM canShare vSupp nSupp history = reifyNode
 
 -- | Convert a syntax tree to a sharing-preserving graph
 reifyGraphTop :: Typeable a
-    => (forall a . HOASTF ctx dom a -> Maybe (SatWit ctx a))
-    -> HOASTF ctx dom a
+    => (forall a . ASTF (HODomain ctx dom) a -> Maybe (SatWit ctx a))
+    -> ASTF (HODomain ctx dom) a
     -> IO (ASG ctx (Lambda ctx :+: Variable ctx :+: dom) a, VarId)
 reifyGraphTop canShare a = do
     vSupp   <- newIORef 0
@@ -100,16 +102,16 @@ reifyGraphTop canShare a = do
 -- This function is not referentially transparent (hence the 'IO'). However, it
 -- is well-behaved in the sense that the worst thing that could happen is that
 -- sharing is lost. It is not possible to get false sharing.
-reifyGraph :: Reifiable ctx a dom internal
-    => (forall a . HOASTF ctx dom a -> Maybe (SatWit ctx a))
+reifyGraph :: Syntactic a (HODomain ctx dom)
+    => (forall a . ASTF (HODomain ctx dom) a -> Maybe (SatWit ctx a))
          -- ^ A function that decides whether a given node can be shared.
          -- 'Nothing' means \"don't share\"; 'Just' means \"share\". Nodes whose
          -- result type fulfills @(`Sat` ctx a)@ can be shared, which is why the
          -- function returns a 'SatWit'.
     -> a
     -> IO
-        ( ASG ctx (Lambda ctx :+: Variable ctx :+: dom) (NAryEval internal)
+        ( ASG ctx (Lambda ctx :+: Variable ctx :+: dom) (Internal a)
         , VarId
         )
-reifyGraph canShare = reifyGraphTop canShare . lambdaN . desugarN
+reifyGraph canShare = reifyGraphTop canShare . desugar
 
