@@ -12,11 +12,11 @@ module NanoFeldspar.Extra where
 
 
 import Language.Syntactic
-import Language.Syntactic.Features.Symbol
-import Language.Syntactic.Features.Literal
-import Language.Syntactic.Features.Binding
-import Language.Syntactic.Features.Binding.HigherOrder
-import Language.Syntactic.Features.Binding.Optimize
+import Language.Syntactic.Constructs.Symbol
+import Language.Syntactic.Constructs.Literal
+import Language.Syntactic.Constructs.Binding
+import Language.Syntactic.Constructs.Binding.HigherOrder
+import Language.Syntactic.Constructs.Binding.Optimize
 import Language.Syntactic.Sharing.Graph
 import Language.Syntactic.Sharing.ReifyHO
 
@@ -63,12 +63,12 @@ drawFeldObs a = do
 instance (ForLoop :<: dom, Optimize dom ctx dom) =>
     Optimize ForLoop ctx dom
   where
-    optimizeFeat = optimizeFeatDefault
+    optimizeSym = optimizeSymDefault
 
 instance (Parallel :<: dom, Optimize dom ctx dom) =>
     Optimize Parallel ctx dom
   where
-    optimizeFeat = optimizeFeatDefault
+    optimizeSym = optimizeSymDefault
 
 constFold :: forall a
     .  ASTF (Lambda SimpleCtx :+: Variable SimpleCtx :+: FeldDomain) a

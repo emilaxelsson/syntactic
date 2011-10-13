@@ -1,6 +1,6 @@
 -- | Annotations for syntax trees
 
-module Language.Syntactic.Features.Annotate where
+module Language.Syntactic.Constructs.Annotate where
 
 
 

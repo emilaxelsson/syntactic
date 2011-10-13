@@ -2,7 +2,7 @@
 
 -- | General binding constructs
 
-module Language.Syntactic.Features.Binding where
+module Language.Syntactic.Constructs.Binding where
 
 
 
@@ -16,10 +16,10 @@ import Data.Hash
 import Data.Proxy
 
 import Language.Syntactic
-import Language.Syntactic.Features.Symbol
-import Language.Syntactic.Features.Literal
-import Language.Syntactic.Features.Condition
-import Language.Syntactic.Features.Tuple
+import Language.Syntactic.Constructs.Symbol
+import Language.Syntactic.Constructs.Literal
+import Language.Syntactic.Constructs.Condition
+import Language.Syntactic.Constructs.Tuple
 
 
 
@@ -233,50 +233,50 @@ alphaEq ctx a b = runReader (alphaEqM ctx (\a b -> return $ exprEq a b) a b) []
 
 
 
-class EvalBind feature
+class EvalBind sub
   where
-    evalBindFeat
+    evalBindSym
         :: (EvalBind dom, ConsType a)
-        => feature a
+        => sub a
         -> HList (AST dom) a
         -> Reader [(VarId,Dynamic)] (EvalResult a)
 
 instance (EvalBind sub1, EvalBind sub2) => EvalBind (sub1 :+: sub2)
   where
-    evalBindFeat (InjectL a) = evalBindFeat a
-    evalBindFeat (InjectR a) = evalBindFeat a
+    evalBindSym (InjectL a) = evalBindSym a
+    evalBindSym (InjectR a) = evalBindSym a
 
 -- | Evaluation of possibly open expressions
 evalBindM :: EvalBind dom => ASTF dom a -> Reader [(VarId,Dynamic)] a
-evalBindM = liftM result . queryNode (\a -> liftM Full . evalBindFeat a)
+evalBindM = liftM result . queryNode (\a -> liftM Full . evalBindSym a)
 
 -- | Evaluation of closed expressions
 evalBind :: EvalBind dom => ASTF dom a -> a
 evalBind = flip runReader [] . evalBindM
 
--- | Convenient default implementation of 'evalBindFeat'
-evalBindFeatDefault :: (Eval feature, ConsType a, EvalBind dom)
-    => feature a
+-- | Convenient default implementation of 'evalBindSym'
+evalBindSymDefault :: (Eval sub, ConsType a, EvalBind dom)
+    => sub a
     -> HList (AST dom) a
     -> Reader [(VarId,Dynamic)] (EvalResult a)
-evalBindFeatDefault feature args = do
+evalBindSymDefault sym args = do
     args' <- mapHListM (liftM (Identity . Full) . evalBindM) args
-    return $ appEvalHList (toEval $ evaluate feature) args'
+    return $ appEvalHList (toEval $ evaluate sym) args'
 
-instance EvalBind (Sym ctx)       where evalBindFeat = evalBindFeatDefault
-instance EvalBind (Literal ctx)   where evalBindFeat = evalBindFeatDefault
-instance EvalBind (Condition ctx) where evalBindFeat = evalBindFeatDefault
-instance EvalBind (Tuple ctx)     where evalBindFeat = evalBindFeatDefault
-instance EvalBind (Select ctx)    where evalBindFeat = evalBindFeatDefault
-instance EvalBind (Let ctxa ctxb) where evalBindFeat = evalBindFeatDefault
+instance EvalBind (Sym ctx)       where evalBindSym = evalBindSymDefault
+instance EvalBind (Literal ctx)   where evalBindSym = evalBindSymDefault
+instance EvalBind (Condition ctx) where evalBindSym = evalBindSymDefault
+instance EvalBind (Tuple ctx)     where evalBindSym = evalBindSymDefault
+instance EvalBind (Select ctx)    where evalBindSym = evalBindSymDefault
+instance EvalBind (Let ctxa ctxb) where evalBindSym = evalBindSymDefault
 
 instance EvalBind dom => EvalBind (Ann info dom)
   where
-    evalBindFeat (Ann _ a) args = evalBindFeat a args
+    evalBindSym (Ann _ a) args = evalBindSym a args
 
 instance EvalBind (Lambda ctx)
   where
-    evalBindFeat (Lambda v) (body :*: Nil) = do
+    evalBindSym (Lambda v) (body :*: Nil) = do
         env <- ask
         return
             $ \a -> flip runReader ((v,toDyn a):env)
@@ -284,7 +284,7 @@ instance EvalBind (Lambda ctx)
 
 instance EvalBind (Variable ctx)
   where
-    evalBindFeat (Variable v) Nil = do
+    evalBindSym (Variable v) Nil = do
         env <- ask
         case lookup v env of
             Nothing -> return $ error "evalBind: evaluating free variable"

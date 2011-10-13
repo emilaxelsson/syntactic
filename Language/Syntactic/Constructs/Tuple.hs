@@ -7,13 +7,13 @@
 -- The function pairs @desugarTupX@/@sugarTupX@ could be used directly in
 -- 'Syntactic' instances if it wasn't for the extra @(`Proxy` ctx)@ arguments.
 -- For this reason, 'Syntactic' instances have to be written manually for each
--- context. The module "Language.Syntactic.Features.TupleSyntacticPoly" provides
--- instances for a 'Poly' context. The exact same code can be used to make
--- instances for other contexts -- just copy/paste and replace 'Poly' and 'poly'
--- with the desired context (and probably add an extra constraint in the class
--- contexts).
+-- context. The module "Language.Syntactic.Constructs.TupleSyntacticPoly"
+-- provides instances for a 'Poly' context. The exact same code can be used to
+-- make instances for other contexts -- just copy/paste and replace 'Poly' and
+-- 'poly' with the desired context (and probably add an extra constraint in the
+-- class contexts).
 
-module Language.Syntactic.Features.Tuple where
+module Language.Syntactic.Constructs.Tuple where
 
 
 
@@ -23,7 +23,7 @@ import Data.Tuple.Curry
 import Data.Tuple.Select
 
 import Language.Syntactic
-import Language.Syntactic.Features.Symbol
+import Language.Syntactic.Constructs.Symbol
 
 
 

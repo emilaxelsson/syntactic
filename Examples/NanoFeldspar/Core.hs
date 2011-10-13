@@ -12,11 +12,11 @@
 -- syntactic.
 --
 -- A more realistic implementation would use custom contexts to restrict the
--- types at which constructors operate. Currently, all general features (such as
--- 'Literal' and 'Tuple') use a 'SimpleCtx' context, which means that the types
--- are quite unrestricted. A real implementation would also probably use custom
--- types for primitive functions, since the 'Sym' feature is quite unsafe (uses
--- only a 'String' to distinguish between functions).
+-- types at which constructors operate. Currently, all general constructs (such
+-- as 'Literal' and 'Tuple') use a 'SimpleCtx' context, which means that the
+-- types are quite unrestricted. A real implementation would also probably use
+-- custom types for primitive functions, since the 'Sym' construct is quite
+-- unsafe (uses only a 'String' to distinguish between functions).
 
 module NanoFeldspar.Core where
 
@@ -25,12 +25,12 @@ module NanoFeldspar.Core where
 import Data.Typeable
 
 import Language.Syntactic
-import Language.Syntactic.Features.Symbol
-import Language.Syntactic.Features.Literal
-import Language.Syntactic.Features.Condition
-import Language.Syntactic.Features.Tuple
-import Language.Syntactic.Features.Binding
-import Language.Syntactic.Features.Binding.HigherOrder
+import Language.Syntactic.Constructs.Symbol
+import Language.Syntactic.Constructs.Literal
+import Language.Syntactic.Constructs.Condition
+import Language.Syntactic.Constructs.Tuple
+import Language.Syntactic.Constructs.Binding
+import Language.Syntactic.Constructs.Binding.HigherOrder
 import Language.Syntactic.Sharing.SimpleCodeMotion
 
 
@@ -79,7 +79,7 @@ instance ExprEq   Parallel where exprEq = exprEqSym; exprHash = exprHashSym
 instance Render   Parallel where renderPart = renderPartSym
 instance Eval     Parallel where evaluate   = evaluateSym
 instance ToTree   Parallel
-instance EvalBind Parallel where evalBindFeat = evalBindFeatDefault
+instance EvalBind Parallel where evalBindSym = evalBindSymDefault
 
 
 
@@ -115,7 +115,7 @@ instance ExprEq   ForLoop where exprEq = exprEqSym; exprHash = exprHashSym
 instance Render   ForLoop where renderPart = renderPartSym
 instance Eval     ForLoop where evaluate   = evaluateSym
 instance ToTree   ForLoop
-instance EvalBind ForLoop where evalBindFeat = evalBindFeatDefault
+instance EvalBind ForLoop where evalBindSym = evalBindSymDefault
 
 
 

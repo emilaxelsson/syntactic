@@ -2,7 +2,7 @@
 
 -- | Literal expressions
 
-module Language.Syntactic.Features.Literal where
+module Language.Syntactic.Constructs.Literal where
 
 
 

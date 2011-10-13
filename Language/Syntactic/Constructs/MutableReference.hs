@@ -1,14 +1,14 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Language.Syntactic.Features.MutableReference
+module Language.Syntactic.Constructs.MutableReference
 where
 
 import Language.Syntactic
-import Language.Syntactic.Features.Monad
-import Language.Syntactic.Features.Mutable
-import Language.Syntactic.Features.Binding
-import Language.Syntactic.Features.Binding.HigherOrder
-import Language.Syntactic.Features.Binding.Optimize
+import Language.Syntactic.Constructs.Monad
+import Language.Syntactic.Constructs.Mutable
+import Language.Syntactic.Constructs.Binding
+import Language.Syntactic.Constructs.Binding.HigherOrder
+import Language.Syntactic.Constructs.Binding.Optimize
 import qualified Data.IORef as Ref
 
 import Unsafe.Coerce
@@ -56,12 +56,12 @@ instance MaybeWitnessSat ctx MutableReference
   where
     maybeWitnessSat _ _ = Nothing
 
-instance EvalBind MutableReference where evalBindFeat = evalBindFeatDefault
+instance EvalBind MutableReference where evalBindSym = evalBindSymDefault
 
 instance (MutableReference :<: dom, Optimize dom ctx dom) =>
     Optimize MutableReference ctx dom
   where
-    optimizeFeat = optimizeFeatDefault
+    optimizeSym = optimizeSymDefault
 
 type Ref a = Ref.IORef a
 

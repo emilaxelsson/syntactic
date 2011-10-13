@@ -57,20 +57,20 @@ Library
     Language.Syntactic.Interpretation.Equality
     Language.Syntactic.Interpretation.Render
     Language.Syntactic.Interpretation.Evaluation
-    Language.Syntactic.Features.Annotate
-    Language.Syntactic.Features.Symbol
-    Language.Syntactic.Features.Literal
-    Language.Syntactic.Features.Condition
-    Language.Syntactic.Features.Tuple
-    Language.Syntactic.Features.TupleSyntacticPoly
-    Language.Syntactic.Features.TupleSyntacticSimple
-    Language.Syntactic.Features.Binding
-    Language.Syntactic.Features.Binding.HigherOrder
-    Language.Syntactic.Features.Binding.Optimize
-    Language.Syntactic.Features.Monad
-    Language.Syntactic.Features.Mutable
-    Language.Syntactic.Features.MutableReference
-    Language.Syntactic.Features.MutableArray
+    Language.Syntactic.Constructs.Annotate
+    Language.Syntactic.Constructs.Symbol
+    Language.Syntactic.Constructs.Literal
+    Language.Syntactic.Constructs.Condition
+    Language.Syntactic.Constructs.Tuple
+    Language.Syntactic.Constructs.TupleSyntacticPoly
+    Language.Syntactic.Constructs.TupleSyntacticSimple
+    Language.Syntactic.Constructs.Binding
+    Language.Syntactic.Constructs.Binding.HigherOrder
+    Language.Syntactic.Constructs.Binding.Optimize
+    Language.Syntactic.Constructs.Monad
+    Language.Syntactic.Constructs.Mutable
+    Language.Syntactic.Constructs.MutableReference
+    Language.Syntactic.Constructs.MutableArray
     Language.Syntactic.Sharing.SimpleCodeMotion
     Language.Syntactic.Sharing.Utils
     Language.Syntactic.Sharing.Graph

@@ -7,7 +7,7 @@
 -- distinguish between different symbols. Also, 'Sym' has a very free type that
 -- allows any number of arguments.
 
-module Language.Syntactic.Features.Symbol where
+module Language.Syntactic.Constructs.Symbol where
 
 
 

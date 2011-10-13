@@ -1,12 +1,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | 'Syntactic' instances for tuples with 'Poly' context
-module Language.Syntactic.Features.TupleSyntacticPoly where
+module Language.Syntactic.Constructs.TupleSyntacticPoly where
 
 
 
 import Language.Syntactic.Syntax
-import Language.Syntactic.Features.Tuple
+import Language.Syntactic.Constructs.Tuple
 
 
 

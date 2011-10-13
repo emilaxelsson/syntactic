@@ -15,7 +15,7 @@ import Data.Hash
 import Data.Proxy
 
 import Language.Syntactic
-import Language.Syntactic.Features.Binding
+import Language.Syntactic.Constructs.Binding
 import Language.Syntactic.Sharing.Utils
 
 

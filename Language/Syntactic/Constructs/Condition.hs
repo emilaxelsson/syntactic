@@ -2,7 +2,7 @@
 
 -- | Conditional expressions
 
-module Language.Syntactic.Features.Condition where
+module Language.Syntactic.Constructs.Condition where
 
 
 
@@ -11,7 +11,7 @@ import Data.Proxy
 import Data.Typeable
 
 import Language.Syntactic
-import Language.Syntactic.Features.Symbol
+import Language.Syntactic.Constructs.Symbol
 
 
 

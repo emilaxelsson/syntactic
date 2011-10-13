@@ -27,8 +27,8 @@ import System.Mem.StableName
 import Data.Proxy
 
 import Language.Syntactic
-import Language.Syntactic.Features.Binding
-import Language.Syntactic.Features.Binding.HigherOrder
+import Language.Syntactic.Constructs.Binding
+import Language.Syntactic.Constructs.Binding.HigherOrder
 import Language.Syntactic.Sharing.Graph
 import Language.Syntactic.Sharing.StableName
 import qualified Language.Syntactic.Sharing.Reify  -- For Haddock

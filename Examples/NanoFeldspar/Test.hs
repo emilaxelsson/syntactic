@@ -1,6 +1,6 @@
 import Prelude hiding (length, map, (==), max, min, reverse, sum, unzip, zip, zipWith)
 
-import Language.Syntactic.Features.TupleSyntacticSimple
+import Language.Syntactic.Constructs.TupleSyntacticSimple
 
 import NanoFeldspar.Core
 import NanoFeldspar.Extra

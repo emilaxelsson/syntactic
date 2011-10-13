@@ -1,13 +1,13 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Language.Syntactic.Features.Mutable
+module Language.Syntactic.Constructs.Mutable
 where
 
 import Language.Syntactic
-import Language.Syntactic.Features.Monad
-import Language.Syntactic.Features.Binding
-import Language.Syntactic.Features.Binding.HigherOrder
-import Language.Syntactic.Features.Binding.Optimize
+import Language.Syntactic.Constructs.Monad
+import Language.Syntactic.Constructs.Binding
+import Language.Syntactic.Constructs.Binding.HigherOrder
+import Language.Syntactic.Constructs.Binding.Optimize
 
 import System.IO.Unsafe
 import Data.Typeable
@@ -41,12 +41,12 @@ instance MaybeWitnessSat ctx Mutable
   where
     maybeWitnessSat _ _ = Nothing
 
-instance EvalBind Mutable where evalBindFeat = evalBindFeatDefault
+instance EvalBind Mutable where evalBindSym = evalBindSymDefault
 
 instance (Mutable :<: dom, Optimize dom ctx dom) =>
     Optimize Mutable ctx dom
   where
-    optimizeFeat = optimizeFeatDefault
+    optimizeSym = optimizeSymDefault
 
 type M ctx dom a = MonadS ctx dom IO a
 

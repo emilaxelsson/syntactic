@@ -1,12 +1,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | 'Syntactic' instances for tuples with 'SimpleCtx' context
-module Language.Syntactic.Features.TupleSyntacticSimple where
+module Language.Syntactic.Constructs.TupleSyntacticSimple where
 
 
 
 import Language.Syntactic.Syntax
-import Language.Syntactic.Features.Tuple
+import Language.Syntactic.Constructs.Tuple
 
 
 

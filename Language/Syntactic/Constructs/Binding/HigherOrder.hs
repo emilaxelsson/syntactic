@@ -4,7 +4,7 @@
 -- function for translating to first-order syntax. Expressions constructed using
 -- the exported interface are guaranteed to have a well-behaved translation.
 
-module Language.Syntactic.Features.Binding.HigherOrder
+module Language.Syntactic.Constructs.Binding.HigherOrder
     ( Variable
     , Let (..)
     , HOLambda (..)
@@ -23,7 +23,7 @@ import Data.Typeable
 import Data.Proxy
 
 import Language.Syntactic
-import Language.Syntactic.Features.Binding
+import Language.Syntactic.Constructs.Binding
 
 
 

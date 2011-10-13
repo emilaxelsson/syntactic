@@ -1,13 +1,13 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Language.Syntactic.Features.Monad where
+module Language.Syntactic.Constructs.Monad where
 
 import qualified Control.Monad.Cont as CMC
 import Control.Monad.Cont hiding (when)
 
 import Language.Syntactic
-import Language.Syntactic.Features.Binding
-import Language.Syntactic.Features.Binding.HigherOrder
+import Language.Syntactic.Constructs.Binding
+import Language.Syntactic.Constructs.Binding.HigherOrder
 
 import Data.Typeable
 import Data.Hash
@@ -89,7 +89,7 @@ instance MaybeWitnessSat ctx (MonadF m)
   where
     maybeWitnessSat _ _ = Nothing
 
-instance (Monad m) => EvalBind (MonadF m) where evalBindFeat = evalBindFeatDefault
+instance (Monad m) => EvalBind (MonadF m) where evalBindSym = evalBindSymDefault
 
 prjMonad :: (MonadF m :<: sup) => Proxy (m ()) -> sup a -> Maybe (MonadF m a)
 prjMonad _ = project
