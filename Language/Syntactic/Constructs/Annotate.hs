@@ -86,6 +86,12 @@ getInfo :: AST (Ann info dom) a -> info (EvalResult a)
 getInfo (Symbol (Ann info _)) = info
 getInfo (f :$: _)             = getInfo f
 
+-- | Lift a function that operates on expressions with associated information to
+-- operate on an 'Ann' expression. This function is convenient to use together
+-- with e.g. 'queryNodeSimple' when the domain has the form @(`Ann` info dom)@.
+liftAnn :: (expr a -> info (EvalResult a) -> b) -> (Ann info expr a -> b)
+liftAnn f (Ann info a) = f a info
+
 -- | Collect the annotations of all nodes
 collectInfo :: (forall a . info a -> b) -> AST (Ann info dom) a -> [b]
 collectInfo coll (Symbol (Ann info _)) = [coll info]
@@ -103,10 +109,15 @@ toTreeAnn a = mkTree [] a
     mkTree args (f :$: a) = mkTree (mkTree [] a : args) f
 
 -- | Show an annotated syntax tree using ASCII art
-showANN :: (Render info, ToTree dom) => ASTF (Ann info dom) a -> String
-showANN = drawTree . toTreeAnn
+showAnn :: (Render info, ToTree dom) => ASTF (Ann info dom) a -> String
+showAnn = drawTree . toTreeAnn
 
 -- | Print an annotated syntax tree using ASCII art
-drawANN :: (Render info, ToTree dom) => ASTF (Ann info dom) a -> IO ()
-drawANN = putStrLn . showANN
+drawAnn :: (Render info, ToTree dom) => ASTF (Ann info dom) a -> IO ()
+drawAnn = putStrLn . showAnn
+
+-- | Strip annotations from an 'AST'
+stripAnn :: AST (Ann info dom) a -> AST dom a
+stripAnn (Symbol (Ann _ a)) = Symbol a
+stripAnn (f :$: a)          = stripAnn f :$: stripAnn a
 

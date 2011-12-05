@@ -20,6 +20,7 @@ import Language.Syntactic.Constructs.Symbol
 import Language.Syntactic.Constructs.Literal
 import Language.Syntactic.Constructs.Condition
 import Language.Syntactic.Constructs.Tuple
+import Language.Syntactic.Constructs.Monad
 
 
 
@@ -263,12 +264,13 @@ evalBindSymDefault sym args = do
     args' <- mapHListM (liftM (Identity . Full) . evalBindM) args
     return $ appEvalHList (toEval $ evaluate sym) args'
 
-instance EvalBind (Sym ctx)       where evalBindSym = evalBindSymDefault
-instance EvalBind (Literal ctx)   where evalBindSym = evalBindSymDefault
-instance EvalBind (Condition ctx) where evalBindSym = evalBindSymDefault
-instance EvalBind (Tuple ctx)     where evalBindSym = evalBindSymDefault
-instance EvalBind (Select ctx)    where evalBindSym = evalBindSymDefault
-instance EvalBind (Let ctxa ctxb) where evalBindSym = evalBindSymDefault
+instance EvalBind (Sym ctx)            where evalBindSym = evalBindSymDefault
+instance EvalBind (Literal ctx)        where evalBindSym = evalBindSymDefault
+instance EvalBind (Condition ctx)      where evalBindSym = evalBindSymDefault
+instance EvalBind (Tuple ctx)          where evalBindSym = evalBindSymDefault
+instance EvalBind (Select ctx)         where evalBindSym = evalBindSymDefault
+instance EvalBind (Let ctxa ctxb)      where evalBindSym = evalBindSymDefault
+instance Monad m => EvalBind (MONAD m) where evalBindSym = evalBindSymDefault
 
 instance EvalBind dom => EvalBind (Ann info dom)
   where

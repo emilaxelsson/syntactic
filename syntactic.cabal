@@ -45,6 +45,19 @@ Extra-source-files:
   Examples/NanoFeldspar/Extra.hs
   Examples/NanoFeldspar/Vector.hs
   Examples/NanoFeldspar/Test.hs
+  CEFP/MuFeldspar/Core.hs
+  CEFP/MuFeldspar/Frontend.hs
+  CEFP/MuFeldspar/Prelude.hs
+  CEFP/MuFeldspar/Vector.hs
+  CEFP/Imperative/Compiler.hs
+  CEFP/Imperative/Imperative.hs
+  CEFP/Examples/CodeApplication.hs
+  CEFP/Examples/Exercise10.hs
+  CEFP/Examples/Exercise12.hs
+  CEFP/Examples/Exercise14.hs
+  CEFP/Examples/ExProg.hs
+  CEFP/Examples/SolutionsSec2.hs
+  CEFP/Examples/Test.hs
 
 source-repository head
   type:     darcs
@@ -68,9 +81,7 @@ Library
     Language.Syntactic.Constructs.Binding.HigherOrder
     Language.Syntactic.Constructs.Binding.Optimize
     Language.Syntactic.Constructs.Monad
-    Language.Syntactic.Constructs.Mutable
-    Language.Syntactic.Constructs.MutableReference
-    Language.Syntactic.Constructs.MutableArray
+    Language.Syntactic.Frontend.Monad
     Language.Syntactic.Sharing.SimpleCodeMotion
     Language.Syntactic.Sharing.Utils
     Language.Syntactic.Sharing.Graph
@@ -93,12 +104,14 @@ Library
   Extensions:
     DeriveDataTypeable
     DeriveFunctor
+    EmptyDataDecls
     FlexibleContexts
     FlexibleInstances
     FunctionalDependencies
     GADTs
     GeneralizedNewtypeDeriving
     MultiParamTypeClasses
+    PatternGuards
     Rank2Types
     ScopedTypeVariables
     StandaloneDeriving
@@ -107,6 +120,3 @@ Library
     TypeSynonymInstances
     ViewPatterns
 
-    -- Required by GHC-6.12:
-    EmptyDataDecls
-    PatternGuards

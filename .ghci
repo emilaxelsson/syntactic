@@ -1,11 +1,13 @@
 :set -XDeriveDataTypeable
 :set -XDeriveFunctor
+:set -XEmptyDataDecls
 :set -XFlexibleContexts
 :set -XFlexibleInstances
 :set -XFunctionalDependencies
 :set -XGADTs
 :set -XGeneralizedNewtypeDeriving
 :set -XMultiParamTypeClasses
+:set -XPatternGuards
 :set -XRank2Types
 :set -XScopedTypeVariables
 :set -XStandaloneDeriving
@@ -13,10 +15,6 @@
 :set -XTypeOperators
 :set -XTypeSynonymInstances
 :set -XViewPatterns
-
--- Needed by GHC-6.12:
-:set -XEmptyDataDecls
-:set -XPatternGuards
 
 -- Convenience:
 :set -XNoMonomorphismRestriction
