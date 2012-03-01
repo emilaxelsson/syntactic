@@ -89,8 +89,7 @@ reifyTop = flip evalState 0 . reifyM
 
 -- | Reifying an n-ary syntactic function
 reify :: Syntactic a (HODomain ctx dom)
-    => Proxy ctx
-    -> a
+    => a
     -> ASTF (Lambda ctx :+: Variable ctx :+: dom) (Internal a)
-reify _ = reifyTop . desugar
+reify = reifyTop . desugar
 

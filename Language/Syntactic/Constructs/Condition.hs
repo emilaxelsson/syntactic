@@ -6,7 +6,6 @@ module Language.Syntactic.Constructs.Condition where
 
 
 
-import Data.Hash
 import Data.Proxy
 import Data.Typeable
 

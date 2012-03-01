@@ -81,6 +81,11 @@ instance Eval     Parallel where evaluate   = evaluateSym
 instance ToTree   Parallel
 instance EvalBind Parallel where evalBindSym = evalBindSymDefault
 
+instance (AlphaEq dom dom dom env, Parallel :<: dom) =>
+    AlphaEq Parallel Parallel dom env
+  where
+    alphaEqSym = alphaEqSymDefault
+
 
 
 --------------------------------------------------------------------------------
@@ -116,6 +121,11 @@ instance Render   ForLoop where renderPart = renderPartSym
 instance Eval     ForLoop where evaluate   = evaluateSym
 instance ToTree   ForLoop
 instance EvalBind ForLoop where evalBindSym = evalBindSymDefault
+
+instance (AlphaEq dom dom dom env, ForLoop :<: dom) =>
+    AlphaEq ForLoop ForLoop dom env
+  where
+    alphaEqSym = alphaEqSymDefault
 
 
 
@@ -157,15 +167,15 @@ instance (Syntactic a FeldDomainAll, Type (Internal a)) => Syntax a
 
 -- | Print the expression
 printFeld :: Syntactic a FeldDomainAll => a -> IO ()
-printFeld = printExpr . reifySmart simpleCtx
+printFeld = printExpr . reifySmart (const True)
 
 -- | Draw the syntax tree
 drawFeld :: Syntactic a FeldDomainAll => a -> IO ()
-drawFeld = drawAST . reifySmart simpleCtx
+drawFeld = drawAST . reifySmart (const True)
 
 -- | Evaluation
 eval :: Syntactic a FeldDomainAll => a -> Internal a
-eval = evalBind . reifySmart simpleCtx
+eval = evalBind . reifySmart (const True)
 
 
 
@@ -195,12 +205,11 @@ share = sugarSym (letBind simpleCtx)
 -- | Alpha equivalence
 instance Type a => Eq (Data a)
   where
-    Data a == Data b =
-        alphaEq simpleCtx (reify simpleCtx a) (reify simpleCtx b)
+    Data a == Data b = alphaEq (reify a) (reify b)
 
 instance Type a => Show (Data a)
   where
-    show (Data a) = render $ reify simpleCtx a
+    show (Data a) = render $ reify a
 
 instance (Type a, Num a) => Num (Data a)
   where

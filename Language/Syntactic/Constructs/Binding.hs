@@ -1,4 +1,5 @@
 {-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 -- | General binding constructs
 
@@ -6,7 +7,7 @@ module Language.Syntactic.Constructs.Binding where
 
 
 
-import Control.Monad.Identity
+import qualified Control.Monad.Identity as Monad
 import Control.Monad.Reader
 import Data.Dynamic
 import Data.Ix
@@ -16,6 +17,8 @@ import Data.Hash
 import Data.Proxy
 
 import Language.Syntactic
+import Language.Syntactic.Constructs.Identity
+import Language.Syntactic.Constructs.Decoration
 import Language.Syntactic.Constructs.Symbol
 import Language.Syntactic.Constructs.Literal
 import Language.Syntactic.Constructs.Condition
@@ -194,43 +197,35 @@ prjLet _ _ = project
 -- * Interpretation
 --------------------------------------------------------------------------------
 
--- | Alpha equivalence in an environment of variable equivalences. The supplied
--- equivalence function gets called when the argument expressions are not both
--- 'Variable's, both 'Lambda's or both ':$:'.
-alphaEqM :: (Lambda ctx :<: dom, Variable ctx :<: dom)
+-- | Capture-avoiding substitution
+subst :: forall ctx dom a b
+    .  (Lambda ctx :<: dom, Variable ctx :<: dom, Typeable a)
     => Proxy ctx
-    -> (forall a b . AST dom a -> AST dom b -> Reader [(VarId,VarId)] Bool)
-    -> (forall a b . AST dom a -> AST dom b -> Reader [(VarId,VarId)] Bool)
+    -> VarId       -- ^ Variable to be substituted
+    -> ASTF dom a  -- ^ Expression to substitute for
+    -> ASTF dom b  -- ^ Expression to substitute in
+    -> ASTF dom b
+subst ctx v new a = go a
+  where
+    go :: AST dom c -> AST dom c
+    go a@((prjCtx ctx -> Just (Lambda w)) :$: _)
+        | v==w = a  -- Capture
+    go (f :$: a) = go f :$: go a
+    go (prjCtx ctx -> Just (Variable w))
+        | v==w
+        , Just new' <- gcast new
+        = new'
+    go a = a
 
--- TODO This function is not ideal, since the type says nothing about which
---      cases have been handled when calling 'eq'.
-
-alphaEqM ctx eq
-    ((prjCtx ctx -> Just (Lambda v1)) :$: a1)
-    ((prjCtx ctx -> Just (Lambda v2)) :$: a2) =
-        local ((v1,v2):) $ alphaEqM ctx eq a1 a2
-
-alphaEqM ctx eq
-    (prjCtx ctx -> Just (Variable v1))
-    (prjCtx ctx -> Just (Variable v2)) = do
-        env <- ask
-        case lookup v1 env of
-          Nothing  -> return (v1==v2)   -- Free variables
-          Just v2' -> return (v2==v2')
-
-alphaEqM ctx eq (f1 :$: a1) (f2 :$: a2) = do
-    e <- alphaEqM ctx eq f1 f2
-    if e then alphaEqM ctx eq a1 a2 else return False
-
-alphaEqM _ eq a b = eq a b
-
-
-
--- | Alpha-equivalence on lambda expressions. Free variables are taken to be
--- equivalent if they have the same identifier.
-alphaEq :: (Lambda ctx :<: dom, Variable ctx :<: dom, ExprEq dom) =>
-    Proxy ctx -> AST dom a -> AST dom b -> Bool
-alphaEq ctx a b = runReader (alphaEqM ctx (\a b -> return $ exprEq a b) a b) []
+-- | Beta-reduction of an expression. The expression to be reduced is assumed to
+-- be a `Lambda`.
+betaReduce :: forall ctx dom a b . (Lambda ctx :<: dom, Variable ctx :<: dom)
+    => Proxy ctx
+    -> ASTF dom a         -- ^ Argument
+    -> ASTF dom (a -> b)  -- ^ Function to be reduced
+    -> ASTF dom b
+betaReduce ctx new ((prjCtx ctx -> Just (Lambda v)) :$: body) =
+    subst ctx v new body
 
 
 
@@ -261,9 +256,10 @@ evalBindSymDefault :: (Eval sub, ConsType a, EvalBind dom)
     -> HList (AST dom) a
     -> Reader [(VarId,Dynamic)] (EvalResult a)
 evalBindSymDefault sym args = do
-    args' <- mapHListM (liftM (Identity . Full) . evalBindM) args
+    args' <- mapHListM (liftM (Monad.Identity . Full) . evalBindM) args
     return $ appEvalHList (toEval $ evaluate sym) args'
 
+instance EvalBind (Identity ctx)       where evalBindSym = evalBindSymDefault
 instance EvalBind (Sym ctx)            where evalBindSym = evalBindSymDefault
 instance EvalBind (Literal ctx)        where evalBindSym = evalBindSymDefault
 instance EvalBind (Condition ctx)      where evalBindSym = evalBindSymDefault
@@ -272,9 +268,9 @@ instance EvalBind (Select ctx)         where evalBindSym = evalBindSymDefault
 instance EvalBind (Let ctxa ctxb)      where evalBindSym = evalBindSymDefault
 instance Monad m => EvalBind (MONAD m) where evalBindSym = evalBindSymDefault
 
-instance EvalBind dom => EvalBind (Ann info dom)
+instance EvalBind dom => EvalBind (Decor info dom)
   where
-    evalBindSym (Ann _ a) args = evalBindSym a args
+    evalBindSym a args = evalBindSym (decorExpr a) args
 
 instance EvalBind (Lambda ctx)
   where
@@ -293,4 +289,111 @@ instance EvalBind (Variable ctx)
             Just a  -> case fromDynamic a of
               Just a -> return a
               _      -> return $ error "evalBind: internal type error"
+
+
+
+--------------------------------------------------------------------------------
+-- * Alpha equivalence
+--------------------------------------------------------------------------------
+
+-- | Environments containing a list of variable equivalences
+class VarEqEnv a
+  where
+    prjVarEqEnv :: a -> [(VarId,VarId)]
+    modVarEqEnv :: ([(VarId,VarId)] -> [(VarId,VarId)]) -> (a -> a)
+
+instance VarEqEnv [(VarId,VarId)]
+  where
+    prjVarEqEnv = id
+    modVarEqEnv = id
+
+class VarEqEnv env => AlphaEq sub1 sub2 dom env
+  where
+    alphaEqSym
+        :: (ConsType a, ConsType b)
+        => sub1 a
+        -> HList (AST dom) a
+        -> sub2 b
+        -> HList (AST dom) b
+        -> Reader env Bool
+
+instance (AlphaEq subA1 subB1 dom env, AlphaEq subA2 subB2 dom env) =>
+    AlphaEq (subA1 :+: subA2) (subB1 :+: subB2) dom env
+  where
+    alphaEqSym (InjectL a) aArgs (InjectL b) bArgs = alphaEqSym a aArgs b bArgs
+    alphaEqSym (InjectR a) aArgs (InjectR b) bArgs = alphaEqSym a aArgs b bArgs
+    alphaEqSym (InjectL a) aArgs (InjectR b) bArgs = return False
+    alphaEqSym (InjectR a) aArgs (InjectL b) bArgs = return False
+
+alphaEqM :: AlphaEq dom dom dom env =>
+    ASTF dom a -> ASTF dom b -> Reader env Bool
+alphaEqM a b = queryNodeSimple (alphaEqM2 b) a
+
+alphaEqM2 :: (AlphaEq dom dom dom env, ConsType a) =>
+    ASTF dom b -> dom a -> HList (AST dom) a -> Reader env Bool
+alphaEqM2 b a aArgs = queryNodeSimple (alphaEqSym a aArgs) b
+
+-- | Alpha-equivalence on lambda expressions. Free variables are taken to be
+-- equivalent if they have the same identifier.
+alphaEq :: AlphaEq dom dom dom [(VarId,VarId)] =>
+    ASTF dom a -> ASTF dom b -> Bool
+alphaEq a b = flip runReader ([] :: [(VarId,VarId)]) $ alphaEqM a b
+
+alphaEqSymDefault
+    :: ( ExprEq sub
+       , AlphaEq dom dom dom env
+       , ConsType a
+       , ConsType b
+       )
+    => sub a
+    -> HList (AST dom) a
+    -> sub b
+    -> HList (AST dom) b
+    -> Reader env Bool
+alphaEqSymDefault a aArgs b bArgs
+    | exprEq a b = alphaEqChildren a' b'
+    | otherwise  = return False
+  where
+    a' = appHList (Symbol (undefined :: dom a)) aArgs
+    b' = appHList (Symbol (undefined :: dom b)) bArgs
+
+alphaEqChildren :: AlphaEq dom dom dom env =>
+    AST dom a -> AST dom b -> Reader env Bool
+alphaEqChildren (Symbol _) (Symbol _) = return True
+alphaEqChildren (f :$: a)  (g :$: b)  = liftM2 (&&)
+    (alphaEqChildren f g)
+    (alphaEqM a b)
+alphaEqChildren _ _ = return False
+
+instance AlphaEq dom dom dom env => AlphaEq (Identity ctx)  (Identity ctx)  dom env where alphaEqSym = alphaEqSymDefault
+instance AlphaEq dom dom dom env => AlphaEq (Sym ctx)       (Sym ctx)       dom env where alphaEqSym = alphaEqSymDefault
+instance AlphaEq dom dom dom env => AlphaEq (Literal ctx)   (Literal ctx)   dom env where alphaEqSym = alphaEqSymDefault
+instance AlphaEq dom dom dom env => AlphaEq (Condition ctx) (Condition ctx) dom env where alphaEqSym = alphaEqSymDefault
+instance AlphaEq dom dom dom env => AlphaEq (Tuple ctx)     (Tuple ctx)     dom env where alphaEqSym = alphaEqSymDefault
+instance AlphaEq dom dom dom env => AlphaEq (Select ctx)    (Select ctx)    dom env where alphaEqSym = alphaEqSymDefault
+instance AlphaEq dom dom dom env => AlphaEq (Let ctxa ctxb) (Let ctxa ctxb) dom env where alphaEqSym = alphaEqSymDefault
+
+instance (AlphaEq dom dom dom env, Monad m) => AlphaEq (MONAD m) (MONAD m) dom env
+  where
+    alphaEqSym = alphaEqSymDefault
+
+instance AlphaEq dom dom (Decor info dom) env =>
+    AlphaEq (Decor info dom) (Decor info dom) (Decor info dom) env
+  where
+    alphaEqSym a aArgs b bArgs =
+        alphaEqSym (decorExpr a) aArgs (decorExpr b) bArgs
+
+instance AlphaEq dom dom dom env => AlphaEq (Lambda ctx) (Lambda ctx) dom env
+  where
+    alphaEqSym (Lambda v1) (body1 :*: Nil) (Lambda v2) (body2 :*: Nil) =
+        local (modVarEqEnv ((v1,v2):)) $ alphaEqM body1 body2
+
+instance AlphaEq dom dom dom env =>
+    AlphaEq (Variable ctx) (Variable ctx) dom env
+  where
+    alphaEqSym (Variable v1) Nil (Variable v2) Nil = do
+        env <- asks prjVarEqEnv
+        case lookup v1 env of
+          Nothing  -> return (v1==v2)   -- Free variables
+          Just v2' -> return (v2==v2')
 

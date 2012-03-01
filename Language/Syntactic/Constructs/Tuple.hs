@@ -17,7 +17,6 @@ module Language.Syntactic.Constructs.Tuple where
 
 
 
-import Data.Hash
 import Data.Proxy
 import Data.Tuple.Curry
 import Data.Tuple.Select

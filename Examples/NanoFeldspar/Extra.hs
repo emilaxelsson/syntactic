@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fcontext-stack=100 #-}
+
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
@@ -79,5 +81,5 @@ constFold expr a = case fmap fromSatWit (maybeWitnessSat simpleCtx expr) of
     _ -> expr
 
 drawFeldPart :: Syntactic a FeldDomainAll => a -> IO ()
-drawFeldPart = drawAST . optimize simpleCtx constFold . reify simpleCtx
+drawFeldPart = drawAST . optimize simpleCtx constFold . reify
 

@@ -1,5 +1,5 @@
 Name:           syntactic
-Version:        0.7
+Version:        0.8
 Synopsis:       Generic abstract syntax, and utilities for embedded languages
 Description:    This library provides:
                 .
@@ -45,19 +45,6 @@ Extra-source-files:
   Examples/NanoFeldspar/Extra.hs
   Examples/NanoFeldspar/Vector.hs
   Examples/NanoFeldspar/Test.hs
-  CEFP/MuFeldspar/Core.hs
-  CEFP/MuFeldspar/Frontend.hs
-  CEFP/MuFeldspar/Prelude.hs
-  CEFP/MuFeldspar/Vector.hs
-  CEFP/Imperative/Compiler.hs
-  CEFP/Imperative/Imperative.hs
-  CEFP/Examples/CodeApplication.hs
-  CEFP/Examples/Exercise10.hs
-  CEFP/Examples/Exercise12.hs
-  CEFP/Examples/Exercise14.hs
-  CEFP/Examples/ExProg.hs
-  CEFP/Examples/SolutionsSec2.hs
-  CEFP/Examples/Test.hs
 
 source-repository head
   type:     darcs
@@ -70,7 +57,8 @@ Library
     Language.Syntactic.Interpretation.Equality
     Language.Syntactic.Interpretation.Render
     Language.Syntactic.Interpretation.Evaluation
-    Language.Syntactic.Constructs.Annotate
+    Language.Syntactic.Constructs.Identity
+    Language.Syntactic.Constructs.Decoration
     Language.Syntactic.Constructs.Symbol
     Language.Syntactic.Constructs.Literal
     Language.Syntactic.Constructs.Condition
@@ -89,14 +77,17 @@ Library
     Language.Syntactic.Sharing.Reify
     Language.Syntactic.Sharing.ReifyHO
 
+    Test.ExprGen
+
   Other-modules:
 
   Build-depends:
     array,
-    base >= 4 && < 4.4,
+    base >= 4.0 && < 4.6,
     containers,
     data-hash,
-    mtl >= 1.1 && < 3,
+    mtl >= 2 && < 3,
+    QuickCheck >= 2.4,
     tagged,
     transformers >= 0.2,
     tuple >= 0.2

@@ -11,6 +11,7 @@ import Data.Set as Set
 import Data.Proxy
 
 import Language.Syntactic
+import Language.Syntactic.Constructs.Identity
 import Language.Syntactic.Constructs.Symbol
 import Language.Syntactic.Constructs.Literal
 import Language.Syntactic.Constructs.Condition
@@ -95,6 +96,7 @@ optimizeSymDefault ctx constFold sym@(witnessCons -> ConsWit) args = do
       then return $ constFold result value
       else return result
 
+instance (Identity ctx' :<: dom, Optimize dom ctx dom) => Optimize (Identity ctx') ctx dom where optimizeSym = optimizeSymDefault
 instance (Sym ctx'      :<: dom, Optimize dom ctx dom) => Optimize (Sym ctx')      ctx dom where optimizeSym = optimizeSymDefault
 instance (Literal ctx'  :<: dom, Optimize dom ctx dom) => Optimize (Literal ctx')  ctx dom where optimizeSym = optimizeSymDefault
 instance (Tuple ctx'    :<: dom, Optimize dom ctx dom) => Optimize (Tuple ctx')    ctx dom where optimizeSym = optimizeSymDefault
@@ -105,15 +107,15 @@ instance
     ( Condition ctx' :<: dom
     , Lambda ctx :<: dom
     , Variable ctx :<: dom
-    , ExprEq dom
+    , AlphaEq dom dom dom [(VarId,VarId)]
     , Optimize dom ctx dom
     ) =>
       Optimize (Condition ctx') ctx dom
   where
     optimizeSym ctx constFold cond@Condition args@(c :*: t :*: e :*: Nil)
-        | Set.null cVars  = optimizeM ctx constFold t_or_e
-        | alphaEq ctx t e = optimizeM ctx constFold t
-        | otherwise       = optimizeSymDefault ctx constFold cond args
+        | Set.null cVars = optimizeM ctx constFold t_or_e
+        | alphaEq t e    = optimizeM ctx constFold t
+        | otherwise      = optimizeSymDefault ctx constFold cond args
       where
         (c',cVars) = runWriter $ optimizeM ctx constFold c
         t_or_e     = if evalBind c' then t else e

@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | Representation and manipulation of abstract syntax graphs
 
 module Language.Syntactic.Sharing.Graph where
@@ -60,6 +62,52 @@ instance ToTree (Node ctx)
 data SomeAST dom
   where
     SomeAST :: Typeable a => ASTF dom a -> SomeAST dom
+
+
+
+-- | Environment for alpha-equivalence
+class NodeEqEnv dom a
+  where
+    prjNodeEqEnv :: a -> NodeEnv dom
+    modNodeEqEnv :: (NodeEnv dom -> NodeEnv dom) -> (a -> a)
+
+type EqEnv dom = ([(VarId,VarId)], NodeEnv dom)
+
+type NodeEnv dom =
+    ( Array NodeId Hash
+    , Array NodeId (SomeAST dom)
+    )
+
+instance NodeEqEnv dom (EqEnv dom)
+  where
+    prjNodeEqEnv   = snd
+    modNodeEqEnv f = (id *** f)
+
+instance VarEqEnv (EqEnv dom)
+  where
+    prjVarEqEnv   = fst
+    modVarEqEnv f = (f *** id)
+
+instance (AlphaEq dom dom dom env, NodeEqEnv dom env) =>
+    AlphaEq (Node ctx) (Node ctx) dom env
+  where
+    alphaEqSym (Node n1) Nil (Node n2) Nil
+        | n1 == n2  = return True
+        | otherwise = do
+            (hTab,nTab) :: NodeEnv dom <- asks prjNodeEqEnv
+            if hTab!n1 /= hTab!n2
+              then return False
+              else case (nTab!n1, nTab!n2) of
+                  (SomeAST a, SomeAST b) -> alphaEqM a b
+                    -- TODO The result could be memoized in a
+                    -- @Map (NodeId,NodeId) Bool@
+
+  -- TODO With only this instance, the result will be 'False' when one argument
+  --      is a 'Node' and the other one isn't. This is not really correct since
+  --      'Node's are just meta-variables and shouldn't be part of the
+  --      comparison. But as long as equivalent expressions always have 'Node's
+  --      at the same position, it doesn't matter. This could probably be fixed
+  --      by adding two overlapping instances.
 
 
 
@@ -263,7 +311,9 @@ hashNodes = snd . foldGraph hashNode
 -- | Partitions the nodes such that two nodes are in the same sub-list if and
 -- only if they are alpha-equivalent.
 partitionNodes :: forall ctx dom a
-    .  (Lambda ctx :<: dom, Variable ctx :<: dom, ExprEq dom)
+    .  ( ExprEq dom
+       , AlphaEq dom dom (Node ctx :+: dom) (EqEnv (Node ctx :+: dom))
+       )
     => ASG ctx dom a -> [[NodeId]]
 partitionNodes graph = concatMap (fullPartition nodeEq) approxPartitioning
   where
@@ -274,45 +324,24 @@ partitionNodes graph = concatMap (fullPartition nodeEq) approxPartitioning
     -- are guaranteed to be inequivalent, while nodes in the same partition
     -- might be equivalent.
     approxPartitioning
-      = map (map fst)
-      $ groupBy ((==) `on` snd)
-      $ sortBy (compare `on` snd)
-      $ hashes
-
-    eqNode :: forall a b . ExprEq dom
-        => AST (Node ctx :+: dom) a
-        -> AST (Node ctx :+: dom) b
-        -> Reader [(VarId,VarId)] Bool
-    eqNode (Symbol (InjectL (Node n1))) (Symbol (InjectL (Node n2)))
-        | n1 == n2           = return True
-        | hTab!n1 /= hTab!n2 = return False
-        | otherwise          = case (nTab!n1, nTab!n2) of
-            (SomeAST a, SomeAST b) -> eqNodeAlpha a b
-              -- TODO The result could be memoized in a
-              -- @Map (NodeId,NodeId) Bool@
-    eqNode (Symbol (InjectR a)) (Symbol (InjectR b)) = return (exprEq a b)
-    eqNode _ _ = return False
-    -- Returns 'False' when one argument is a 'Node' and the other one isn't.
-    -- This is not really correct since 'Node's are just meta-variables and
-    -- shouldn't be part of the comparison. But as long as equivalent
-    -- expressions always have 'Node's at the same position, it doesn't matter.
-    -- This is just for simplicity; it would be easy to fix.
-
-    -- | Alpha-equivalence for expressions with 'Node's
-    eqNodeAlpha :: forall a b
-        .  AST (Node ctx :+: dom) a
-        -> AST (Node ctx :+: dom) b
-        -> Reader [(VarId,VarId)] Bool
-    eqNodeAlpha a b = alphaEqM (Proxy::Proxy ctx) eqNode a b
+        = map (map fst)
+        $ groupBy ((==) `on` snd)
+        $ sortBy (compare `on` snd)
+        $ hashes
 
     nodeEq :: NodeId -> NodeId -> Bool
-    nodeEq n1 n2 = runReader (liftSome2 eqNodeAlpha (nTab!n1) (nTab!n2)) []
+    nodeEq n1 n2 = runReader
+        (liftSome2 alphaEqM (nTab!n1) (nTab!n2))
+        (([],(hTab,nTab)) :: EqEnv (Node ctx :+: dom))
 
 
 
 -- | Common sub-expression elimination based on alpha-equivalence
-cse :: (Lambda ctx :<: dom, Variable ctx :<: dom, ExprEq dom) =>
-    ASG ctx dom a -> ASG ctx dom a
+cse
+    :: ( ExprEq dom
+       , AlphaEq dom dom (Node ctx :+: dom) (EqEnv (Node ctx :+: dom))
+       )
+    => ASG ctx dom a -> ASG ctx dom a
 cse graph@(ASG top nodes n) = nubNodes $ reindexNodes (reixTab!) graph
   where
     parts   = partitionNodes graph

@@ -8,7 +8,6 @@ module Language.Syntactic
     , module Language.Syntactic.Interpretation.Equality
     , module Language.Syntactic.Interpretation.Render
     , module Language.Syntactic.Interpretation.Evaluation
-    , module Language.Syntactic.Constructs.Annotate
     ) where
 
 
@@ -17,5 +16,4 @@ import Language.Syntactic.Syntax
 import Language.Syntactic.Interpretation.Equality
 import Language.Syntactic.Interpretation.Render
 import Language.Syntactic.Interpretation.Evaluation
-import Language.Syntactic.Constructs.Annotate
 

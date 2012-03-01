@@ -69,7 +69,6 @@ module Language.Syntactic.Syntax
     , fromEval
     , toEval
     , listHList
-    , listHListM
     , mapHList
     , mapHListM
     , appHList
@@ -184,7 +183,6 @@ class ConsType' a
     fromEval'     :: ConsEval' a -> a
     toEval'       :: a -> ConsEval' a
     listHList'    :: (forall a . c (Full a) -> b) -> HList c a -> [b]
-    listHListM'   :: Monad m => (forall a . c (Full a) -> m b) -> HList c a -> m [b]
     mapHList'     :: (forall a . c1 (Full a) -> c2 (Full a)) -> HList c1 a -> HList c2 a
     mapHListM'    :: Monad m => (forall a . c1 (Full a) -> m (c2 (Full a))) -> HList c1 a -> m (HList c2 a)
     appHList'     :: AST dom a -> HList (AST dom) a -> ASTF dom (EvalResult a)
@@ -198,7 +196,6 @@ instance ConsType' (Full a)
     fromEval'           = Full
     toEval'             = result
     listHList'    f Nil = []
-    listHListM'   f Nil = return []
     mapHList'     f Nil = Nil
     mapHListM'    f Nil = return Nil
     appHList'     a Nil = a
@@ -212,7 +209,6 @@ instance ConsType' b => ConsType' (a :-> b)
     fromEval'                  = Partial . (fromEval' .)
     toEval' (Partial f)        = toEval' . f
     listHList'    f (a :*: as) = f a : listHList' f as
-    listHListM'   f (a :*: as) = sequence (f a : listHList' f as)
     mapHList'     f (a :*: as) = f a :*: mapHList' f as
     mapHListM'    f (a :*: as) = liftM2 (:*:) (f a) (mapHListM' f as)
     appHList'     c (a :*: as) = appHList' (c :$: a) as
@@ -249,6 +245,11 @@ class WitnessCons expr
   where
     witnessCons :: expr a -> ConsWit a
 
+instance (WitnessCons sub1, WitnessCons sub2) => WitnessCons (sub1 :+: sub2)
+  where
+    witnessCons (InjectL a) = witnessCons a
+    witnessCons (InjectR a) = witnessCons a
+
 -- | Make a constructor evaluation from a 'ConsEval' representation
 fromEval :: ConsType a => ConsEval a -> a
 fromEval = fromEval'
@@ -260,11 +261,6 @@ toEval = toEval'
 listHList :: ConsType a =>
     (forall a . c (Full a) -> b) -> HList c a -> [b]
 listHList = listHList'
-
--- | Convert a heterogeneous list to a normal list
-listHListM :: (Monad m, ConsType a) =>
-    (forall a . c (Full a) -> m b) -> HList c a -> m [b]
-listHListM = listHListM'
 
 -- | Change the container of each element in a heterogeneous list
 mapHList :: ConsType a =>
@@ -485,8 +481,8 @@ instance
 -- >     ) => expr (Internal a :-> Internal b :-> ... :-> Full (Internal x))
 -- >       -> (a -> b -> ... -> x)
 sugarSym
-    :: (ConsType a, expr :<: AST dom, ApplySym a b dom, SyntacticN c b)
-    => expr a -> c
+    :: (ConsType a, sym :<: AST dom, ApplySym a b dom, SyntacticN c b)
+    => sym a -> c
 sugarSym = sugarN . appSym
 
 -- | \"Sugared\" symbol application with explicit context
@@ -514,17 +510,17 @@ newtype WrapAST c dom a = WrapAST { unWrapAST :: c (AST dom a) }
 -- following type, which shows that 'queryNode' can be directly used to
 -- transform syntax trees (see also 'transformNode'):
 --
--- > (forall a . ConsType a => dom a -> HList (AST dom) a -> ASTF dom' (EvalResult a))
+-- > (forall b . (ConsType b, a ~ EvalResult b) => dom b -> HList (AST dom) b -> ASTF dom' a)
 -- > -> ASTF dom a
 -- > -> ASTF dom' a
-queryNode :: forall dom a c
-    .  (forall a . ConsType a =>
-          dom a -> HList (AST dom) a -> c (Full (EvalResult a)))
+queryNode :: forall dom c a
+    .  (forall b . (ConsType b, a ~ EvalResult b) =>
+           dom b -> HList (AST dom) b -> c (Full a))
     -> ASTF dom a
     -> c (Full a)
 queryNode f a = query a Nil
   where
-    query :: AST dom b -> HList (AST dom) b -> c (Full (EvalResult b))
+    query :: (a ~ EvalResult b) => AST dom b -> HList (AST dom) b -> c (Full a)
     query (Symbol a) args = f a args
     query (c :$: a)  args = query c (a :*: args)
 
@@ -562,17 +558,18 @@ queryNode f a = query a Nil
 -- > instance Count Add
 -- >   where
 -- >     count' Add (a :*: b :*: Nil) = 1 + count a + count b
-queryNodeSimple :: forall dom a b
-    .  (forall a . ConsType a => dom a -> HList (AST dom) a -> b)
+queryNodeSimple :: forall dom a c
+    .  (forall b . (ConsType b, a ~ EvalResult b) =>
+           dom b -> HList (AST dom) b -> c)
     -> ASTF dom a
-    -> b
+    -> c
 queryNodeSimple f a = unConst $ queryNode (\c -> Const . f c) a
 
 -- | A version of 'queryNode' where the result is a transformed syntax tree,
 -- wrapped in a type constructor @c@
 transformNode :: forall dom dom' c a
-    .  (  forall a . ConsType a
-       => dom a -> HList (AST dom) a -> c (ASTF dom' (EvalResult a))
+    .  (  forall b . (ConsType b, a ~ EvalResult b)
+       => dom b -> HList (AST dom) b -> c (ASTF dom' a)
        )
     -> ASTF dom a
     -> c (ASTF dom' a)
@@ -606,6 +603,11 @@ class Sat ctx a
   where
     data Witness ctx a
     witness :: Witness ctx a
+  -- TODO Could probably use a one-parameter class instead, see
+  --
+  -- http://www.haskell.org/pipermail/glasgow-haskell-users/2011-December/021292.html
+  --
+  -- (but without the Super type family). Or even better, use ConstraintKinds.
 
 witnessByProxy :: Sat ctx a => Proxy ctx -> Proxy a -> Witness ctx a
 witnessByProxy _ _ = witness
