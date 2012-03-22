@@ -7,7 +7,7 @@ module Language.Syntactic.Constructs.Monad where
 import Control.Monad
 
 import Language.Syntactic
-import Language.Syntactic.Constructs.Symbol
+import Language.Syntactic.Interpretation.Semantics
 
 import Data.Proxy
 
@@ -31,19 +31,19 @@ instance MaybeWitnessSat ctx (MONAD m)
   where
     maybeWitnessSat _ _ = Nothing
 
-instance Monad m => IsSymbol (MONAD m)
+instance Monad m => Semantic (MONAD m)
   where
-    toSym Return = Sym "return" return
-    toSym Bind   = Sym "bind"   (>>=)
-    toSym Then   = Sym "then"   (>>)
-    toSym When   = Sym "when"   when
+    semantics Return = Sem "return" return
+    semantics Bind   = Sem "bind"   (>>=)
+    semantics Then   = Sem "then"   (>>)
+    semantics When   = Sem "when"   when
 
-instance Monad m => ExprEq (MONAD m) where exprEq = exprEqSym; exprHash = exprHashSym
-instance Monad m => Render (MONAD m) where renderPart = renderPartSym
-instance Monad m => Eval   (MONAD m) where evaluate   = evaluateSym
+instance Monad m => ExprEq (MONAD m) where exprEq = exprEqSem; exprHash = exprHashSem
+instance Monad m => Render (MONAD m) where renderPart = renderPartSem
+instance Monad m => Eval   (MONAD m) where evaluate   = evaluateSem
 instance Monad m => ToTree (MONAD m)
 
 -- | Projection with explicit monad type
 prjMonad :: (MONAD m :<: sup) => Proxy (m ()) -> sup a -> Maybe (MONAD m a)
-prjMonad _ = project
+prjMonad _ = prj
 

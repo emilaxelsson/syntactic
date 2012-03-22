@@ -22,7 +22,7 @@ import Data.Tuple.Curry
 import Data.Tuple.Select
 
 import Language.Syntactic
-import Language.Syntactic.Constructs.Symbol
+import Language.Syntactic.Interpretation.Semantics
 
 
 
@@ -67,18 +67,18 @@ instance MaybeWitnessSat ctx1 (Tuple ctx2)
   where
     maybeWitnessSat _ _ = Nothing
 
-instance IsSymbol (Tuple ctx)
+instance Semantic (Tuple ctx)
   where
-    toSym Tup2 = Sym "tup2" (,)
-    toSym Tup3 = Sym "tup3" (,,)
-    toSym Tup4 = Sym "tup4" (,,,)
-    toSym Tup5 = Sym "tup5" (,,,,)
-    toSym Tup6 = Sym "tup6" (,,,,,)
-    toSym Tup7 = Sym "tup7" (,,,,,,)
+    semantics Tup2 = Sem "tup2" (,)
+    semantics Tup3 = Sem "tup3" (,,)
+    semantics Tup4 = Sem "tup4" (,,,)
+    semantics Tup5 = Sem "tup5" (,,,,)
+    semantics Tup6 = Sem "tup6" (,,,,,)
+    semantics Tup7 = Sem "tup7" (,,,,,,)
 
-instance ExprEq (Tuple ctx) where exprEq = exprEqSym; exprHash = exprHashSym
-instance Render (Tuple ctx) where renderPart = renderPartSym
-instance Eval   (Tuple ctx) where evaluate   = evaluateSym
+instance ExprEq (Tuple ctx) where exprEq = exprEqSem; exprHash = exprHashSem
+instance Render (Tuple ctx) where renderPart = renderPartSem
+instance Eval   (Tuple ctx) where evaluate   = evaluateSem
 instance ToTree (Tuple ctx)
 
 
@@ -255,19 +255,19 @@ instance MaybeWitnessSat ctx1 (Select ctx2)
   where
     maybeWitnessSat _ _ = Nothing
 
-instance IsSymbol (Select ctx)
+instance Semantic (Select ctx)
   where
-    toSym Sel1 = Sym "sel1" sel1
-    toSym Sel2 = Sym "sel2" sel2
-    toSym Sel3 = Sym "sel3" sel3
-    toSym Sel4 = Sym "sel4" sel4
-    toSym Sel5 = Sym "sel5" sel5
-    toSym Sel6 = Sym "sel6" sel6
-    toSym Sel7 = Sym "sel7" sel7
+    semantics Sel1 = Sem "sel1" sel1
+    semantics Sel2 = Sem "sel2" sel2
+    semantics Sel3 = Sem "sel3" sel3
+    semantics Sel4 = Sem "sel4" sel4
+    semantics Sel5 = Sem "sel5" sel5
+    semantics Sel6 = Sem "sel6" sel6
+    semantics Sel7 = Sem "sel7" sel7
 
-instance ExprEq (Select ctx) where exprEq = exprEqSym; exprHash = exprHashSym
-instance Render (Select ctx) where renderPart = renderPartSym
-instance Eval   (Select ctx) where evaluate   = evaluateSym
+instance ExprEq (Select ctx) where exprEq = exprEqSem; exprHash = exprHashSem
+instance Render (Select ctx) where renderPart = renderPartSem
+instance Eval   (Select ctx) where evaluate   = evaluateSem
 instance ToTree (Select ctx)
 
 -- | Return the selected position, e.g.

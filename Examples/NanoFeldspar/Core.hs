@@ -15,8 +15,8 @@
 -- types at which constructors operate. Currently, all general constructs (such
 -- as 'Literal' and 'Tuple') use a 'SimpleCtx' context, which means that the
 -- types are quite unrestricted. A real implementation would also probably use
--- custom types for primitive functions, since the 'Sym' construct is quite
--- unsafe (uses only a 'String' to distinguish between functions).
+-- custom types for primitive functions, since 'Construct' is quite unsafe (uses
+-- only a 'String' to distinguish between functions).
 
 module NanoFeldspar.Core where
 
@@ -25,12 +25,13 @@ module NanoFeldspar.Core where
 import Data.Typeable
 
 import Language.Syntactic
-import Language.Syntactic.Constructs.Symbol
-import Language.Syntactic.Constructs.Literal
-import Language.Syntactic.Constructs.Condition
-import Language.Syntactic.Constructs.Tuple
+import Language.Syntactic.Interpretation.Semantics
 import Language.Syntactic.Constructs.Binding
 import Language.Syntactic.Constructs.Binding.HigherOrder
+import Language.Syntactic.Constructs.Condition
+import Language.Syntactic.Constructs.Construct
+import Language.Syntactic.Constructs.Literal
+import Language.Syntactic.Constructs.Tuple
 import Language.Syntactic.Sharing.SimpleCodeMotion
 
 
@@ -69,15 +70,16 @@ instance MaybeWitnessSat SimpleCtx Parallel
   where
     maybeWitnessSat = maybeWitnessSatDefault
 
-instance IsSymbol Parallel
+instance Semantic Parallel
   where
-    toSym Parallel = Sym "parallel" parallel
-      where
-        parallel len ixf = map ixf [0 .. len-1]
+    semantics Parallel = Sem
+        { semanticName = "parallel"
+        , semanticEval = \len ixf -> map ixf [0 .. len-1]
+        }
 
-instance ExprEq   Parallel where exprEq = exprEqSym; exprHash = exprHashSym
-instance Render   Parallel where renderPart = renderPartSym
-instance Eval     Parallel where evaluate   = evaluateSym
+instance ExprEq   Parallel where exprEq = exprEqSem; exprHash = exprHashSem
+instance Render   Parallel where renderPart = renderPartSem
+instance Eval     Parallel where evaluate   = evaluateSem
 instance ToTree   Parallel
 instance EvalBind Parallel where evalBindSym = evalBindSymDefault
 
@@ -110,15 +112,17 @@ instance MaybeWitnessSat SimpleCtx ForLoop
   where
     maybeWitnessSat = maybeWitnessSatDefault
 
-instance IsSymbol ForLoop
+instance Semantic ForLoop
   where
-    toSym ForLoop = Sym "forLoop" forLoop
-      where
-        forLoop len init body = foldl (flip body) init [0 .. len-1]
+    semantics ForLoop = Sem
+        { semanticName = "forLoop"
+        , semanticEval = \len init body -> foldl (flip body) init [0 .. len-1]
+        }
 
-instance ExprEq   ForLoop where exprEq = exprEqSym; exprHash = exprHashSym
-instance Render   ForLoop where renderPart = renderPartSym
-instance Eval     ForLoop where evaluate   = evaluateSym
+
+instance ExprEq   ForLoop where exprEq = exprEqSem; exprHash = exprHashSem
+instance Render   ForLoop where renderPart = renderPartSem
+instance Eval     ForLoop where evaluate   = evaluateSem
 instance ToTree   ForLoop
 instance EvalBind ForLoop where evalBindSym = evalBindSymDefault
 
@@ -135,7 +139,7 @@ instance (AlphaEq dom dom dom env, ForLoop :<: dom) =>
 
 -- | The Feldspar domain
 type FeldDomain
-    =   Sym SimpleCtx
+    =   Construct SimpleCtx
     :+: Literal SimpleCtx
     :+: Condition SimpleCtx
     :+: Tuple SimpleCtx
@@ -214,11 +218,11 @@ instance Type a => Show (Data a)
 instance (Type a, Num a) => Num (Data a)
   where
     fromInteger = value . fromInteger
-    abs         = sugarSymCtx simpleCtx $ Sym "abs" abs
-    signum      = sugarSymCtx simpleCtx $ Sym "signum" signum
-    (+)         = sugarSymCtx simpleCtx $ Sym "(+)" (+)
-    (-)         = sugarSymCtx simpleCtx $ Sym "(-)" (-)
-    (*)         = sugarSymCtx simpleCtx $ Sym "(*)" (*)
+    abs         = sugarSymCtx simpleCtx $ Construct "abs" abs
+    signum      = sugarSymCtx simpleCtx $ Construct "signum" signum
+    (+)         = sugarSymCtx simpleCtx $ Construct "(+)" (+)
+    (-)         = sugarSymCtx simpleCtx $ Construct "(-)" (-)
+    (*)         = sugarSymCtx simpleCtx $ Construct "(*)" (*)
 
 (?) :: Syntax a => Data Bool -> (a,a) -> a
 cond ? (t,e) = sugarSymCtx simpleCtx Condition cond t e
@@ -231,11 +235,11 @@ forLoop :: Syntax st => Data Length -> st -> (Data Index -> st -> st) -> st
 forLoop = sugarSym ForLoop
 
 arrLength :: Type a => Data [a] -> Data Length
-arrLength = sugarSymCtx simpleCtx $ Sym "arrLength" Prelude.length
+arrLength = sugarSymCtx simpleCtx $ Construct "arrLength" Prelude.length
 
 -- | Array indexing
 getIx :: Type a => Data [a] -> Data Index -> Data a
-getIx = sugarSymCtx simpleCtx $ Sym "getIx" eval
+getIx = sugarSymCtx simpleCtx $ Construct "getIx" eval
   where
     eval as i
         | i >= len || i < 0 = error "getIx: index out of bounds"
@@ -244,14 +248,14 @@ getIx = sugarSymCtx simpleCtx $ Sym "getIx" eval
         len = Prelude.length as
 
 not :: Data Bool -> Data Bool
-not = sugarSymCtx simpleCtx $ Sym "not" Prelude.not
+not = sugarSymCtx simpleCtx $ Construct "not" Prelude.not
 
 (==) :: Type a => Data a -> Data a -> Data Bool
-(==) = sugarSymCtx simpleCtx $ Sym "(==)" (Prelude.==)
+(==) = sugarSymCtx simpleCtx $ Construct "(==)" (Prelude.==)
 
 max :: Type a => Data a -> Data a -> Data a
-max = sugarSymCtx simpleCtx $ Sym "max" Prelude.max
+max = sugarSymCtx simpleCtx $ Construct "max" Prelude.max
 
 min :: Type a => Data a -> Data a -> Data a
-min = sugarSymCtx simpleCtx $ Sym "min" Prelude.min
+min = sugarSymCtx simpleCtx $ Construct "min" Prelude.min
 

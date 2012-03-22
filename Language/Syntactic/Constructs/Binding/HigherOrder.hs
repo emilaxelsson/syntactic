@@ -50,7 +50,7 @@ instance MaybeWitnessSat ctx1 (HOLambda ctx2 dom)
 lambda :: (Typeable a, Typeable b, Sat ctx a)
     => (ASTF (HODomain ctx dom) a -> ASTF (HODomain ctx dom) b)
     -> ASTF (HODomain ctx dom) (a -> b)
-lambda = inject . HOLambda
+lambda = inj . HOLambda
 
 instance
     ( Syntactic a (HODomain ctx dom)
@@ -70,12 +70,12 @@ instance
 reifyM :: forall ctx dom a . Typeable a
     => AST (HODomain ctx dom) a
     -> State VarId (AST (Lambda ctx :+: Variable ctx :+: dom) a)
-reifyM (f :$: a)            = liftM2 (:$:) (reifyM f) (reifyM a)
-reifyM (Symbol (InjectR a)) = return $ Symbol $ InjectR a
-reifyM (Symbol (InjectL (HOLambda f))) = do
+reifyM (f :$ a)       = liftM2 (:$) (reifyM f) (reifyM a)
+reifyM (Sym (InjR a)) = return $ Sym $ InjR a
+reifyM (Sym (InjL (HOLambda f))) = do
     v    <- get; put (v+1)
-    body <- reifyM $ f $ inject $ (Variable v `withContext` ctx)
-    return $ inject (Lambda v `withContext` ctx) :$: body
+    body <- reifyM $ f $ inj $ (Variable v `withContext` ctx)
+    return $ inj (Lambda v `withContext` ctx) :$ body
   where
     ctx = Proxy :: Proxy ctx
 

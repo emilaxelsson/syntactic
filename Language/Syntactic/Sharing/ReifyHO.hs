@@ -63,21 +63,21 @@ reifyGraphM canShare vSupp nSupp history = reifyNode
           st   <- liftIO $ makeStableName a
           hist <- liftIO $ readIORef history
           case lookHistory hist (StName st) of
-            Just n -> return $ Symbol $ InjectL $ Node n
+            Just n -> return $ Sym $ InjL $ Node n
             _ -> do
               n  <- fresh nSupp
               liftIO $ modifyIORef history $ remember (StName st) n
               a' <- reifyRec a
               tell [(n, SomeAST a')]
-              return $ Symbol $ InjectL $ Node n
+              return $ Sym $ InjL $ Node n
 
     reifyRec :: AST (HODomain ctx dom) b -> GraphMonad ctx dom b
-    reifyRec (f :$: a)            = liftM2 (:$:) (reifyRec f) (reifyNode a)
-    reifyRec (Symbol (InjectR a)) = return $ Symbol (InjectR (InjectR a))
-    reifyRec (Symbol (InjectL (HOLambda f))) = do
+    reifyRec (f :$ a)       = liftM2 (:$) (reifyRec f) (reifyNode a)
+    reifyRec (Sym (InjR a)) = return $ Sym (InjR (InjR a))
+    reifyRec (Sym (InjL (HOLambda f))) = do
         v    <- fresh vSupp
-        body <- reifyNode $ f $ inject $ (Variable v `withContext` ctx)
-        return $ inject (Lambda v `withContext` ctx) :$: body
+        body <- reifyNode $ f $ inj $ (Variable v `withContext` ctx)
+        return $ inj (Lambda v `withContext` ctx) :$ body
       where
         ctx = Proxy :: Proxy ctx
 

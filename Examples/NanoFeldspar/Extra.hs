@@ -14,11 +14,11 @@ module NanoFeldspar.Extra where
 
 
 import Language.Syntactic
-import Language.Syntactic.Constructs.Symbol
-import Language.Syntactic.Constructs.Literal
 import Language.Syntactic.Constructs.Binding
 import Language.Syntactic.Constructs.Binding.HigherOrder
 import Language.Syntactic.Constructs.Binding.Optimize
+import Language.Syntactic.Constructs.Construct
+import Language.Syntactic.Constructs.Literal
 import Language.Syntactic.Sharing.Graph
 import Language.Syntactic.Sharing.ReifyHO
 

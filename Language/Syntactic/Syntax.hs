@@ -23,12 +23,12 @@
 -- following conversions:
 --
 -- > conv12 :: Expr1 a -> Expr2 a
--- > conv12 (Num1 n)   = inject (Num2 n)
--- > conv12 (Add1 a b) = inject Add2 :$: conv12 a :$: conv12 b
+-- > conv12 (Num1 n)   = inj (Num2 n)
+-- > conv12 (Add1 a b) = inj Add2 :$ conv12 a :$ conv12 b
 -- >
 -- > conv21 :: Expr2 a -> Expr1 a
--- > conv21 (project -> Just (Num2 n))           = Num1 n
--- > conv21 ((project -> Just Add2) :$: a :$: b) = Add1 (conv21 a) (conv21 b)
+-- > conv21 (prj -> Just (Num2 n))         = Num1 n
+-- > conv21 ((prj -> Just Add2) :$ a :$ b) = Add1 (conv21 a) (conv21 b)
 --
 -- A key property here is that the patterns in @conv21@ are actually complete.
 --
@@ -39,8 +39,8 @@
 -- > countNodes = count
 -- >   where
 -- >     count :: AST domain a -> Int
--- >     count (Symbol _) = 1
--- >     count (a :$: b)  = count a + count b
+-- >     count (Sym _)  = 1
+-- >     count (a :$ b) = count a + count b
 --
 -- Furthermore, although @Expr2@ was defined to use exactly the constructors
 -- 'Num2' and 'Add2', it is possible to leave the set of constructors open,
@@ -59,20 +59,20 @@ module Language.Syntactic.Syntax
     ( -- * Syntax trees
       Full (..)
     , (:->) (..)
-    , HList (..)
+    , Args (..)
     , WrapFull (..)
-    , ConsType
-    , ConsEval
-    , EvalResult
+    , Signature
+    , Denotation
+    , DenResult
     , ConsWit (..)
     , WitnessCons (..)
     , fromEval
     , toEval
-    , listHList
-    , mapHList
-    , mapHListM
-    , appHList
-    , appEvalHList
+    , listArgs
+    , mapArgs
+    , mapArgsM
+    , appArgs
+    , appEvalArgs
     , ($:)
     , AST (..)
     , ASTF
@@ -139,25 +139,25 @@ newtype Full a = Full { result :: a }
 newtype a :-> b = Partial (a -> b)
   deriving (Typeable)
 
--- | Heterogeneous list, indexed by a container type and a 'ConsType'
-data family HList (c :: * -> *) a
+-- | Heterogeneous list, indexed by a container type and a 'Signature'
+data family Args (c :: * -> *) a
 
-data instance HList c (Full a)  = Nil
-data instance HList c (a :-> b) = Typeable a => c (Full a) :*: HList c b
+data instance Args c (Full a)  = Nil
+data instance Args c (a :-> b) = Typeable a => c (Full a) :* Args c b
   -- The 'Typeable' constraint is needed in order to be able to rebuild an 'AST'
-  -- from an 'HList' (since '(:$:)' has a `Typeable` constraint).
+  -- from an 'Args' (since '(:$)' has a `Typeable` constraint).
 
-infixr :->, :*:
+infixr :->, :*
 
 -- | Can be used to turn a type constructor indexed by @a@ to a type constructor
--- indexed by @(`Full` a)@. This is useful together with 'HList', which assumes
+-- indexed by @(`Full` a)@. This is useful together with 'Args', which assumes
 -- its constructor to be indexed by @(`Full` a)@. That is, use
 --
--- > HList (WrapFull c) ...
+-- > Args (WrapFull c) ...
 --
 -- instead of
 --
--- > HList c ...
+-- > Args c ...
 --
 -- if @c@ is not indexed by @(`Full` a)@.
 data WrapFull c a
@@ -174,72 +174,72 @@ data WrapFull c a
 -- > a1 :-> a2 :-> ... :-> Full an
 --
 -- The closed class also has the property:
--- @ConsType' (a :-> b)@   iff.   @ConsType' b@.
-class ConsType' a
+-- @Signature' (a :-> b)@   iff.   @Signature' b@.
+class Signature' a
   where
-    type ConsEval' a
-    type EvalResult' a
+    type Denotation' a
+    type DenResult' a
 
-    fromEval'     :: ConsEval' a -> a
-    toEval'       :: a -> ConsEval' a
-    listHList'    :: (forall a . c (Full a) -> b) -> HList c a -> [b]
-    mapHList'     :: (forall a . c1 (Full a) -> c2 (Full a)) -> HList c1 a -> HList c2 a
-    mapHListM'    :: Monad m => (forall a . c1 (Full a) -> m (c2 (Full a))) -> HList c1 a -> m (HList c2 a)
-    appHList'     :: AST dom a -> HList (AST dom) a -> ASTF dom (EvalResult a)
-    appEvalHList' :: ConsEval a -> HList Identity a -> EvalResult a
+    fromEval'    :: Denotation' a -> a
+    toEval'      :: a -> Denotation' a
+    listArgs'    :: (forall a . c (Full a) -> b) -> Args c a -> [b]
+    mapArgs'     :: (forall a . c1 (Full a) -> c2 (Full a)) -> Args c1 a -> Args c2 a
+    mapArgsM'    :: Monad m => (forall a . c1 (Full a) -> m (c2 (Full a))) -> Args c1 a -> m (Args c2 a)
+    appArgs'     :: AST dom a -> Args (AST dom) a -> ASTF dom (DenResult a)
+    appEvalArgs' :: Denotation a -> Args Identity a -> DenResult a
 
-instance ConsType' (Full a)
+instance Signature' (Full a)
   where
-    type ConsEval'   (Full a) = a
-    type EvalResult' (Full a) = a
+    type Denotation' (Full a) = a
+    type DenResult'  (Full a) = a
 
-    fromEval'           = Full
-    toEval'             = result
-    listHList'    f Nil = []
-    mapHList'     f Nil = Nil
-    mapHListM'    f Nil = return Nil
-    appHList'     a Nil = a
-    appEvalHList' a Nil = a
+    fromEval'          = Full
+    toEval'            = result
+    listArgs'    f Nil = []
+    mapArgs'     f Nil = Nil
+    mapArgsM'    f Nil = return Nil
+    appArgs'     a Nil = a
+    appEvalArgs' a Nil = a
 
-instance ConsType' b => ConsType' (a :-> b)
+instance Signature' b => Signature' (a :-> b)
   where
-    type ConsEval'   (a :-> b) = a -> ConsEval' b
-    type EvalResult' (a :-> b) = EvalResult' b
+    type Denotation' (a :-> b) = a -> Denotation' b
+    type DenResult'  (a :-> b) = DenResult' b
 
-    fromEval'                  = Partial . (fromEval' .)
-    toEval' (Partial f)        = toEval' . f
-    listHList'    f (a :*: as) = f a : listHList' f as
-    mapHList'     f (a :*: as) = f a :*: mapHList' f as
-    mapHListM'    f (a :*: as) = liftM2 (:*:) (f a) (mapHListM' f as)
-    appHList'     c (a :*: as) = appHList' (c :$: a) as
-    appEvalHList' f (a :*: as) = appEvalHList' (f $ result $ runIdentity a) as
+    fromEval'                = Partial . (fromEval' .)
+    toEval' (Partial f)      = toEval' . f
+    listArgs'    f (a :* as) = f a : listArgs' f as
+    mapArgs'     f (a :* as) = f a :* mapArgs' f as
+    mapArgsM'    f (a :* as) = liftM2 (:*) (f a) (mapArgsM' f as)
+    appArgs'     c (a :* as) = appArgs' (c :$ a) as
+    appEvalArgs' f (a :* as) = appEvalArgs' (f $ result $ runIdentity a) as
 
 -- | Fully or partially applied constructor
 --
--- This is a public alias for the hidden class 'ConsType''. The only instances
+-- This is a public alias for the hidden class 'Signature''. The only instances
 -- are:
 --
--- > instance ConsType' (Full a)
--- > instance ConsType' b => ConsType' (a :-> b)
-class    ConsType' a => ConsType a
-instance ConsType' a => ConsType a
+-- > instance Signature' (Full a)
+-- > instance Signature' b => Signature' (a :-> b)
+class    Signature' a => Signature a
+instance Signature' a => Signature a
 
--- | Maps a 'ConsType' to a simpler form where ':->' has been replaced by @->@,
+-- | Maps a 'Signature' to a simpler form where ':->' has been replaced by @->@,
 -- and 'Full' has been removed. This is a public alias for the hidden type
--- 'ConsEval''.
-type ConsEval a = ConsEval' a
+-- 'Denotation''.
+type Denotation a = Denotation' a
 
--- | Returns the result type ('Full' removed) of a 'ConsType'. This is a public
--- alias for the hidden type 'EvalResult''.
-type EvalResult a = EvalResult' a
+-- | Returns the result type ('Full' removed) of a 'Signature'. This is a public
+-- alias for the hidden type 'DenResult''.
+type DenResult a = DenResult' a
 
--- | A witness of @(`ConsType` a)@
+-- | A witness of @(`Signature` a)@
 data ConsWit a
   where
-    ConsWit :: ConsType a => ConsWit a
+    ConsWit :: Signature a => ConsWit a
 
 -- | Expressions in syntactic are supposed to have the form
--- @(`ConsType` a => expr a)@. This class lets us witness the 'ConsType'
+-- @(`Signature` a => expr a)@. This class lets us witness the 'Signature'
 -- constraint of an expression without examining the expression.
 class WitnessCons expr
   where
@@ -247,41 +247,39 @@ class WitnessCons expr
 
 instance (WitnessCons sub1, WitnessCons sub2) => WitnessCons (sub1 :+: sub2)
   where
-    witnessCons (InjectL a) = witnessCons a
-    witnessCons (InjectR a) = witnessCons a
+    witnessCons (InjL a) = witnessCons a
+    witnessCons (InjR a) = witnessCons a
 
--- | Make a constructor evaluation from a 'ConsEval' representation
-fromEval :: ConsType a => ConsEval a -> a
+-- | Make a constructor evaluation from a 'Denotation' representation
+fromEval :: Signature a => Denotation a -> a
 fromEval = fromEval'
 
-toEval :: ConsType a => a -> ConsEval a
+toEval :: Signature a => a -> Denotation a
 toEval = toEval'
 
 -- | Convert a heterogeneous list to a normal list
-listHList :: ConsType a =>
-    (forall a . c (Full a) -> b) -> HList c a -> [b]
-listHList = listHList'
+listArgs :: Signature a => (forall a . c (Full a) -> b) -> Args c a -> [b]
+listArgs = listArgs'
 
 -- | Change the container of each element in a heterogeneous list
-mapHList :: ConsType a =>
-    (forall a . c1 (Full a) -> c2 (Full a)) -> HList c1 a -> HList c2 a
-mapHList = mapHList'
+mapArgs :: Signature a =>
+    (forall a . c1 (Full a) -> c2 (Full a)) -> Args c1 a -> Args c2 a
+mapArgs = mapArgs'
 
 -- | Change the container of each element in a heterogeneous list, monadic
 -- version
-mapHListM :: (Monad m, ConsType a) =>
-    (forall a . c1 (Full a) -> m (c2 (Full a))) -> HList c1 a -> m (HList c2 a)
-mapHListM = mapHListM'
+mapArgsM :: (Monad m, Signature a) =>
+    (forall a . c1 (Full a) -> m (c2 (Full a))) -> Args c1 a -> m (Args c2 a)
+mapArgsM = mapArgsM'
 
 -- | Apply the syntax tree to the listed arguments
-appHList :: ConsType a =>
-    AST dom a -> HList (AST dom) a -> ASTF dom (EvalResult a)
-appHList = appHList'
+appArgs :: Signature a =>
+    AST dom a -> Args (AST dom) a -> ASTF dom (DenResult a)
+appArgs = appArgs'
 
 -- | Apply the evaluation function to the listed arguments
-appEvalHList :: ConsType a =>
-    ConsEval a -> HList Identity a -> EvalResult a
-appEvalHList = appEvalHList'
+appEvalArgs :: Signature a => Denotation a -> Args Identity a -> DenResult a
+appEvalArgs = appEvalArgs'
 
 -- | Semantic constructor application
 ($:) :: (a :-> b) -> a -> b
@@ -296,14 +294,14 @@ Partial f $: a = f a
 -- @(`AST` dom (`Full` a))@ represents a fully applied constructor, i.e. a
 -- complete syntax tree.
 -- It is not possible to construct a total value of type @(`AST` dom a)@ that
--- does not fulfill the constraint @(`ConsType` a)@.
+-- does not fulfill the constraint @(`Signature` a)@.
 --
--- Note that the hidden class 'ConsType'' mentioned in the type of 'Symbol' is
--- interchangeable with 'ConsType'.
+-- Note that the hidden class 'Signature'' mentioned in the type of 'Sym' is
+-- interchangeable with 'Signature'.
 data AST dom a
   where
-    Symbol :: ConsType' a => dom a -> AST dom a
-    (:$:)  :: Typeable a => AST dom (a :-> b) -> ASTF dom a -> AST dom b
+    Sym  :: Signature' a => dom a -> AST dom a
+    (:$) :: Typeable a => AST dom (a :-> b) -> ASTF dom a -> AST dom b
 
 -- | Fully applied abstract syntax tree
 type ASTF dom a = AST dom (Full a)
@@ -311,10 +309,10 @@ type ASTF dom a = AST dom (Full a)
 -- | Co-product of two symbol domains
 data dom1 :+: dom2 :: * -> *
   where
-    InjectL :: dom1 a -> (dom1 :+: dom2) a
-    InjectR :: dom2 a -> (dom1 :+: dom2) a
+    InjL :: dom1 a -> (dom1 :+: dom2) a
+    InjR :: dom2 a -> (dom1 :+: dom2) a
 
-infixl 1 :$:
+infixl 1 :$
 infixr :+:
 
 
@@ -331,7 +329,7 @@ instance ApplySym (Full a) (ASTF dom a) dom
 instance (Typeable a, ApplySym b f' dom) =>
     ApplySym (a :-> b) (ASTF dom a -> f') dom
   where
-    appSym' sym a = appSym' (sym :$: a)
+    appSym' sym a = appSym' (sym :$ a)
 
 -- | Generic symbol application
 --
@@ -340,11 +338,11 @@ instance (Typeable a, ApplySym b f' dom) =>
 -- > appSym :: (expr :<: AST dom, Typeable a, Typeable b, ..., Typeable x)
 -- >     => expr (a :-> b :-> ... :-> Full x)
 -- >     -> (ASTF dom a -> ASTF dom b -> ... -> ASTF dom x)
-appSym :: (ApplySym a f dom, ConsType a, sym :<: AST dom) => sym a -> f
-appSym sym = appSym' (inject sym)
+appSym :: (ApplySym a f dom, Signature a, sym :<: AST dom) => sym a -> f
+appSym sym = appSym' (inj sym)
 
 -- | Generic symbol application with explicit context
-appSymCtx  :: (ApplySym a f dom, ConsType a, sym ctx :<: dom) =>
+appSymCtx  :: (ApplySym a f dom, Signature a, sym ctx :<: dom) =>
     Proxy ctx -> sym ctx a -> f
 appSymCtx _ = appSym
 
@@ -357,47 +355,47 @@ appSymCtx _ = appSym
 class sub :<: sup
   where
     -- | Injection from @sub@ to @sup@
-    inject :: ConsType a => sub a -> sup a
+    inj :: Signature a => sub a -> sup a
 
     -- | Partial projection from @sup@ to @sub@
-    project :: sup a -> Maybe (sub a)
+    prj :: sup a -> Maybe (sub a)
 
 instance (sub :<: sup) => ((:<:) sub (AST sup))
                             -- GHC 6.12 requires prefix syntax here
   where
-    inject = Symbol . inject
+    inj = Sym . inj
 
-    project (Symbol a) = project a
-    project _          = Nothing
+    prj (Sym a) = prj a
+    prj _       = Nothing
 
 instance ((:<:) expr expr)
   where
-    inject  = id
-    project = Just
+    inj = id
+    prj = Just
 
 instance ((:<:) expr1 (expr1 :+: expr2))
   where
-    inject = InjectL
+    inj = InjL
 
-    project (InjectL a) = Just a
-    project _           = Nothing
+    prj (InjL a) = Just a
+    prj _        = Nothing
 
 instance (expr1 :<: expr3) => ((:<:) expr1 (expr2 :+: expr3))
   where
-    inject = InjectR . inject
+    inj = InjR . inj
 
-    project (InjectR a) = project a
-    project _           = Nothing
+    prj (InjR a) = prj a
+    prj _        = Nothing
 
 
 
--- | 'inject' with explicit context
-injCtx :: (sub ctx :<: sup, ConsType a) => Proxy ctx -> sub ctx a -> sup a
-injCtx _ = inject
+-- | 'inj' with explicit context
+injCtx :: (sub ctx :<: sup, Signature a) => Proxy ctx -> sub ctx a -> sup a
+injCtx _ = inj
 
--- | 'project' with explicit context
+-- | 'prj' with explicit context
 prjCtx :: (sub ctx :<: sup) => Proxy ctx -> sup a -> Maybe (sub ctx a)
-prjCtx _ = project
+prjCtx _ = prj
 
 
 
@@ -481,13 +479,13 @@ instance
 -- >     ) => expr (Internal a :-> Internal b :-> ... :-> Full (Internal x))
 -- >       -> (a -> b -> ... -> x)
 sugarSym
-    :: (ConsType a, sym :<: AST dom, ApplySym a b dom, SyntacticN c b)
+    :: (Signature a, sym :<: AST dom, ApplySym a b dom, SyntacticN c b)
     => sym a -> c
 sugarSym = sugarN . appSym
 
 -- | \"Sugared\" symbol application with explicit context
 sugarSymCtx
-    :: (ConsType a, sym ctx :<: dom, ApplySym a b dom, SyntacticN c b)
+    :: (Signature a, sym ctx :<: dom, ApplySym a b dom, SyntacticN c b)
     => Proxy ctx -> sym ctx a -> c
 sugarSymCtx _ = sugarSym
 
@@ -510,19 +508,19 @@ newtype WrapAST c dom a = WrapAST { unWrapAST :: c (AST dom a) }
 -- following type, which shows that 'queryNode' can be directly used to
 -- transform syntax trees (see also 'transformNode'):
 --
--- > (forall b . (ConsType b, a ~ EvalResult b) => dom b -> HList (AST dom) b -> ASTF dom' a)
+-- > (forall b . (Signature b, a ~ DenResult b) => dom b -> Args (AST dom) b -> ASTF dom' a)
 -- > -> ASTF dom a
 -- > -> ASTF dom' a
 queryNode :: forall dom c a
-    .  (forall b . (ConsType b, a ~ EvalResult b) =>
-           dom b -> HList (AST dom) b -> c (Full a))
+    .  (forall b . (Signature b, a ~ DenResult b) =>
+           dom b -> Args (AST dom) b -> c (Full a))
     -> ASTF dom a
     -> c (Full a)
 queryNode f a = query a Nil
   where
-    query :: (a ~ EvalResult b) => AST dom b -> HList (AST dom) b -> c (Full a)
-    query (Symbol a) args = f a args
-    query (c :$: a)  args = query c (a :*: args)
+    query :: (a ~ DenResult b) => AST dom b -> Args (AST dom) b -> c (Full a)
+    query (Sym a)  args = f a args
+    query (c :$ a) args = query c (a :* args)
 
 -- | A simpler version of 'queryNode'
 --
@@ -531,12 +529,12 @@ queryNode f a = query a Nil
 --
 -- > class Count subDomain
 -- >   where
--- >     count' :: Count domain => subDomain a -> HList (AST domain) a -> Int
+-- >     count' :: Count domain => subDomain a -> Args (AST domain) a -> Int
 -- >
 -- > instance (Count sub1, Count sub2) => Count (sub1 :+: sub2)
 -- >   where
--- >     count' (InjectL a) args = count' a args
--- >     count' (InjectR a) args = count' a args
+-- >     count' (InjL a) args = count' a args
+-- >     count' (InjR a) args = count' a args
 -- >
 -- > count :: Count dom => ASTF dom a -> Int
 -- > count = queryNodeSimple count'
@@ -557,10 +555,10 @@ queryNode f a = query a Nil
 --
 -- > instance Count Add
 -- >   where
--- >     count' Add (a :*: b :*: Nil) = 1 + count a + count b
+-- >     count' Add (a :* b :* Nil) = 1 + count a + count b
 queryNodeSimple :: forall dom a c
-    .  (forall b . (ConsType b, a ~ EvalResult b) =>
-           dom b -> HList (AST dom) b -> c)
+    .  (forall b . (Signature b, a ~ DenResult b) =>
+           dom b -> Args (AST dom) b -> c)
     -> ASTF dom a
     -> c
 queryNodeSimple f a = unConst $ queryNode (\c -> Const . f c) a
@@ -568,8 +566,8 @@ queryNodeSimple f a = unConst $ queryNode (\c -> Const . f c) a
 -- | A version of 'queryNode' where the result is a transformed syntax tree,
 -- wrapped in a type constructor @c@
 transformNode :: forall dom dom' c a
-    .  (  forall b . (ConsType b, a ~ EvalResult b)
-       => dom b -> HList (AST dom) b -> c (ASTF dom' a)
+    .  (  forall b . (Signature b, a ~ DenResult b)
+       => dom b -> Args (AST dom) b -> c (ASTF dom' a)
        )
     -> ASTF dom a
     -> c (ASTF dom' a)
@@ -627,29 +625,29 @@ fromSatWit SatWit = witness
 class WitnessSat expr
   where
     type SatContext expr
-    witnessSat :: expr a -> SatWit (SatContext expr) (EvalResult a)
+    witnessSat :: expr a -> SatWit (SatContext expr) (DenResult a)
 
 -- | Expressions that act as witnesses of their result type
 class MaybeWitnessSat ctx expr
   where
-    maybeWitnessSat :: Proxy ctx -> expr a -> Maybe (SatWit ctx (EvalResult a))
+    maybeWitnessSat :: Proxy ctx -> expr a -> Maybe (SatWit ctx (DenResult a))
 
 instance MaybeWitnessSat ctx dom => MaybeWitnessSat ctx (AST dom)
   where
-    maybeWitnessSat ctx (Symbol a) = maybeWitnessSat ctx a
-    maybeWitnessSat ctx (f :$: _)  = maybeWitnessSat ctx f
+    maybeWitnessSat ctx (Sym a)  = maybeWitnessSat ctx a
+    maybeWitnessSat ctx (f :$ _) = maybeWitnessSat ctx f
 
 instance (MaybeWitnessSat ctx sub1, MaybeWitnessSat ctx sub2) =>
     MaybeWitnessSat ctx (sub1 :+: sub2)
   where
-    maybeWitnessSat ctx (InjectL a) = maybeWitnessSat ctx a
-    maybeWitnessSat ctx (InjectR a) = maybeWitnessSat ctx a
+    maybeWitnessSat ctx (InjL a) = maybeWitnessSat ctx a
+    maybeWitnessSat ctx (InjR a) = maybeWitnessSat ctx a
 
 -- | Convenient default implementation of 'maybeWitnessSat'
 maybeWitnessSatDefault :: WitnessSat expr
     => Proxy (SatContext expr)
     -> expr a
-    -> Maybe (SatWit (SatContext expr) (EvalResult a))
+    -> Maybe (SatWit (SatContext expr) (DenResult a))
 maybeWitnessSatDefault _ = Just . witnessSat
 
 -- | Type application for constraining the @ctx@ type of a parameterized symbol

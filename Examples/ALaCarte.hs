@@ -56,20 +56,20 @@ instance Render Mul
 -- Manual injection:
 
 addExample :: ASTF (Val :+: Add) Int
-addExample = Symbol (InjectR Add) :$: Symbol (InjectL (Val 118)) :$: Symbol (InjectL (Val 1219))
+addExample = Sym (InjR Add) :$ Sym (InjL (Val 118)) :$ Sym (InjL (Val 1219))
 
 
 
 -- Automatic injection:
 
 val :: (Val :<: expr) => Int -> ASTF expr Int
-val = inject . Val
+val = inj . Val
 
 (<+>) :: (Add :<: expr) => ASTF expr Int -> ASTF expr Int -> ASTF expr Int
-a <+> b = inject Add :$: a :$: b
+a <+> b = inj Add :$ a :$ b
 
 (<*>) :: (Mul :<: expr) => ASTF expr Int -> ASTF expr Int -> ASTF expr Int
-a <*> b = inject Mul :$: a :$: b
+a <*> b = inj Mul :$ a :$ b
 
 infixl 6 <+>
 infixl 7 <*>
@@ -98,14 +98,14 @@ test4 = render example4
 
 -- Pattern matching:
 
-distr :: (Add :<: expr, Mul :<: expr, ConsType a) => AST expr a -> AST expr a
-distr ((project -> Just Mul) :$: a :$: b) = case distr b of
-    (project -> Just Add) :$: c :$: d -> a' <*> c <+> a' <*> d
+distr :: (Add :<: expr, Mul :<: expr) => AST expr a -> AST expr a
+distr ((prj -> Just Mul) :$ a :$ b) = case distr b of
+    (prj -> Just Add) :$ c :$ d -> a' <*> c <+> a' <*> d
     b' -> a' <*> b'
   where
     a' = distr a
-distr (f :$: a) = distr f :$: distr a
-distr a         = a
+distr (f :$ a) = distr f :$ distr a
+distr a        = a
   -- Note the use of direct recursion instead of a fold combinator
 
 example5 :: ASTF (Val :+: Add :+: Mul) Int

@@ -11,8 +11,8 @@ import Data.Proxy
 
 import Language.Syntactic.Syntax
 import Language.Syntactic.Interpretation.Equality
-import Language.Syntactic.Interpretation.Render
 import Language.Syntactic.Interpretation.Evaluation
+import Language.Syntactic.Interpretation.Render
 
 
 
@@ -36,7 +36,7 @@ import Language.Syntactic.Interpretation.Evaluation
 data Decor info expr a
   where
     Decor
-        :: { decorInfo :: info (EvalResult a)
+        :: { decorInfo :: info (DenResult a)
            , decorExpr :: expr a
            }
         -> Decor info expr a
@@ -76,35 +76,35 @@ instance Eval expr => Eval (Decor info expr)
 
 
 
-injDecor :: (sub :<: sup, ConsType a) =>
-    info (EvalResult a) -> sub a -> AST (Decor info sup) a
-injDecor info = Symbol . Decor info . inject
+injDecor :: (sub :<: sup, Signature a) =>
+    info (DenResult a) -> sub a -> AST (Decor info sup) a
+injDecor info = Sym . Decor info . inj
 
 prjDecor :: (sub :<: sup) =>
-    AST (Decor info sup) a -> Maybe (info (EvalResult a), sub a)
+    AST (Decor info sup) a -> Maybe (info (DenResult a), sub a)
 prjDecor a = do
-    Symbol (Decor info b) <- return a
-    c                     <- project b
+    Sym (Decor info b) <- return a
+    c                  <- prj b
     return (info, c)
 
 -- | 'injDecor' with explicit context
-injDecorCtx :: (sub ctx :<: sup, ConsType a) =>
-    Proxy ctx -> info (EvalResult a) -> sub ctx a -> AST (Decor info sup) a
-injDecorCtx ctx info = Symbol . Decor info . injCtx ctx
+injDecorCtx :: (sub ctx :<: sup, Signature a) =>
+    Proxy ctx -> info (DenResult a) -> sub ctx a -> AST (Decor info sup) a
+injDecorCtx ctx info = Sym . Decor info . injCtx ctx
 
 -- | 'prjDecor' with explicit context
 prjDecorCtx :: (sub ctx :<: sup)
     => Proxy ctx -> AST (Decor info sup) a
-    -> Maybe (info (EvalResult a), sub ctx a)
+    -> Maybe (info (DenResult a), sub ctx a)
 prjDecorCtx ctx a = do
-    Symbol (Decor info b) <- return a
-    c                     <- prjCtx ctx b
+    Sym (Decor info b) <- return a
+    c                  <- prjCtx ctx b
     return (info, c)
 
 -- | Get the decoration of the top-level node
-getInfo :: AST (Decor info dom) a -> info (EvalResult a)
-getInfo (Symbol (Decor info _)) = info
-getInfo (f :$: _)               = getInfo f
+getInfo :: AST (Decor info dom) a -> info (DenResult a)
+getInfo (Sym (Decor info _)) = info
+getInfo (f :$ _)             = getInfo f
 
 -- | Update the decoration of the top-level node
 updateDecor :: forall info dom a .
@@ -112,11 +112,11 @@ updateDecor :: forall info dom a .
 updateDecor f = runIdentity . transformNode update
   where
     update
-        :: (ConsType b, a ~ EvalResult b)
+        :: (Signature b, a ~ DenResult b)
         => Decor info dom b
-        -> HList (AST (Decor info dom)) b
+        -> Args (AST (Decor info dom)) b
         -> Identity (ASTF (Decor info dom) a)
-    update (Decor info a) args = Identity $ appHList (Symbol sym) args
+    update (Decor info a) args = Identity $ appArgs (Sym sym) args
       where
         sym = Decor (f info) a
 
@@ -124,13 +124,13 @@ updateDecor f = runIdentity . transformNode update
 -- operate on an 'Decor' expression. This function is convenient to use together
 -- with e.g. 'queryNodeSimple' when the domain has the form
 -- @(`Decor` info dom)@.
-liftDecor :: (expr a -> info (EvalResult a) -> b) -> (Decor info expr a -> b)
+liftDecor :: (expr a -> info (DenResult a) -> b) -> (Decor info expr a -> b)
 liftDecor f (Decor info a) = f a info
 
 -- | Collect the decorations of all nodes
 collectInfo :: (forall a . info a -> b) -> AST (Decor info dom) a -> [b]
-collectInfo coll (Symbol (Decor info _)) = [coll info]
-collectInfo coll (f :$: a) = collectInfo coll f ++ collectInfo coll a
+collectInfo coll (Sym (Decor info _)) = [coll info]
+collectInfo coll (f :$ a) = collectInfo coll f ++ collectInfo coll a
 
 -- | Rendering of decorated syntax trees
 toTreeDecor :: forall info dom a . (Render info, ToTree dom) =>
@@ -138,10 +138,10 @@ toTreeDecor :: forall info dom a . (Render info, ToTree dom) =>
 toTreeDecor a = mkTree [] a
   where
     mkTree :: [Tree String] -> AST (Decor info dom) b -> Tree String
-    mkTree args (Symbol (Decor info expr)) = Node infoStr [toTreePart args expr]
+    mkTree args (Sym (Decor info expr)) = Node infoStr [toTreePart args expr]
       where
         infoStr = "<<" ++ render info ++ ">>"
-    mkTree args (f :$: a) = mkTree (mkTree [] a : args) f
+    mkTree args (f :$ a) = mkTree (mkTree [] a : args) f
 
 -- | Show an decorated syntax tree using ASCII art
 showDecor :: (Render info, ToTree dom) => ASTF (Decor info dom) a -> String
@@ -153,6 +153,6 @@ drawDecor = putStrLn . showDecor
 
 -- | Strip decorations from an 'AST'
 stripDecor :: AST (Decor info dom) a -> AST dom a
-stripDecor (Symbol (Decor _ a)) = Symbol a
-stripDecor (f :$: a)            = stripDecor f :$: stripDecor a
+stripDecor (Sym (Decor _ a)) = Sym a
+stripDecor (f :$ a)          = stripDecor f :$ stripDecor a
 

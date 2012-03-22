@@ -145,10 +145,8 @@ drawASG = putStrLn . showASG
 -- function
 reindexNodesAST ::
     (NodeId -> NodeId) -> AST (Node ctx :+: dom) a -> AST (Node ctx :+: dom) a
-reindexNodesAST reix (Symbol (InjectL (Node n))) =
-    Symbol (InjectL (Node $ reix n))
-reindexNodesAST reix (f :$: a) =
-    reindexNodesAST reix f :$: reindexNodesAST reix a
+reindexNodesAST reix (Sym (InjL (Node n))) = Sym (InjL (Node $ reix n))
+reindexNodesAST reix (f :$ a) = reindexNodesAST reix f :$ reindexNodesAST reix a
 reindexNodesAST reix a = a
 
 -- | Reindex the nodes according to the given index mapping. The number of nodes
@@ -223,10 +221,10 @@ foldGraph alg graph@(ASG top ns nn) = (g top, (arr,nodes))
     nodes = [(n, g expr) | (n, SomeAST expr) <- ns]
     arr   = array (0, nn-1) nodes
 
-    g :: ConsType c => AST (Node ctx :+: dom) c -> b
-    g (h :$: a)                    = alg $ AppPF (g h) (g a)
-    g (Symbol (InjectL (Node n)) ) = alg $ NodePF n (arr!n)
-    g (Symbol (InjectR a))         = alg $ DomPF a
+    g :: Signature c => AST (Node ctx :+: dom) c -> b
+    g (h :$ a)               = alg $ AppPF (g h) (g a)
+    g (Sym (InjL (Node n)) ) = alg $ NodePF n (arr!n)
+    g (Sym (InjR a))         = alg $ DomPF a
 
 
 
@@ -240,14 +238,14 @@ inlineAll (ASG top nodes n) = inline top
   where
     nodeMap = array (0, n-1) nodes
 
-    inline :: forall b. (Typeable b, ConsType b) =>
+    inline :: forall b. (Typeable b, Signature b) =>
         AST (Node ctx :+: dom) b -> AST dom b
-    inline (f :$: a) = inline f :$: inline a
-    inline (Symbol (InjectL (Node n))) = case nodeMap ! n of
+    inline (f :$ a) = inline f :$ inline a
+    inline (Sym (InjL (Node n))) = case nodeMap ! n of
         SomeAST a -> case gcast a of
           Nothing -> error "inlineAll: type mismatch"
           Just a  -> inline a
-    inline (Symbol (InjectR a)) = Symbol a
+    inline (Sym (InjR a)) = Sym a
 
 
 
@@ -279,16 +277,16 @@ inlineSingle graph@(ASG top nodes n) = ASG top' nodes' n'
     nodes' = [(n, SomeAST (inline a)) | (n, SomeAST a) <- nodes, occs!n > 1]
     n'     = genericLength nodes'
 
-    inline :: forall b. (Typeable b, ConsType b) =>
+    inline :: forall b. (Typeable b, Signature b) =>
         AST (Node ctx :+: dom) b -> AST (Node ctx :+: dom) b
-    inline (f :$: a) = inline f :$: inline a
-    inline (Symbol (InjectL (Node n)))
-        | occs!n > 1 = Symbol (InjectL (Node n))
+    inline (f :$ a) = inline f :$ inline a
+    inline (Sym (InjL (Node n)))
+        | occs!n > 1 = Sym (InjL (Node n))
         | otherwise = case nodeTab ! n of
             SomeAST a -> case gcast a of
                 Nothing -> error "inlineSingle: type mismatch"
                 Just a  -> inline a
-    inline (Symbol (InjectR a)) = Symbol (InjectR a)
+    inline (Sym (InjR a)) = Sym (InjR a)
 
 
 

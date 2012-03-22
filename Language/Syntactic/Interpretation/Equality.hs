@@ -26,12 +26,12 @@ class ExprEq expr
 
 instance ExprEq dom => ExprEq (AST dom)
   where
-    exprEq (Symbol a)  (Symbol b)  = exprEq a b
-    exprEq (f1 :$: a1) (f2 :$: a2) = exprEq f1 f2 && exprEq a1 a2
+    exprEq (Sym a)    (Sym b)    = exprEq a b
+    exprEq (f1 :$ a1) (f2 :$ a2) = exprEq f1 f2 && exprEq a1 a2
     exprEq _ _ = False
 
-    exprHash (Symbol a) = hashInt 0 `combine` exprHash a
-    exprHash (f :$: a)  = hashInt 1 `combine` exprHash f `combine` exprHash a
+    exprHash (Sym a)  = hashInt 0 `combine` exprHash a
+    exprHash (f :$ a) = hashInt 1 `combine` exprHash f `combine` exprHash a
 
 instance ExprEq dom => Eq (AST dom a)
   where
@@ -39,12 +39,12 @@ instance ExprEq dom => Eq (AST dom a)
 
 instance (ExprEq expr1, ExprEq expr2) => ExprEq (expr1 :+: expr2)
   where
-    exprEq (InjectL a) (InjectL b) = exprEq a b
-    exprEq (InjectR a) (InjectR b) = exprEq a b
+    exprEq (InjL a) (InjL b) = exprEq a b
+    exprEq (InjR a) (InjR b) = exprEq a b
     exprEq _ _ = False
 
-    exprHash (InjectL a) = hashInt 0 `combine` exprHash a
-    exprHash (InjectR a) = hashInt 1 `combine` exprHash a
+    exprHash (InjL a) = hashInt 0 `combine` exprHash a
+    exprHash (InjR a) = hashInt 1 `combine` exprHash a
 
 instance (ExprEq expr1, ExprEq expr2) => Eq ((expr1 :+: expr2) a)
   where

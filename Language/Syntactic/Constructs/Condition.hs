@@ -10,7 +10,7 @@ import Data.Proxy
 import Data.Typeable
 
 import Language.Syntactic
-import Language.Syntactic.Constructs.Symbol
+import Language.Syntactic.Interpretation.Semantics
 
 
 
@@ -35,12 +35,12 @@ instance MaybeWitnessSat ctx1 (Condition ctx2)
   where
     maybeWitnessSat _ _ = Nothing
 
-instance IsSymbol (Condition ctx)
+instance Semantic (Condition ctx)
   where
-    toSym Condition = Sym "condition" (\c t e -> if c then t else e)
+    semantics Condition = Sem "condition" (\c t e -> if c then t else e)
 
-instance ExprEq (Condition ctx) where exprEq = exprEqSym; exprHash = exprHashSym
-instance Render (Condition ctx) where renderPart = renderPartSym
-instance Eval   (Condition ctx) where evaluate   = evaluateSym
+instance ExprEq (Condition ctx) where exprEq = exprEqSem; exprHash = exprHashSem
+instance Render (Condition ctx) where renderPart = renderPartSem
+instance Eval   (Condition ctx) where evaluate   = evaluateSem
 instance ToTree (Condition ctx)
 

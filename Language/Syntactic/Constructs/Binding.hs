@@ -17,13 +17,13 @@ import Data.Hash
 import Data.Proxy
 
 import Language.Syntactic
-import Language.Syntactic.Constructs.Identity
-import Language.Syntactic.Constructs.Decoration
-import Language.Syntactic.Constructs.Symbol
-import Language.Syntactic.Constructs.Literal
 import Language.Syntactic.Constructs.Condition
-import Language.Syntactic.Constructs.Tuple
+import Language.Syntactic.Constructs.Construct
+import Language.Syntactic.Constructs.Decoration
+import Language.Syntactic.Constructs.Identity
+import Language.Syntactic.Constructs.Literal
 import Language.Syntactic.Constructs.Monad
+import Language.Syntactic.Constructs.Tuple
 
 
 
@@ -189,7 +189,7 @@ letBind _ = Let
 -- | Partial `Let` projection with explicit context
 prjLet :: (Let ctxa ctxb :<: sup) =>
     Proxy ctxa -> Proxy ctxb -> sup a -> Maybe (Let ctxa ctxb a)
-prjLet _ _ = project
+prjLet _ _ = prj
 
 
 
@@ -208,9 +208,9 @@ subst :: forall ctx dom a b
 subst ctx v new a = go a
   where
     go :: AST dom c -> AST dom c
-    go a@((prjCtx ctx -> Just (Lambda w)) :$: _)
+    go a@((prjCtx ctx -> Just (Lambda w)) :$ _)
         | v==w = a  -- Capture
-    go (f :$: a) = go f :$: go a
+    go (f :$ a) = go f :$ go a
     go (prjCtx ctx -> Just (Variable w))
         | v==w
         , Just new' <- gcast new
@@ -224,7 +224,7 @@ betaReduce :: forall ctx dom a b . (Lambda ctx :<: dom, Variable ctx :<: dom)
     -> ASTF dom a         -- ^ Argument
     -> ASTF dom (a -> b)  -- ^ Function to be reduced
     -> ASTF dom b
-betaReduce ctx new ((prjCtx ctx -> Just (Lambda v)) :$: body) =
+betaReduce ctx new ((prjCtx ctx -> Just (Lambda v)) :$ body) =
     subst ctx v new body
 
 
@@ -232,15 +232,15 @@ betaReduce ctx new ((prjCtx ctx -> Just (Lambda v)) :$: body) =
 class EvalBind sub
   where
     evalBindSym
-        :: (EvalBind dom, ConsType a)
+        :: (EvalBind dom, Signature a)
         => sub a
-        -> HList (AST dom) a
-        -> Reader [(VarId,Dynamic)] (EvalResult a)
+        -> Args (AST dom) a
+        -> Reader [(VarId,Dynamic)] (DenResult a)
 
 instance (EvalBind sub1, EvalBind sub2) => EvalBind (sub1 :+: sub2)
   where
-    evalBindSym (InjectL a) = evalBindSym a
-    evalBindSym (InjectR a) = evalBindSym a
+    evalBindSym (InjL a) = evalBindSym a
+    evalBindSym (InjR a) = evalBindSym a
 
 -- | Evaluation of possibly open expressions
 evalBindM :: EvalBind dom => ASTF dom a -> Reader [(VarId,Dynamic)] a
@@ -251,16 +251,16 @@ evalBind :: EvalBind dom => ASTF dom a -> a
 evalBind = flip runReader [] . evalBindM
 
 -- | Convenient default implementation of 'evalBindSym'
-evalBindSymDefault :: (Eval sub, ConsType a, EvalBind dom)
+evalBindSymDefault :: (Eval sub, Signature a, EvalBind dom)
     => sub a
-    -> HList (AST dom) a
-    -> Reader [(VarId,Dynamic)] (EvalResult a)
+    -> Args (AST dom) a
+    -> Reader [(VarId,Dynamic)] (DenResult a)
 evalBindSymDefault sym args = do
-    args' <- mapHListM (liftM (Monad.Identity . Full) . evalBindM) args
-    return $ appEvalHList (toEval $ evaluate sym) args'
+    args' <- mapArgsM (liftM (Monad.Identity . Full) . evalBindM) args
+    return $ appEvalArgs (toEval $ evaluate sym) args'
 
 instance EvalBind (Identity ctx)       where evalBindSym = evalBindSymDefault
-instance EvalBind (Sym ctx)            where evalBindSym = evalBindSymDefault
+instance EvalBind (Construct ctx)      where evalBindSym = evalBindSymDefault
 instance EvalBind (Literal ctx)        where evalBindSym = evalBindSymDefault
 instance EvalBind (Condition ctx)      where evalBindSym = evalBindSymDefault
 instance EvalBind (Tuple ctx)          where evalBindSym = evalBindSymDefault
@@ -274,7 +274,7 @@ instance EvalBind dom => EvalBind (Decor info dom)
 
 instance EvalBind (Lambda ctx)
   where
-    evalBindSym (Lambda v) (body :*: Nil) = do
+    evalBindSym (Lambda v) (body :* Nil) = do
         env <- ask
         return
             $ \a -> flip runReader ((v,toDyn a):env)
@@ -310,27 +310,27 @@ instance VarEqEnv [(VarId,VarId)]
 class VarEqEnv env => AlphaEq sub1 sub2 dom env
   where
     alphaEqSym
-        :: (ConsType a, ConsType b)
+        :: (Signature a, Signature b)
         => sub1 a
-        -> HList (AST dom) a
+        -> Args (AST dom) a
         -> sub2 b
-        -> HList (AST dom) b
+        -> Args (AST dom) b
         -> Reader env Bool
 
 instance (AlphaEq subA1 subB1 dom env, AlphaEq subA2 subB2 dom env) =>
     AlphaEq (subA1 :+: subA2) (subB1 :+: subB2) dom env
   where
-    alphaEqSym (InjectL a) aArgs (InjectL b) bArgs = alphaEqSym a aArgs b bArgs
-    alphaEqSym (InjectR a) aArgs (InjectR b) bArgs = alphaEqSym a aArgs b bArgs
-    alphaEqSym (InjectL a) aArgs (InjectR b) bArgs = return False
-    alphaEqSym (InjectR a) aArgs (InjectL b) bArgs = return False
+    alphaEqSym (InjL a) aArgs (InjL b) bArgs = alphaEqSym a aArgs b bArgs
+    alphaEqSym (InjR a) aArgs (InjR b) bArgs = alphaEqSym a aArgs b bArgs
+    alphaEqSym (InjL a) aArgs (InjR b) bArgs = return False
+    alphaEqSym (InjR a) aArgs (InjL b) bArgs = return False
 
 alphaEqM :: AlphaEq dom dom dom env =>
     ASTF dom a -> ASTF dom b -> Reader env Bool
 alphaEqM a b = queryNodeSimple (alphaEqM2 b) a
 
-alphaEqM2 :: (AlphaEq dom dom dom env, ConsType a) =>
-    ASTF dom b -> dom a -> HList (AST dom) a -> Reader env Bool
+alphaEqM2 :: (AlphaEq dom dom dom env, Signature a) =>
+    ASTF dom b -> dom a -> Args (AST dom) a -> Reader env Bool
 alphaEqM2 b a aArgs = queryNodeSimple (alphaEqSym a aArgs) b
 
 -- | Alpha-equivalence on lambda expressions. Free variables are taken to be
@@ -342,31 +342,31 @@ alphaEq a b = flip runReader ([] :: [(VarId,VarId)]) $ alphaEqM a b
 alphaEqSymDefault
     :: ( ExprEq sub
        , AlphaEq dom dom dom env
-       , ConsType a
-       , ConsType b
+       , Signature a
+       , Signature b
        )
     => sub a
-    -> HList (AST dom) a
+    -> Args (AST dom) a
     -> sub b
-    -> HList (AST dom) b
+    -> Args (AST dom) b
     -> Reader env Bool
 alphaEqSymDefault a aArgs b bArgs
     | exprEq a b = alphaEqChildren a' b'
     | otherwise  = return False
   where
-    a' = appHList (Symbol (undefined :: dom a)) aArgs
-    b' = appHList (Symbol (undefined :: dom b)) bArgs
+    a' = appArgs (Sym (undefined :: dom a)) aArgs
+    b' = appArgs (Sym (undefined :: dom b)) bArgs
 
 alphaEqChildren :: AlphaEq dom dom dom env =>
     AST dom a -> AST dom b -> Reader env Bool
-alphaEqChildren (Symbol _) (Symbol _) = return True
-alphaEqChildren (f :$: a)  (g :$: b)  = liftM2 (&&)
+alphaEqChildren (Sym _)  (Sym _)  = return True
+alphaEqChildren (f :$ a) (g :$ b) = liftM2 (&&)
     (alphaEqChildren f g)
     (alphaEqM a b)
 alphaEqChildren _ _ = return False
 
 instance AlphaEq dom dom dom env => AlphaEq (Identity ctx)  (Identity ctx)  dom env where alphaEqSym = alphaEqSymDefault
-instance AlphaEq dom dom dom env => AlphaEq (Sym ctx)       (Sym ctx)       dom env where alphaEqSym = alphaEqSymDefault
+instance AlphaEq dom dom dom env => AlphaEq (Construct ctx) (Construct ctx) dom env where alphaEqSym = alphaEqSymDefault
 instance AlphaEq dom dom dom env => AlphaEq (Literal ctx)   (Literal ctx)   dom env where alphaEqSym = alphaEqSymDefault
 instance AlphaEq dom dom dom env => AlphaEq (Condition ctx) (Condition ctx) dom env where alphaEqSym = alphaEqSymDefault
 instance AlphaEq dom dom dom env => AlphaEq (Tuple ctx)     (Tuple ctx)     dom env where alphaEqSym = alphaEqSymDefault
@@ -385,7 +385,7 @@ instance AlphaEq dom dom (Decor info dom) env =>
 
 instance AlphaEq dom dom dom env => AlphaEq (Lambda ctx) (Lambda ctx) dom env
   where
-    alphaEqSym (Lambda v1) (body1 :*: Nil) (Lambda v2) (body2 :*: Nil) =
+    alphaEqSym (Lambda v1) (body1 :* Nil) (Lambda v2) (body2 :* Nil) =
         local (modVarEqEnv ((v1,v2):)) $ alphaEqM body1 body2
 
 instance AlphaEq dom dom dom env =>

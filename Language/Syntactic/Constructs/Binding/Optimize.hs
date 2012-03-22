@@ -11,12 +11,12 @@ import Data.Set as Set
 import Data.Proxy
 
 import Language.Syntactic
-import Language.Syntactic.Constructs.Identity
-import Language.Syntactic.Constructs.Symbol
-import Language.Syntactic.Constructs.Literal
-import Language.Syntactic.Constructs.Condition
-import Language.Syntactic.Constructs.Tuple
 import Language.Syntactic.Constructs.Binding
+import Language.Syntactic.Constructs.Condition
+import Language.Syntactic.Constructs.Construct
+import Language.Syntactic.Constructs.Identity
+import Language.Syntactic.Constructs.Literal
+import Language.Syntactic.Constructs.Tuple
 
 
 
@@ -49,8 +49,8 @@ class EvalBind dom => Optimize sub ctx dom
         :: Proxy ctx
         -> ConstFolder dom
         -> sub a
-        -> HList (AST dom) a
-        -> Writer (Set VarId) (ASTF dom (EvalResult a))
+        -> Args (AST dom) a
+        -> Writer (Set VarId) (ASTF dom (DenResult a))
 
   -- The reason for having @dom@ as a class parameter is that many instances
   -- require the constraint @(sub :<: dom)@. If @dom@ was forall-quantified in
@@ -61,8 +61,8 @@ class EvalBind dom => Optimize sub ctx dom
 instance (Optimize sub1 ctx dom, Optimize sub2 ctx dom) =>
     Optimize (sub1 :+: sub2) ctx dom
   where
-    optimizeSym ctx constFold (InjectL a) = optimizeSym ctx constFold a
-    optimizeSym ctx constFold (InjectR a) = optimizeSym ctx constFold a
+    optimizeSym ctx constFold (InjL a) = optimizeSym ctx constFold a
+    optimizeSym ctx constFold (InjR a) = optimizeSym ctx constFold a
 
 optimizeM :: Optimize dom ctx dom
     => Proxy ctx
@@ -86,22 +86,22 @@ optimizeSymDefault
     => Proxy ctx
     -> ConstFolder dom
     -> sub a
-    -> HList (AST dom) a
-    -> Writer (Set VarId) (ASTF dom (EvalResult a))
+    -> Args (AST dom) a
+    -> Writer (Set VarId) (ASTF dom (DenResult a))
 optimizeSymDefault ctx constFold sym@(witnessCons -> ConsWit) args = do
-    (args',vars) <- listen $ mapHListM (optimizeM ctx constFold) args
-    let result = appHList (Symbol $ inject sym) args'
+    (args',vars) <- listen $ mapArgsM (optimizeM ctx constFold) args
+    let result = appArgs (Sym $ inj sym) args'
         value  = evalBind result
     if Set.null vars
       then return $ constFold result value
       else return result
 
-instance (Identity ctx' :<: dom, Optimize dom ctx dom) => Optimize (Identity ctx') ctx dom where optimizeSym = optimizeSymDefault
-instance (Sym ctx'      :<: dom, Optimize dom ctx dom) => Optimize (Sym ctx')      ctx dom where optimizeSym = optimizeSymDefault
-instance (Literal ctx'  :<: dom, Optimize dom ctx dom) => Optimize (Literal ctx')  ctx dom where optimizeSym = optimizeSymDefault
-instance (Tuple ctx'    :<: dom, Optimize dom ctx dom) => Optimize (Tuple ctx')    ctx dom where optimizeSym = optimizeSymDefault
-instance (Select ctx'   :<: dom, Optimize dom ctx dom) => Optimize (Select ctx')   ctx dom where optimizeSym = optimizeSymDefault
-instance (Let ctxa ctxb :<: dom, Optimize dom ctx dom) => Optimize (Let ctxa ctxb) ctx dom where optimizeSym = optimizeSymDefault
+instance (Identity ctx'  :<: dom, Optimize dom ctx dom) => Optimize (Identity ctx')  ctx dom where optimizeSym = optimizeSymDefault
+instance (Construct ctx' :<: dom, Optimize dom ctx dom) => Optimize (Construct ctx') ctx dom where optimizeSym = optimizeSymDefault
+instance (Literal ctx'   :<: dom, Optimize dom ctx dom) => Optimize (Literal ctx')   ctx dom where optimizeSym = optimizeSymDefault
+instance (Tuple ctx'     :<: dom, Optimize dom ctx dom) => Optimize (Tuple ctx')     ctx dom where optimizeSym = optimizeSymDefault
+instance (Select ctx'    :<: dom, Optimize dom ctx dom) => Optimize (Select ctx')    ctx dom where optimizeSym = optimizeSymDefault
+instance (Let ctxa ctxb  :<: dom, Optimize dom ctx dom) => Optimize (Let ctxa ctxb)  ctx dom where optimizeSym = optimizeSymDefault
 
 instance
     ( Condition ctx' :<: dom
@@ -112,7 +112,7 @@ instance
     ) =>
       Optimize (Condition ctx') ctx dom
   where
-    optimizeSym ctx constFold cond@Condition args@(c :*: t :*: e :*: Nil)
+    optimizeSym ctx constFold cond@Condition args@(c :* t :* e :* Nil)
         | Set.null cVars = optimizeM ctx constFold t_or_e
         | alphaEq t e    = optimizeM ctx constFold t
         | otherwise      = optimizeSymDefault ctx constFold cond args
@@ -125,12 +125,12 @@ instance (Variable ctx :<: dom, Optimize dom ctx dom) =>
   where
     optimizeSym _ _ var@(Variable v) Nil = do
         tell (singleton v)
-        return (inject var)
+        return (inj var)
 
 instance (Lambda ctx :<: dom, Optimize dom ctx dom) =>
     Optimize (Lambda ctx) ctx dom
   where
-    optimizeSym ctx constFold lam@(Lambda v) (body :*: Nil) = do
+    optimizeSym ctx constFold lam@(Lambda v) (body :* Nil) = do
         body' <- censor (delete v) $ optimizeM ctx constFold body
-        return $ inject lam :$: body'
+        return $ inj lam :$ body'
 

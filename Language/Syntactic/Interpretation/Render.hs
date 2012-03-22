@@ -30,8 +30,8 @@ class Render expr
 
 instance Render dom => Render (AST dom)
   where
-    renderPart args (Symbol a) = renderPart args a
-    renderPart args (f :$: a)  = renderPart (render a : args) f
+    renderPart args (Sym a)  = renderPart args a
+    renderPart args (f :$ a) = renderPart (render a : args) f
 
 instance Render dom => Show (AST dom a)
   where
@@ -39,8 +39,8 @@ instance Render dom => Show (AST dom a)
 
 instance (Render expr1, Render expr2) => Render (expr1 :+: expr2)
   where
-    renderPart args (InjectL a) = renderPart args a
-    renderPart args (InjectR a) = renderPart args a
+    renderPart args (InjL a) = renderPart args a
+    renderPart args (InjR a) = renderPart args a
 
 instance (Render expr1, Render expr2) => Show ((expr1 :+: expr2) a)
   where
@@ -61,13 +61,13 @@ class Render expr => ToTree expr
 
 instance ToTree dom => ToTree (AST dom)
   where
-    toTreePart args (Symbol a) = toTreePart args a
-    toTreePart args (f :$: a)  = toTreePart (toTree a : args) f
+    toTreePart args (Sym a)  = toTreePart args a
+    toTreePart args (f :$ a) = toTreePart (toTree a : args) f
 
 instance (ToTree expr1, ToTree expr2) => ToTree (expr1 :+: expr2)
   where
-    toTreePart args (InjectL a) = toTreePart args a
-    toTreePart args (InjectR a) = toTreePart args a
+    toTreePart args (InjL a) = toTreePart args a
+    toTreePart args (InjR a) = toTreePart args a
 
 -- | Convert an expression to a syntax tree
 toTree :: ToTree expr => expr a -> Tree String

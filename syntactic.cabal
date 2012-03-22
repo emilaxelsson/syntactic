@@ -55,20 +55,21 @@ Library
     Language.Syntactic
     Language.Syntactic.Syntax
     Language.Syntactic.Interpretation.Equality
-    Language.Syntactic.Interpretation.Render
     Language.Syntactic.Interpretation.Evaluation
-    Language.Syntactic.Constructs.Identity
-    Language.Syntactic.Constructs.Decoration
-    Language.Syntactic.Constructs.Symbol
-    Language.Syntactic.Constructs.Literal
-    Language.Syntactic.Constructs.Condition
-    Language.Syntactic.Constructs.Tuple
-    Language.Syntactic.Constructs.TupleSyntacticPoly
-    Language.Syntactic.Constructs.TupleSyntacticSimple
+    Language.Syntactic.Interpretation.Render
+    Language.Syntactic.Interpretation.Semantics
     Language.Syntactic.Constructs.Binding
     Language.Syntactic.Constructs.Binding.HigherOrder
     Language.Syntactic.Constructs.Binding.Optimize
+    Language.Syntactic.Constructs.Condition
+    Language.Syntactic.Constructs.Construct
+    Language.Syntactic.Constructs.Decoration
+    Language.Syntactic.Constructs.Identity
+    Language.Syntactic.Constructs.Literal
     Language.Syntactic.Constructs.Monad
+    Language.Syntactic.Constructs.Tuple
+    Language.Syntactic.Constructs.TupleSyntacticPoly
+    Language.Syntactic.Constructs.TupleSyntacticSimple
     Language.Syntactic.Frontend.Monad
     Language.Syntactic.Sharing.SimpleCodeMotion
     Language.Syntactic.Sharing.Utils
@@ -76,8 +77,6 @@ Library
     Language.Syntactic.Sharing.StableName
     Language.Syntactic.Sharing.Reify
     Language.Syntactic.Sharing.ReifyHO
-
-    Test.ExprGen
 
   Other-modules:
 

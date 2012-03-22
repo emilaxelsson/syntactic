@@ -13,13 +13,13 @@ class Eval expr
 
 instance Eval dom => Eval (AST dom)
   where
-    evaluate (Symbol a) = evaluate a
-    evaluate (f :$: a)  = evaluate f $: result (evaluate a)
+    evaluate (Sym a)  = evaluate a
+    evaluate (f :$ a) = evaluate f $: result (evaluate a)
 
 instance (Eval expr1, Eval expr2) => Eval (expr1 :+: expr2)
   where
-    evaluate (InjectL a) = evaluate a
-    evaluate (InjectR a) = evaluate a
+    evaluate (InjL a) = evaluate a
+    evaluate (InjR a) = evaluate a
 
 evalFull :: Eval dom => ASTF dom a -> a
 evalFull = result . evaluate
