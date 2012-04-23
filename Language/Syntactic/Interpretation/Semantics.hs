@@ -9,7 +9,10 @@ import Data.Typeable
 import Data.Hash
 import Data.Proxy
 
-import Language.Syntactic
+import Language.Syntactic.Syntax
+import Language.Syntactic.Interpretation.Equality
+import Language.Syntactic.Interpretation.Render
+import Language.Syntactic.Interpretation.Evaluation
 
 
 
