@@ -1,5 +1,5 @@
 Name:           syntactic
-Version:        0.8
+Version:        0.9
 Synopsis:       Generic abstract syntax, and utilities for embedded languages
 Description:    This library provides:
                 .
@@ -86,7 +86,6 @@ Library
     containers,
     data-hash,
     mtl >= 2 && < 3,
-    QuickCheck >= 2.4,
     tagged,
     transformers >= 0.2,
     tuple >= 0.2
