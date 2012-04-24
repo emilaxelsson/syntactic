@@ -307,7 +307,7 @@ instance VarEqEnv [(VarId,VarId)]
     prjVarEqEnv = id
     modVarEqEnv = id
 
-class VarEqEnv env => AlphaEq sub1 sub2 dom env
+class AlphaEq sub1 sub2 dom env
   where
     alphaEqSym
         :: (Signature a, Signature b)
@@ -383,12 +383,13 @@ instance AlphaEq dom dom (Decor info dom) env =>
     alphaEqSym a aArgs b bArgs =
         alphaEqSym (decorExpr a) aArgs (decorExpr b) bArgs
 
-instance AlphaEq dom dom dom env => AlphaEq (Lambda ctx) (Lambda ctx) dom env
+instance (AlphaEq dom dom dom env, VarEqEnv env) =>
+    AlphaEq (Lambda ctx) (Lambda ctx) dom env
   where
     alphaEqSym (Lambda v1) (body1 :* Nil) (Lambda v2) (body2 :* Nil) =
         local (modVarEqEnv ((v1,v2):)) $ alphaEqM body1 body2
 
-instance AlphaEq dom dom dom env =>
+instance (AlphaEq dom dom dom env, VarEqEnv env) =>
     AlphaEq (Variable ctx) (Variable ctx) dom env
   where
     alphaEqSym (Variable v1) Nil (Variable v2) Nil = do
