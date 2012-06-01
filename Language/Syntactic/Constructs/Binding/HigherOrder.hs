@@ -50,7 +50,7 @@ instance MaybeWitnessSat ctx1 (HOLambda ctx2 dom)
 lambda :: (Typeable a, Typeable b, Sat ctx a)
     => (ASTF (HODomain ctx dom) a -> ASTF (HODomain ctx dom) b)
     -> ASTF (HODomain ctx dom) (a -> b)
-lambda = inj . HOLambda
+lambda = appSym . HOLambda
 
 instance
     ( Syntactic a (HODomain ctx dom)
