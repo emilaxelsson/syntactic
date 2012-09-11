@@ -1,5 +1,3 @@
-{-# LANGUAGE OverlappingInstances #-}
-
 -- | Literal expressions
 
 module Language.Syntactic.Constructs.Literal where
@@ -9,49 +7,35 @@ module Language.Syntactic.Constructs.Literal where
 import Data.Typeable
 
 import Data.Hash
-import Data.Proxy
 
 import Language.Syntactic
 
 
 
-data Literal ctx a
+data Literal sig
   where
-    Literal :: (Eq a, Show a, Typeable a, Sat ctx a) =>
-        a -> Literal ctx (Full a)
+    Literal :: (Eq a, Show a, Typeable a) => a -> Literal (Full a)
 
-instance WitnessCons (Literal ctx)
+instance Constrained Literal
   where
-    witnessCons (Literal _) = ConsWit
+    type Sat Literal = Eq :/\: Show :/\: Typeable :/\: Top
+    exprDict (Literal _) = Dict
 
-instance WitnessSat (Literal ctx)
+instance Equality Literal
   where
-    type SatContext (Literal ctx) = ctx
-    witnessSat (Literal _) = SatWit
-
-instance MaybeWitnessSat ctx (Literal ctx)
-  where
-    maybeWitnessSat = maybeWitnessSatDefault
-
-instance MaybeWitnessSat ctx1 (Literal ctx2)
-  where
-    maybeWitnessSat _ _ = Nothing
-
-instance ExprEq (Literal ctx)
-  where
-    Literal a `exprEq` Literal b = case cast a of
+    Literal a `equal` Literal b = case cast a of
         Just a' -> a'==b
         Nothing -> False
 
     exprHash (Literal a) = hash (show a)
 
-instance Render (Literal ctx)
+instance Render Literal
   where
     render (Literal a) = show a
 
-instance ToTree (Literal ctx)
+instance ToTree Literal
 
-instance Eval (Literal ctx)
+instance Eval Literal
   where
-    evaluate (Literal a) = fromEval a
+    evaluate (Literal a) = a
 

@@ -1,47 +1,29 @@
-{-# LANGUAGE OverlappingInstances #-}
-
 -- | Identity function
 
 module Language.Syntactic.Constructs.Identity where
 
 
 
-import Data.Proxy
-import Data.Typeable
-
 import Language.Syntactic
-import Language.Syntactic.Interpretation.Semantics
 
 
 
 -- | Identity function
-data Identity ctx a
+data Identity sig
   where
-    Id :: Sat ctx a => Identity ctx (a :-> Full a)
+    Id :: Identity (a :-> Full a)
 
-instance WitnessCons (Identity ctx)
+instance Constrained Identity
   where
-    witnessCons Id = ConsWit
+    type Sat Identity = Top
+    exprDict _ = Dict
 
-instance WitnessSat (Identity ctx)
-  where
-    type SatContext (Identity ctx) = ctx
-    witnessSat Id = SatWit
-
-instance MaybeWitnessSat ctx (Identity ctx)
-  where
-    maybeWitnessSat = maybeWitnessSatDefault
-
-instance MaybeWitnessSat ctx1 (Identity ctx2)
-  where
-    maybeWitnessSat _ _ = Nothing
-
-instance Semantic (Identity ctx)
+instance Semantic Identity
   where
     semantics Id = Sem "id" id
 
-instance ExprEq (Identity ctx) where exprEq = exprEqSem; exprHash = exprHashSem
-instance Render (Identity ctx) where renderPart = renderPartSem
-instance Eval   (Identity ctx) where evaluate   = evaluateSem
-instance ToTree (Identity ctx)
+instance Equality Identity where equal = equalDefault; exprHash = exprHashDefault
+instance Render   Identity where renderArgs = renderArgsDefault
+instance Eval     Identity where evaluate   = evaluateDefault
+instance ToTree   Identity
 

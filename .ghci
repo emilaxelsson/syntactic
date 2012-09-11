@@ -1,19 +1,17 @@
+:set -XConstraintKinds
 :set -XDeriveDataTypeable
 :set -XDeriveFunctor
-:set -XEmptyDataDecls
 :set -XFlexibleContexts
 :set -XFlexibleInstances
 :set -XFunctionalDependencies
 :set -XGADTs
 :set -XGeneralizedNewtypeDeriving
-:set -XMultiParamTypeClasses
 :set -XPatternGuards
 :set -XRank2Types
 :set -XScopedTypeVariables
 :set -XStandaloneDeriving
 :set -XTypeFamilies
 :set -XTypeOperators
-:set -XTypeSynonymInstances
 :set -XViewPatterns
 
 -- Convenience:

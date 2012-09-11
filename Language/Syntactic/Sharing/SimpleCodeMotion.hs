@@ -9,6 +9,7 @@ module Language.Syntactic.Sharing.SimpleCodeMotion
     , codeMotion
     , defaultBindDict
     , reifySmart
+    , reifySmartDefault
     ) where
 
 
@@ -17,8 +18,6 @@ import Control.Monad.State
 import Data.Set as Set
 import Data.Typeable
 
-import Data.Proxy
-
 import Language.Syntactic
 import Language.Syntactic.Constructs.Binding
 import Language.Syntactic.Constructs.Binding.HigherOrder
@@ -26,36 +25,35 @@ import Language.Syntactic.Constructs.Binding.HigherOrder
 
 
 -- | Interface for binding constructs
-data BindDict ctx dom = BindDict
+data BindDict dom = BindDict
     { prjVariable :: forall a   . dom a -> Maybe VarId
     , prjLambda   :: forall a   . dom a -> Maybe VarId
-    , injVariable :: forall a   . (Sat ctx a, Typeable a)            => ASTF dom a -> VarId -> dom (Full a)
-    , injLambda   :: forall a b . (Sat ctx a, Typeable a, Sat ctx b) => ASTF dom b -> VarId -> dom (b :-> Full (a -> b))
-    , injLet      :: forall a b . (Sat ctx a, Sat ctx b)             => ASTF dom b -> dom (a :-> (a -> b) :-> Full b)
+    , injVariable :: forall a   . ASTF dom a -> VarId -> dom (Full a)
+    , injLambda   :: forall a b . ASTF dom a -> ASTF dom b -> VarId -> dom (b :-> Full (a -> b))
+    , injLet      :: forall a b . ASTF dom b -> dom (a :-> (a -> b) :-> Full b)
     }
-  -- TODO `injLambda` has more constraints than the `Lambda` constructor. This
-  --      is demanded by the Feldspar implementation. One way to make things
-  --      more consistent would be to add an extra `ctx` parameter to `Lambda`
-  --      (like `Let`).
 
 -- | Substituting a sub-expression. Assumes no variable capturing in the
 -- expressions involved.
 substitute :: forall dom a b
-    .  (Typeable a, Typeable b, AlphaEq dom dom dom [(VarId,VarId)])
+    .  (ConstrainedBy dom Typeable, AlphaEq dom dom dom [(VarId,VarId)])
     => ASTF dom a  -- ^ Sub-expression to be replaced
     -> ASTF dom a  -- ^ Replacing sub-expression
     -> ASTF dom b  -- ^ Whole expression
     -> ASTF dom b
 substitute x y a
-    | Just y' <- gcast y, alphaEq x a = y'
+    | Dict :: Dict (Typeable a) <- exprDictSub y
+    , Dict :: Dict (Typeable b) <- exprDictSub a
+    , Just y' <- gcast y, alphaEq x a = y'
     | otherwise = subst a
   where
-    subst :: Typeable c => AST dom c -> AST dom c
+    subst :: AST dom c -> AST dom c
     subst (f :$ a) = subst f :$ substitute x y a
     subst a = a
 
 -- | Count the number of occurrences of a sub-expression
-count :: forall dom a b . AlphaEq dom dom dom [(VarId,VarId)]
+count :: forall dom a b
+    .  AlphaEq dom dom dom [(VarId,VarId)]
     => ASTF dom a  -- ^ Expression to count
     -> ASTF dom b  -- ^ Expression to count in
     -> Int
@@ -71,16 +69,12 @@ nonTerminal :: AST dom a -> Bool
 nonTerminal (_ :$ _) = True
 nonTerminal _        = False
 
-data SomeAST ctx dom
-  where
-    SomeAST :: (Sat ctx a, Typeable a) => ASTF dom a -> SomeAST ctx dom
-
 -- | Environment for the expression in the 'choose' function
-data Env ctx dom = Env
+data Env dom = Env
     { inLambda :: Bool  -- ^ Whether the current expression is inside a lambda
     , canShare :: forall a . dom a -> Bool
         -- ^ Whether a given symbol can be shared
-    , counter  :: SomeAST ctx dom -> Int
+    , counter  :: ASTE dom -> Int
         -- ^ Counting the number of occurrences of an expression in the
         -- environment
     , dependencies :: Set VarId
@@ -88,7 +82,7 @@ data Env ctx dom = Env
         -- expression
     }
 
-independent :: BindDict ctx dom -> Env ctx dom -> AST dom a -> Bool
+independent :: BindDict dom -> Env dom -> AST dom a -> Bool
 independent bindDict env (Sym (prjVariable bindDict -> Just v)) =
     not (v `member` dependencies env)
 independent bindDict env (f :$ a) =
@@ -96,47 +90,39 @@ independent bindDict env (f :$ a) =
 independent _ _ _ = True
 
 -- | Checks whether a sub-expression in a given environment can be lifted out
-liftable :: (Sat ctx a, Typeable a) =>
-    BindDict ctx dom -> Env ctx dom -> ASTF dom a -> Bool
+liftable :: BindDict dom -> Env dom -> ASTF dom a -> Bool
 liftable bindDict env a = independent bindDict env a && heuristic
     -- Lifting dependent expressions is semantically incorrect
   where
     heuristic
-        =  queryNodeSimple (const . canShare env) a
+        =  simpleMatch (const . canShare env) a
         && nonTerminal a
-        && (inLambda env || (counter env (SomeAST a) > 1))
+        && (inLambda env || (counter env (ASTE a) > 1))
 
 -- | Choose a sub-expression to share
 choose
-    :: ( AlphaEq dom dom dom [(VarId,VarId)]
-       , MaybeWitnessSat ctx dom
-       , Typeable a
-       )
-    => BindDict ctx dom
+    :: AlphaEq dom dom dom [(VarId,VarId)]
+    => BindDict dom
     -> (forall a . dom a -> Bool)
     -> ASTF dom a
-    -> Maybe (SomeAST ctx dom)
+    -> Maybe (ASTE dom)
 choose bindDict canShr a = chooseEnv bindDict env a
   where
     env = Env
         { inLambda     = False
         , canShare     = canShr
-        , counter      = \(SomeAST b) -> count b a
+        , counter      = \(ASTE b) -> count b a
         , dependencies = empty
         }
 
 -- | Choose a sub-expression to share in an 'Env' environment
-chooseEnv :: forall ctx dom a . (MaybeWitnessSat ctx dom, Typeable a) =>
-    BindDict ctx dom -> Env ctx dom -> ASTF dom a -> Maybe (SomeAST ctx dom)
+chooseEnv :: BindDict dom -> Env dom -> ASTF dom a -> Maybe (ASTE dom)
 chooseEnv bindDict env a
-    | Just SatWit <- maybeWitnessSat (Proxy :: Proxy ctx) a
-    , liftable bindDict env a
-    = Just (SomeAST a)
-    | otherwise = chooseEnvSub bindDict env a
+    | liftable bindDict env a = Just (ASTE a)
+    | otherwise               = chooseEnvSub bindDict env a
 
 -- | Like 'chooseEnv', but does not consider the top expression for sharing
-chooseEnvSub :: MaybeWitnessSat ctx dom =>
-    BindDict ctx dom -> Env ctx dom -> AST dom a -> Maybe (SomeAST ctx dom)
+chooseEnvSub :: BindDict dom -> Env dom -> AST dom a -> Maybe (ASTE dom)
 chooseEnvSub bindDict env (Sym (prjLambda bindDict -> Just v) :$ a) =
     chooseEnv bindDict env' a
   where
@@ -151,25 +137,19 @@ chooseEnvSub _ _ _ = Nothing
 
 
 -- | Perform common sub-expression elimination and variable hoisting
-codeMotion :: forall ctx dom a
-    .  ( AlphaEq dom dom dom [(VarId,VarId)]
-       , MaybeWitnessSat ctx dom
-       , Typeable a
+codeMotion :: forall dom a
+    .  ( ConstrainedBy dom Typeable
+       , AlphaEq dom dom dom [(VarId,VarId)]
        )
-    => BindDict ctx dom
+    => BindDict dom
     -> (forall a . dom a -> Bool)
     -> ASTF dom a
     -> State VarId (ASTF dom a)
 codeMotion bindDict canShr a
-    | Just SatWit <- maybeWitnessSat ctx a
-    , Just b      <- choose bindDict canShr a
-    = share b
-    | otherwise = descend a
+    | Just b <- choose bindDict canShr a = share b
+    | otherwise                          = descend a
   where
-    ctx = Proxy :: Proxy ctx
-
-    share :: Sat ctx a => SomeAST ctx dom -> State VarId (ASTF dom a)
-    share (SomeAST b) = do
+    share (ASTE b) = do
         b' <- codeMotion bindDict canShr b
         v  <- get; put (v+1)
         let x = Sym (injVariable bindDict b v)
@@ -177,51 +157,58 @@ codeMotion bindDict canShr a
         return
             $  Sym (injLet bindDict body)
             :$ b'
-            :$ (Sym (injLambda bindDict body v) :$ body)
+            :$ (Sym (injLambda bindDict b' body v) :$ body)
 
     descend :: AST dom b -> State VarId (AST dom b)
     descend (f :$ a) = liftM2 (:$) (descend f) (codeMotion bindDict canShr a)
-    descend a = return a
+    descend a        = return a
 
 
 
-defaultBindDict :: forall ctx dom
-    .  ( Variable ctx :<: dom
-       , Lambda ctx   :<: dom
-       , Let ctx ctx  :<: dom
-       )
-    => BindDict ctx dom
+defaultBindDict
+    :: (Variable :<: dom, Lambda :<: dom, Let :<: dom, Constrained dom)
+    => BindDict (dom :|| Typeable)
 defaultBindDict = BindDict
     { prjVariable = \a -> do
-        Variable v <- prjCtx ctx a
+        Variable v <- prj a
         return v
 
     , prjLambda = \a -> do
-        Lambda v <- prjCtx ctx a
+        Lambda v <- prj a
         return v
 
-    , injVariable = \_ v -> inj (Variable v `withContext` ctx)
-    , injLambda   = \_ v -> inj (Lambda   v `withContext` ctx)
-    , injLet      = \_   -> inj (letBind ctx)
+    , injVariable = \ref v -> case exprDict ref of
+        Dict -> C' $ inj (Variable v)
+    , injLambda = \refa refb v -> case (exprDict refa, exprDict refb) of
+        (Dict, Dict) -> C' $ inj (Lambda v)
+    , injLet = \ref -> case exprDict ref of
+        Dict -> C' $ inj Let
     }
-  where
-    ctx = Proxy :: Proxy ctx
 
 
+
+-- TODO Abstract away from Typeable?
 
 -- | Like 'reify' but with common sub-expression elimination and variable
 -- hoisting
-reifySmart :: forall ctx dom a
-    .  ( Let ctx ctx :<: dom
-       , AlphaEq dom dom (Lambda ctx :+: Variable ctx :+: dom) [(VarId,VarId)]
-       , MaybeWitnessSat ctx dom
-       , Syntactic a (HODomain ctx dom)
+reifySmart
+    :: ( AlphaEq dom dom ((Lambda :+: Variable :+: dom) :|| Typeable) [(VarId,VarId)]
+       , Syntactic a (HODomain dom Typeable)
        )
-    => (forall a . (Lambda ctx :+: Variable ctx :+: dom) a -> Bool)
+    => BindDict ((Lambda :+: Variable :+: dom) :|| Typeable)
+    -> (forall a . ((Lambda :+: Variable :+: dom) :|| Typeable) a -> Bool)
     -> a
-    -> ASTF (Lambda ctx :+: Variable ctx :+: dom) (Internal a)
-reifySmart canShr = flip evalState 0 .
+    -> ASTF ((Lambda :+: Variable :+: dom) :|| Typeable) (Internal a)
+reifySmart dict canShr = flip evalState 0 .
     (codeMotion dict canShr <=< reifyM . desugar)
-  where
-    dict = defaultBindDict :: BindDict ctx (Lambda ctx :+: Variable ctx :+: dom)
+
+reifySmartDefault
+    :: ( Let :<: dom
+       , AlphaEq dom dom ((Lambda :+: Variable :+: dom) :|| Typeable) [(VarId,VarId)]
+       , Syntactic a (HODomain dom Typeable)
+       )
+    => (forall a . ((Lambda :+: Variable :+: dom) :|| Typeable) a -> Bool)
+    -> a
+    -> ASTF ((Lambda :+: Variable :+: dom) :|| Typeable) (Internal a)
+reifySmartDefault = reifySmart defaultBindDict
 

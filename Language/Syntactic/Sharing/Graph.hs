@@ -14,7 +14,6 @@ import Data.List
 import Data.Typeable
 
 import Data.Hash
-import Data.Proxy
 
 import Language.Syntactic
 import Language.Syntactic.Constructs.Binding
@@ -30,13 +29,6 @@ import Language.Syntactic.Sharing.Utils
 newtype NodeId = NodeId { nodeInteger :: Integer }
   deriving (Eq, Ord, Num, Real, Integral, Enum, Ix)
 
-
-
--- | Placeholder for a syntax tree
-data Node ctx a
-  where
-    Node :: Sat ctx a => NodeId -> Node ctx (Full a)
-
 instance Show NodeId
   where
     show (NodeId i) = show i
@@ -46,22 +38,21 @@ showNode n = "node:" ++ show n
 
 
 
-instance WitnessCons (Node ctx)
+-- | Placeholder for a syntax tree
+data Node a
   where
-    witnessCons (Node _) = ConsWit
+    Node :: NodeId -> Node (Full a)
 
-instance Render (Node ctx)
+instance Constrained Node
+  where
+    type Sat Node = Top
+    exprDict _ = Dict
+
+instance Render Node
   where
     render (Node a) = showNode a
 
-instance ToTree (Node ctx)
-
-
-
--- | An 'ASTF' with hidden result type
-data SomeAST dom
-  where
-    SomeAST :: Typeable a => ASTF dom a -> SomeAST dom
+instance ToTree Node
 
 
 
@@ -75,7 +66,7 @@ type EqEnv dom = ([(VarId,VarId)], NodeEnv dom)
 
 type NodeEnv dom =
     ( Array NodeId Hash
-    , Array NodeId (SomeAST dom)
+    , Array NodeId (ASTB dom)
     )
 
 instance NodeEqEnv dom (EqEnv dom)
@@ -89,7 +80,7 @@ instance VarEqEnv (EqEnv dom)
     modVarEqEnv f = (f *** id)
 
 instance (AlphaEq dom dom dom env, NodeEqEnv dom env) =>
-    AlphaEq (Node ctx) (Node ctx) dom env
+    AlphaEq Node Node dom env
   where
     alphaEqSym (Node n1) Nil (Node n2) Nil
         | n1 == n2  = return True
@@ -98,7 +89,7 @@ instance (AlphaEq dom dom dom env, NodeEqEnv dom env) =>
             if hTab!n1 /= hTab!n2
               then return False
               else case (nTab!n1, nTab!n2) of
-                  (SomeAST a, SomeAST b) -> alphaEqM a b
+                  (ASTB a, ASTB b) -> alphaEqM a b
                     -- TODO The result could be memoized in a
                     -- @Map (NodeId,NodeId) Bool@
 
@@ -115,16 +106,18 @@ instance (AlphaEq dom dom dom env, NodeEqEnv dom env) =>
 --
 -- A representation of a syntax tree with explicit sharing. An 'ASG' is valid if
 -- and only if 'inlineAll' succeeds (and the 'numNodes' field is correct).
-data ASG ctx dom a = ASG
-    { topExpression :: ASTF (Node ctx :+: dom) a               -- ^ Top-level expression
-    , graphNodes    :: [(NodeId, SomeAST (Node ctx :+: dom))]  -- ^ Mapping from node id to sub-expression
-    , numNodes      :: NodeId                                  -- ^ Total number of nodes
+data ASG dom a = ASG
+    { topExpression :: ASTF (NodeDomain dom) a            -- ^ Top-level expression
+    , graphNodes    :: [(NodeId, ASTB (NodeDomain dom))]  -- ^ Mapping from node id to sub-expression
+    , numNodes      :: NodeId                             -- ^ Total number of nodes
     }
+
+type NodeDomain dom = (Node :+: dom) :|| Sat dom
 
 
 
 -- | Show syntax graph using ASCII art
-showASG :: ToTree dom => ASG ctx dom a -> String
+showASG :: ToTree dom => ASG dom a -> String
 showASG (ASG top nodes _) =
     unlines ((line "top" ++ showAST top) : map showNode nodes)
   where
@@ -132,56 +125,49 @@ showASG (ASG top nodes _) =
       where
         rest = take (40 - length str) $ repeat '-'
 
-    showNode (n, SomeAST expr) = concat
+    showNode (n, ASTB expr) = concat
       [ line ("node:" ++ show n)
       , showAST expr
       ]
 
 -- | Print syntax graph using ASCII art
-drawASG :: ToTree dom => ASG ctx dom a -> IO ()
+drawASG :: ToTree dom => ASG dom a -> IO ()
 drawASG = putStrLn . showASG
 
 -- | Update the node identifiers in an 'AST' using the supplied reindexing
 -- function
 reindexNodesAST ::
-    (NodeId -> NodeId) -> AST (Node ctx :+: dom) a -> AST (Node ctx :+: dom) a
-reindexNodesAST reix (Sym (InjL (Node n))) = Sym (InjL (Node $ reix n))
-reindexNodesAST reix (f :$ a) = reindexNodesAST reix f :$ reindexNodesAST reix a
+    (NodeId -> NodeId) -> AST (NodeDomain dom) a -> AST (NodeDomain dom) a
+reindexNodesAST reix (Sym (C' (InjL (Node n)))) = injC $ Node $ reix n
+reindexNodesAST reix (s :$ a) = reindexNodesAST reix s :$ reindexNodesAST reix a
 reindexNodesAST reix a = a
 
 -- | Reindex the nodes according to the given index mapping. The number of nodes
 -- is unchanged, so if the index mapping is not 1:1, the resulting graph will
 -- contain duplicates.
-reindexNodes :: (NodeId -> NodeId) -> ASG ctx dom a -> ASG ctx dom a
+reindexNodes :: (NodeId -> NodeId) -> ASG dom a -> ASG dom a
 reindexNodes reix (ASG top nodes n) = ASG top' nodes' n
   where
     top'   = reindexNodesAST reix top
     nodes' =
-      [ (reix n, SomeAST $ reindexNodesAST reix a)
-        | (n, SomeAST a) <- nodes
+      [ (reix n, ASTB $ reindexNodesAST reix a)
+        | (n, ASTB a) <- nodes
       ]
 
 -- | Reindex the nodes to be in the range @[0 .. l-1]@, where @l@ is the number
 -- of nodes in the graph
-reindexNodesFrom0 :: ASG ctx dom a -> ASG ctx dom a
+reindexNodesFrom0 :: ASG dom a -> ASG dom a
 reindexNodesFrom0 graph = reindexNodes reix graph
   where
     reix = reindex $ map fst $ graphNodes graph
 
 -- | Remove duplicate nodes from a graph. The function only looks at the
 -- 'NodeId' of each node. The 'numNodes' field is updated accordingly.
-nubNodes :: ASG ctx dom a -> ASG ctx dom a
+nubNodes :: ASG dom a -> ASG dom a
 nubNodes (ASG top nodes n) = ASG top nodes' n'
   where
     nodes' = nubBy ((==) `on` fst) nodes
     n'     = genericLength nodes'
-
-liftSome2
-    :: (forall a b . ASTF (Node ctx :+: dom) a -> ASTF (Node ctx :+: dom) b -> c)
-    -> SomeAST (Node ctx :+: dom)
-    -> SomeAST (Node ctx :+: dom)
-    -> c
-liftSome2 f (SomeAST a) (SomeAST b) = f a b
 
 
 
@@ -212,19 +198,17 @@ instance Functor (SyntaxPF dom)
 -- The result contains the result of folding the whole graph as well as the
 -- result of each internal node, represented both as an array and an association
 -- list. Each node is processed exactly once.
-foldGraph :: forall ctx dom a b
-    .  (SyntaxPF dom b -> b)
-    -> ASG ctx dom a
-    -> (b, (Array NodeId b, [(NodeId,b)]))
-foldGraph alg graph@(ASG top ns nn) = (g top, (arr,nodes))
+foldGraph :: forall dom a b .
+    (SyntaxPF dom b -> b) -> ASG dom a -> (b, (Array NodeId b, [(NodeId,b)]))
+foldGraph alg (ASG top ns nn) = (g top, (arr,nodes))
   where
-    nodes = [(n, g expr) | (n, SomeAST expr) <- ns]
+    nodes = [(n, g expr) | (n, ASTB expr) <- ns]
     arr   = array (0, nn-1) nodes
 
-    g :: Signature c => AST (Node ctx :+: dom) c -> b
-    g (h :$ a)               = alg $ AppPF (g h) (g a)
-    g (Sym (InjL (Node n)) ) = alg $ NodePF n (arr!n)
-    g (Sym (InjR a))         = alg $ DomPF a
+    g :: AST (NodeDomain dom) c -> b
+    g (h :$ a)                   = alg $ AppPF (g h) (g a)
+    g (Sym (C' (InjL (Node n)))) = alg $ NodePF n (arr!n)
+    g (Sym (C' (InjR a)))        = alg $ DomPF a
 
 
 
@@ -233,25 +217,28 @@ foldGraph alg graph@(ASG top ns nn) = (g top, (arr,nodes))
 --------------------------------------------------------------------------------
 
 -- | Convert an 'ASG' to an 'AST' by inlining all nodes
-inlineAll :: forall ctx dom a . Typeable a => ASG ctx dom a -> ASTF dom a
+inlineAll :: forall dom a . ConstrainedBy dom Typeable =>
+    ASG dom a -> ASTF dom a
 inlineAll (ASG top nodes n) = inline top
   where
     nodeMap = array (0, n-1) nodes
 
-    inline :: forall b. (Typeable b, Signature b) =>
-        AST (Node ctx :+: dom) b -> AST dom b
-    inline (f :$ a) = inline f :$ inline a
-    inline (Sym (InjL (Node n))) = case nodeMap ! n of
-        SomeAST a -> case gcast a of
-          Nothing -> error "inlineAll: type mismatch"
-          Just a  -> inline a
-    inline (Sym (InjR a)) = Sym a
+    inline :: AST (NodeDomain dom) b -> AST dom b
+    inline (s :$ a) = inline s :$ inline a
+    inline s@(Sym (C' (InjL (Node n)))) = case nodeMap ! n of
+        ASTB a
+          | Dict :: Dict (Typeable x) <- exprDictSub s
+          , Dict :: Dict (Typeable y) <- exprDictSub a
+          -> case gcast a of
+               Nothing -> error "inlineAll: type mismatch"
+               Just a  -> inline a
+    inline (Sym (C' (InjR a))) = Sym a
 
 
 
 -- | Find the child nodes of each node in an expression. The child nodes of a
 -- node @n@ are the first nodes along all paths from @n@.
-nodeChildren :: ASG ctx dom a -> [(NodeId, [NodeId])]
+nodeChildren :: ASG dom a -> [(NodeId, [NodeId])]
 nodeChildren = map (id *** fromDList) . snd . snd . foldGraph children
   where
     children :: SyntaxPF dom (DList NodeId) -> DList (NodeId)
@@ -260,33 +247,36 @@ nodeChildren = map (id *** fromDList) . snd . snd . foldGraph children
     children _               = empty
 
 -- | Count the number of occurrences of each node in an expression
-occurrences :: ASG ctx dom a -> Array NodeId Int
+occurrences :: ASG dom a -> Array NodeId Int
 occurrences graph
     = count (0, numNodes graph - 1)
     $ concatMap snd
     $ nodeChildren graph
 
 -- | Inline all nodes that are not shared
-inlineSingle :: forall ctx dom a . Typeable a => ASG ctx dom a -> ASG ctx dom a
+inlineSingle :: forall dom a . ConstrainedBy dom Typeable =>
+    ASG dom a -> ASG dom a
 inlineSingle graph@(ASG top nodes n) = ASG top' nodes' n'
   where
     nodeTab  = array (0, n-1) nodes
     occs     = occurrences graph
 
     top'   = inline top
-    nodes' = [(n, SomeAST (inline a)) | (n, SomeAST a) <- nodes, occs!n > 1]
+    nodes' = [(n, ASTB (inline a)) | (n, ASTB a) <- nodes, occs!n > 1]
     n'     = genericLength nodes'
 
-    inline :: forall b. (Typeable b, Signature b) =>
-        AST (Node ctx :+: dom) b -> AST (Node ctx :+: dom) b
-    inline (f :$ a) = inline f :$ inline a
-    inline (Sym (InjL (Node n)))
-        | occs!n > 1 = Sym (InjL (Node n))
+    inline :: AST (NodeDomain dom) b -> AST (NodeDomain dom) b
+    inline (s :$ a) = inline s :$ inline a
+    inline s@(Sym (C' (InjL (Node n))))
+        | occs!n > 1 = injC $ Node n
         | otherwise = case nodeTab ! n of
-            SomeAST a -> case gcast a of
-                Nothing -> error "inlineSingle: type mismatch"
-                Just a  -> inline a
-    inline (Sym (InjR a)) = Sym (InjR a)
+            ASTB a
+              | Dict :: Dict (Typeable x) <- exprDictSub s
+              , Dict :: Dict (Typeable y) <- exprDictSub a
+              -> case gcast a of
+                   Nothing -> error "inlineSingle: type mismatch"
+                   Just a  -> inline a
+    inline (Sym (C' (InjR a))) = Sym $ C' $ InjR a
 
 
 
@@ -296,8 +286,7 @@ inlineSingle graph@(ASG top nodes n) = ASG top' nodes' n'
 
 -- | Compute a table (both array and list representation) of hash values for
 -- each node
-hashNodes :: ExprEq dom =>
-    ASG ctx dom a -> (Array NodeId Hash, [(NodeId, Hash)])
+hashNodes :: Equality dom => ASG dom a -> (Array NodeId Hash, [(NodeId, Hash)])
 hashNodes = snd . foldGraph hashNode
   where
     hashNode (AppPF h1 h2) = hashInt 0 `combine` h1 `combine` h2
@@ -308,11 +297,11 @@ hashNodes = snd . foldGraph hashNode
 
 -- | Partitions the nodes such that two nodes are in the same sub-list if and
 -- only if they are alpha-equivalent.
-partitionNodes :: forall ctx dom a
-    .  ( ExprEq dom
-       , AlphaEq dom dom (Node ctx :+: dom) (EqEnv (Node ctx :+: dom))
+partitionNodes :: forall dom a
+    .  ( Equality dom
+       , AlphaEq dom dom (NodeDomain dom) (EqEnv (NodeDomain dom))
        )
-    => ASG ctx dom a -> [[NodeId]]
+    => ASG dom a -> [[NodeId]]
 partitionNodes graph = concatMap (fullPartition nodeEq) approxPartitioning
   where
     nTab          = array (0, numNodes graph - 1) (graphNodes graph)
@@ -329,17 +318,17 @@ partitionNodes graph = concatMap (fullPartition nodeEq) approxPartitioning
 
     nodeEq :: NodeId -> NodeId -> Bool
     nodeEq n1 n2 = runReader
-        (liftSome2 alphaEqM (nTab!n1) (nTab!n2))
-        (([],(hTab,nTab)) :: EqEnv (Node ctx :+: dom))
+        (liftASTB2 alphaEqM (nTab!n1) (nTab!n2))
+        (([],(hTab,nTab)) :: EqEnv (NodeDomain dom))
 
 
 
 -- | Common sub-expression elimination based on alpha-equivalence
 cse
-    :: ( ExprEq dom
-       , AlphaEq dom dom (Node ctx :+: dom) (EqEnv (Node ctx :+: dom))
+    :: ( Equality dom
+       , AlphaEq dom dom (NodeDomain dom) (EqEnv (NodeDomain dom))
        )
-    => ASG ctx dom a -> ASG ctx dom a
+    => ASG dom a -> ASG dom a
 cse graph@(ASG top nodes n) = nubNodes $ reindexNodes (reixTab!) graph
   where
     parts   = partitionNodes graph

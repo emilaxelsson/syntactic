@@ -1,5 +1,3 @@
-{-# LANGUAGE OverlappingInstances #-}
-
 -- | Provides a simple way to make syntactic constructs for prototyping. Note
 -- that 'Construct' is quite unsafe as it only uses 'String' to distinguish
 -- between different constructs. Also, 'Construct' has a very free type that
@@ -9,60 +7,25 @@ module Language.Syntactic.Constructs.Construct where
 
 
 
-import Data.Typeable
-
-import Data.Hash
-import Data.Proxy
-
 import Language.Syntactic
 
 
 
-data Construct ctx a
+data Construct sig
   where
-    Construct :: (Signature a, Sat ctx (DenResult a)) =>
-        String -> Denotation a -> Construct ctx a
+    Construct :: String -> Denotation sig -> Construct sig
 
-instance WitnessCons (Construct ctx)
+instance Constrained Construct
   where
-    witnessCons (Construct _ _) = ConsWit
+    type Sat Construct = Top
+    exprDict _ = Dict
 
-instance WitnessSat (Construct ctx)
+instance Semantic Construct
   where
-    type SatContext (Construct ctx) = ctx
-    witnessSat (Construct _ _) = SatWit
+    semantics (Construct name den) = Sem name den
 
-instance MaybeWitnessSat ctx (Construct ctx)
-  where
-    maybeWitnessSat = maybeWitnessSatDefault
-
-instance MaybeWitnessSat ctx1 (Construct ctx2)
-  where
-    maybeWitnessSat _ _ = Nothing
-
-instance ExprEq (Construct ctx)
-  where
-    exprEq (Construct a _) (Construct b _) = a==b
-    exprHash (Construct name _)            = hash name
-
-instance Render (Construct ctx)
-  where
-    renderPart [] (Construct name _) = name
-    renderPart args (Construct name _)
-        | isInfix   = "(" ++ unwords [a,op,b] ++ ")"
-        | otherwise = "(" ++ unwords (name : args) ++ ")"
-      where
-        [a,b] = args
-        op    = init $ tail name
-        isInfix
-          =  not (null name)
-          && head name == '('
-          && last name == ')'
-          && length args == 2
-
-instance ToTree (Construct ctx)
-
-instance Eval (Construct ctx)
-  where
-    evaluate (Construct _ a) = fromEval a
+instance Equality Construct where equal = equalDefault; exprHash = exprHashDefault
+instance Render   Construct where renderArgs = renderArgsDefault
+instance Eval     Construct where evaluate   = evaluateDefault
+instance ToTree   Construct
 

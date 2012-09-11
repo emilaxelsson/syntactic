@@ -1,7 +1,7 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 
 -- | A simple vector library for NanoFeldspar. The intention of this module is
 -- to demonstrate how to add language features without extending the underlying
@@ -21,7 +21,7 @@ module NanoFeldspar.Vector where
 
 import Prelude hiding (length, map, (==), max, min, reverse, sum, unzip, zip, zipWith)
 
-import Language.Syntactic
+import Language.Syntactic (Syntactic (..), resugar)
 
 import NanoFeldspar.Core
 

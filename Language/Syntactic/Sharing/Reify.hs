@@ -1,7 +1,7 @@
 -- | Reifying the sharing in an 'AST'
 --
--- This module is based on /Type-Safe Observable Sharing in Haskell/ (Andy Gill,
--- /Haskell Symposium/, 2009).
+-- This module is based on the paper /Type-Safe Observable Sharing in Haskell/
+-- (Andy Gill, 2009, <http://dx.doi.org/10.1145/1596638.1596653>).
 
 module Language.Syntactic.Sharing.Reify
     ( reifyGraph
@@ -12,7 +12,6 @@ module Language.Syntactic.Sharing.Reify
 import Control.Monad.Writer
 import Data.IntMap as Map
 import Data.IORef
-import Data.Typeable
 import System.Mem.StableName
 
 import Language.Syntactic
@@ -24,40 +23,41 @@ import Language.Syntactic.Sharing.StableName
 -- | Shorthand used by 'reifyGraphM'
 --
 -- Writes out a list of encountered nodes and returns the top expression.
-type GraphMonad ctx dom a = WriterT
-      [(NodeId, SomeAST (Node ctx :+: dom))]
+type GraphMonad dom a = WriterT
+      [(NodeId, ASTB (NodeDomain dom))]
       IO
-      (AST (Node ctx :+: dom) a)
+      (AST (NodeDomain dom) a)
 
 
 
-reifyGraphM :: forall ctx dom a . Typeable a
-    => (forall a . ASTF dom a -> Maybe (SatWit ctx a))
+reifyGraphM :: forall dom a . Constrained dom
+    => (forall a . ASTF dom a -> Bool)
     -> IORef NodeId
     -> IORef (History (AST dom))
     -> ASTF dom a
-    -> GraphMonad ctx dom (Full a)
+    -> GraphMonad dom (Full a)
 
 reifyGraphM canShare nSupp history = reifyNode
   where
-    reifyNode :: Typeable b => ASTF dom b -> GraphMonad ctx dom (Full b)
-    reifyNode a = case canShare a of
-        Nothing -> reifyRec a
-        Just SatWit | a `seq` True -> do
-          st   <- liftIO $ makeStableName a
-          hist <- liftIO $ readIORef history
-          case lookHistory hist (StName st) of
-            Just n -> return $ Sym $ InjL $ Node n
-            _ -> do
-              n  <- fresh nSupp
-              liftIO $ modifyIORef history $ remember (StName st) n
-              a' <- reifyRec a
-              tell [(n, SomeAST a')]
-              return $ Sym $ InjL $ Node n
+    reifyNode :: ASTF dom b -> GraphMonad dom (Full b)
+    reifyNode a
+      | Dict <- exprDict a = case canShare a of
+          False               -> reifyRec a
+          True | a `seq` True -> do
+            st   <- liftIO $ makeStableName a
+            hist <- liftIO $ readIORef history
+            case lookHistory hist (StName st) of
+              Just n -> return $ injC $ Node n
+              _ -> do
+                n  <- fresh nSupp
+                liftIO $ modifyIORef history $ remember (StName st) n
+                a' <- reifyRec a
+                tell [(n, ASTB a')]
+                return $ injC $ Node n
 
-    reifyRec :: AST dom b -> GraphMonad ctx dom b
+    reifyRec :: Sat dom (DenResult b) => AST dom b -> GraphMonad dom b
     reifyRec (f :$ a) = liftM2 (:$) (reifyRec f) (reifyNode a)
-    reifyRec (Sym a)  = return $ Sym (InjR a)
+    reifyRec (Sym s)  = return $ Sym $ C' $ InjR s
 
 
 
@@ -66,14 +66,11 @@ reifyGraphM canShare nSupp history = reifyNode
 -- This function is not referentially transparent (hence the 'IO'). However, it
 -- is well-behaved in the sense that the worst thing that could happen is that
 -- sharing is lost. It is not possible to get false sharing.
-reifyGraph :: Typeable a
-    => (forall a . ASTF dom a -> Maybe (SatWit ctx a))
-         -- ^ A function that decides whether a given node can be shared.
-         -- 'Nothing' means \"don't share\"; 'Just' means \"share\". Nodes whose
-         -- result type fulfills @(`Sat` ctx a)@ can be shared, which is why the
-         -- function returns a 'SatWit'.
+reifyGraph :: Constrained dom
+    => (forall a . ASTF dom a -> Bool)
+         -- ^ A function that decides whether a given node can be shared
     -> ASTF dom a
-    -> IO (ASG ctx dom a)
+    -> IO (ASG dom a)
 reifyGraph canShare a = do
     nSupp   <- newIORef 0
     history <- newIORef empty

@@ -4,7 +4,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | A minimal Feldspar core language implementation. The intention of this
@@ -25,7 +24,6 @@ module NanoFeldspar.Core where
 import Data.Typeable
 
 import Language.Syntactic
-import Language.Syntactic.Interpretation.Semantics
 import Language.Syntactic.Constructs.Binding
 import Language.Syntactic.Constructs.Binding.HigherOrder
 import Language.Syntactic.Constructs.Condition
@@ -43,6 +41,7 @@ import Language.Syntactic.Sharing.SimpleCodeMotion
 -- | Convenient class alias
 class    (Ord a, Show a, Typeable a) => Type a
 instance (Ord a, Show a, Typeable a) => Type a
+  -- TODO Use type synonym instead?
 
 type Length = Int
 type Index  = Int
@@ -57,18 +56,10 @@ data Parallel a
   where
     Parallel :: Type a => Parallel (Length :-> (Index -> a) :-> Full [a])
 
-instance WitnessCons Parallel
+instance Constrained Parallel
   where
-    witnessCons Parallel = ConsWit
-
-instance WitnessSat Parallel
-  where
-    type SatContext Parallel = SimpleCtx
-    witnessSat Parallel = SatWit
-
-instance MaybeWitnessSat SimpleCtx Parallel
-  where
-    maybeWitnessSat = maybeWitnessSatDefault
+    type Sat Parallel = Type
+    exprDict Parallel = Dict
 
 instance Semantic Parallel
   where
@@ -77,14 +68,13 @@ instance Semantic Parallel
         , semanticEval = \len ixf -> map ixf [0 .. len-1]
         }
 
-instance ExprEq   Parallel where exprEq = exprEqSem; exprHash = exprHashSem
-instance Render   Parallel where renderPart = renderPartSem
-instance Eval     Parallel where evaluate   = evaluateSem
+instance Equality Parallel where equal = equalDefault; exprHash = exprHashDefault
+instance Render   Parallel where renderArgs = renderArgsDefault
+instance Eval     Parallel where evaluate   = evaluateDefault
 instance ToTree   Parallel
 instance EvalBind Parallel where evalBindSym = evalBindSymDefault
 
-instance (AlphaEq dom dom dom env, Parallel :<: dom) =>
-    AlphaEq Parallel Parallel dom env
+instance AlphaEq dom dom dom env => AlphaEq Parallel Parallel dom env
   where
     alphaEqSym = alphaEqSymDefault
 
@@ -99,18 +89,10 @@ data ForLoop a
     ForLoop :: Type st =>
         ForLoop (Length :-> st :-> (Index -> st -> st) :-> Full st)
 
-instance WitnessCons ForLoop
+instance Constrained ForLoop
   where
-    witnessCons ForLoop = ConsWit
-
-instance WitnessSat ForLoop
-  where
-    type SatContext ForLoop = SimpleCtx
-    witnessSat ForLoop = SatWit
-
-instance MaybeWitnessSat SimpleCtx ForLoop
-  where
-    maybeWitnessSat = maybeWitnessSatDefault
+    type Sat ForLoop = Type
+    exprDict ForLoop = Dict
 
 instance Semantic ForLoop
   where
@@ -120,14 +102,13 @@ instance Semantic ForLoop
         }
 
 
-instance ExprEq   ForLoop where exprEq = exprEqSem; exprHash = exprHashSem
-instance Render   ForLoop where renderPart = renderPartSem
-instance Eval     ForLoop where evaluate   = evaluateSem
+instance Equality ForLoop where equal = equalDefault; exprHash = exprHashDefault
+instance Render   ForLoop where renderArgs = renderArgsDefault
+instance Eval     ForLoop where evaluate   = evaluateDefault
 instance ToTree   ForLoop
 instance EvalBind ForLoop where evalBindSym = evalBindSymDefault
 
-instance (AlphaEq dom dom dom env, ForLoop :<: dom) =>
-    AlphaEq ForLoop ForLoop dom env
+instance AlphaEq dom dom dom env => AlphaEq ForLoop ForLoop dom env
   where
     alphaEqSym = alphaEqSymDefault
 
@@ -139,16 +120,15 @@ instance (AlphaEq dom dom dom env, ForLoop :<: dom) =>
 
 -- | The Feldspar domain
 type FeldDomain
-    =   Construct SimpleCtx
-    :+: Literal SimpleCtx
-    :+: Condition SimpleCtx
-    :+: Tuple SimpleCtx
-    :+: Select SimpleCtx
-    :+: Let SimpleCtx SimpleCtx
+    =   Construct
+    :+: Literal
+    :+: Condition
+    :+: Tuple
+    :+: Select
     :+: Parallel
     :+: ForLoop
 
-type FeldDomainAll = HODomain SimpleCtx FeldDomain
+type FeldDomainAll = HODomain (Let :+: (FeldDomain :|| Eq :| Show)) Typeable
 
 newtype Data a = Data { unData :: ASTF FeldDomainAll a }
 
@@ -165,21 +145,41 @@ instance (Syntactic a FeldDomainAll, Type (Internal a)) => Syntax a
 
 
 
+defaultBindDict2 ::
+    BindDict ((Lambda :+: Variable :+: Let :+: (FeldDomain :|| Eq :| Show)) :|| Typeable)
+defaultBindDict2 = BindDict
+    { prjVariable = \a -> do
+        Variable v <- prj a
+        return v
+    , prjLambda = \a -> do
+        Lambda v <- prj a
+        return v
+    , injVariable = \ref v -> case exprDict ref of
+        Dict -> injC (Variable v)
+    , injLambda = \refa refb v -> case (exprDict refa, exprDict refb) of
+        (Dict,Dict) -> injC (Lambda v)
+    , injLet = \ref -> case exprDict ref of
+        Dict -> injC Let  -- TODO Generalize the pattern of `Dict` matching
+                          --      followed by `injC`
+    }
+
+
+
 --------------------------------------------------------------------------------
 -- * Back ends
 --------------------------------------------------------------------------------
 
 -- | Print the expression
 printFeld :: Syntactic a FeldDomainAll => a -> IO ()
-printFeld = printExpr . reifySmart (const True)
+printFeld = printExpr . reifySmart defaultBindDict2 (const True)
 
 -- | Draw the syntax tree
 drawFeld :: Syntactic a FeldDomainAll => a -> IO ()
-drawFeld = drawAST . reifySmart (const True)
+drawFeld = drawAST . reifySmart defaultBindDict2 (const True)
 
 -- | Evaluation
 eval :: Syntactic a FeldDomainAll => a -> Internal a
-eval = evalBind . reifySmart (const True)
+eval = evalBind . reifySmart defaultBindDict2 (const True)
 
 
 
@@ -189,7 +189,7 @@ eval = evalBind . reifySmart (const True)
 
 -- | Literal
 value :: Syntax a => Internal a -> a
-value = sugarSymCtx simpleCtx . Literal
+value = sugarSymC . Literal
 
 false :: Data Bool
 false = value False
@@ -204,7 +204,7 @@ force = resugar
 
 -- | Share a value using let binding
 share :: (Syntax a, Syntax b) => a -> (a -> b) -> b
-share = sugarSym (letBind simpleCtx)
+share = sugarSymC Let
 
 -- | Alpha equivalence
 instance Type a => Eq (Data a)
@@ -218,28 +218,28 @@ instance Type a => Show (Data a)
 instance (Type a, Num a) => Num (Data a)
   where
     fromInteger = value . fromInteger
-    abs         = sugarSymCtx simpleCtx $ Construct "abs" abs
-    signum      = sugarSymCtx simpleCtx $ Construct "signum" signum
-    (+)         = sugarSymCtx simpleCtx $ Construct "(+)" (+)
-    (-)         = sugarSymCtx simpleCtx $ Construct "(-)" (-)
-    (*)         = sugarSymCtx simpleCtx $ Construct "(*)" (*)
+    abs         = sugarSymC $ Construct "abs" abs
+    signum      = sugarSymC $ Construct "signum" signum
+    (+)         = sugarSymC $ Construct "(+)" (+)
+    (-)         = sugarSymC $ Construct "(-)" (-)
+    (*)         = sugarSymC $ Construct "(*)" (*)
 
 (?) :: Syntax a => Data Bool -> (a,a) -> a
-cond ? (t,e) = sugarSymCtx simpleCtx Condition cond t e
+cond ? (t,e) = sugarSymC Condition cond t e
 
 -- | Parallel array
 parallel :: Type a => Data Length -> (Data Index -> Data a) -> Data [a]
-parallel = sugarSym Parallel
+parallel = sugarSymC Parallel
 
 forLoop :: Syntax st => Data Length -> st -> (Data Index -> st -> st) -> st
-forLoop = sugarSym ForLoop
+forLoop = sugarSymC ForLoop
 
 arrLength :: Type a => Data [a] -> Data Length
-arrLength = sugarSymCtx simpleCtx $ Construct "arrLength" Prelude.length
+arrLength = sugarSymC $ Construct "arrLength" Prelude.length
 
 -- | Array indexing
 getIx :: Type a => Data [a] -> Data Index -> Data a
-getIx = sugarSymCtx simpleCtx $ Construct "getIx" eval
+getIx = sugarSymC $ Construct "getIx" eval
   where
     eval as i
         | i >= len || i < 0 = error "getIx: index out of bounds"
@@ -248,14 +248,14 @@ getIx = sugarSymCtx simpleCtx $ Construct "getIx" eval
         len = Prelude.length as
 
 not :: Data Bool -> Data Bool
-not = sugarSymCtx simpleCtx $ Construct "not" Prelude.not
+not = sugarSymC $ Construct "not" Prelude.not
 
 (==) :: Type a => Data a -> Data a -> Data Bool
-(==) = sugarSymCtx simpleCtx $ Construct "(==)" (Prelude.==)
+(==) = sugarSymC $ Construct "(==)" (Prelude.==)
 
 max :: Type a => Data a -> Data a -> Data a
-max = sugarSymCtx simpleCtx $ Construct "max" Prelude.max
+max = sugarSymC $ Construct "max" Prelude.max
 
 min :: Type a => Data a -> Data a -> Data a
-min = sugarSymCtx simpleCtx $ Construct "min" Prelude.min
+min = sugarSymC $ Construct "min" Prelude.min
 

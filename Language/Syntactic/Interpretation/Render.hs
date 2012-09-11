@@ -15,23 +15,23 @@ import Language.Syntactic.Syntax
 
 
 -- | Render an expression as concrete syntax. A complete instance must define
--- either of the methods 'render' and 'renderPart'.
+-- either of the methods 'render' and 'renderArgs'.
 class Render expr
   where
     -- | Render an expression as a 'String'
     render :: expr a -> String
-    render = renderPart []
+    render = renderArgs []
 
-    -- | Render a partially applied constructor given a list of rendered missing
+    -- | Render a partially applied expression given a list of rendered missing
     -- arguments
-    renderPart :: [String] -> expr a -> String
-    renderPart []   a = render a
-    renderPart args a = "(" ++ unwords (render a : args) ++ ")"
+    renderArgs :: [String] -> expr a -> String
+    renderArgs []   a = render a
+    renderArgs args a = "(" ++ unwords (render a : args) ++ ")"
 
 instance Render dom => Render (AST dom)
   where
-    renderPart args (Sym a)  = renderPart args a
-    renderPart args (f :$ a) = renderPart (render a : args) f
+    renderArgs args (Sym a)  = renderArgs args a
+    renderArgs args (s :$ a) = renderArgs (render a : args) s
 
 instance Render dom => Show (AST dom a)
   where
@@ -39,8 +39,8 @@ instance Render dom => Show (AST dom a)
 
 instance (Render expr1, Render expr2) => Render (expr1 :+: expr2)
   where
-    renderPart args (InjL a) = renderPart args a
-    renderPart args (InjR a) = renderPart args a
+    renderArgs args (InjL a) = renderArgs args a
+    renderArgs args (InjR a) = renderArgs args a
 
 instance (Render expr1, Render expr2) => Show ((expr1 :+: expr2) a)
   where
@@ -54,24 +54,24 @@ printExpr = putStrLn . render
 
 class Render expr => ToTree expr
   where
-    -- | Convert a partially applied constructor to a syntax tree given a list
-    -- of rendered missing arguments
-    toTreePart :: [Tree String] -> expr a -> Tree String
-    toTreePart args a = Node (render a) args
+    -- | Convert a partially applied expression to a syntax tree given a list of
+    -- rendered missing arguments
+    toTreeArgs :: [Tree String] -> expr a -> Tree String
+    toTreeArgs args a = Node (render a) args
 
 instance ToTree dom => ToTree (AST dom)
   where
-    toTreePart args (Sym a)  = toTreePart args a
-    toTreePart args (f :$ a) = toTreePart (toTree a : args) f
+    toTreeArgs args (Sym a)  = toTreeArgs args a
+    toTreeArgs args (s :$ a) = toTreeArgs (toTree a : args) s
 
 instance (ToTree expr1, ToTree expr2) => ToTree (expr1 :+: expr2)
   where
-    toTreePart args (InjL a) = toTreePart args a
-    toTreePart args (InjR a) = toTreePart args a
+    toTreeArgs args (InjL a) = toTreeArgs args a
+    toTreeArgs args (InjR a) = toTreeArgs args a
 
 -- | Convert an expression to a syntax tree
 toTree :: ToTree expr => expr a -> Tree String
-toTree = toTreePart []
+toTree = toTreeArgs []
 
 -- | Show syntax tree using ASCII art
 showAST :: ToTree dom => AST dom a -> String

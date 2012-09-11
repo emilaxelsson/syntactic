@@ -1,17 +1,14 @@
-{-# OPTIONS_GHC -fcontext-stack=100 #-}
-
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module NanoFeldspar.Extra where
 
 
+
+import Data.Typeable
 
 import Language.Syntactic
 import Language.Syntactic.Constructs.Binding
@@ -32,10 +29,10 @@ import NanoFeldspar.Core
 
 -- | A predicate deciding which constructs can be shared. Literals and variables
 -- are not shared.
-canShare :: ASTF FeldDomainAll a -> Maybe (SatWit SimpleCtx a)
-canShare (prjCtx simpleCtx -> Just (Literal _))  = Nothing
-canShare (prjCtx simpleCtx -> Just (Variable _)) = Nothing
-canShare a = maybeWitnessSat simpleCtx a
+canShare :: ASTF FeldDomainAll a -> Bool
+canShare (prj -> Just (Literal _))  = False
+canShare (prj -> Just (Variable _)) = False
+canShare a = True
 
 -- | Draw the syntax graph after common sub-expression elimination
 drawFeldCSE :: Syntactic a FeldDomainAll => a -> IO ()
@@ -62,24 +59,23 @@ drawFeldObs a = do
 -- * Partial evaluation
 --------------------------------------------------------------------------------
 
-instance (ForLoop :<: dom, Optimize dom ctx dom) =>
-    Optimize ForLoop ctx dom
+instance Optimize ForLoop
   where
     optimizeSym = optimizeSymDefault
 
-instance (Parallel :<: dom, Optimize dom ctx dom) =>
-    Optimize Parallel ctx dom
+instance Optimize Parallel
   where
     optimizeSym = optimizeSymDefault
 
 constFold :: forall a
-    .  ASTF (Lambda SimpleCtx :+: Variable SimpleCtx :+: FeldDomain) a
+    .  ASTF ((Lambda :+: Variable :+: Let :+: (FeldDomain :|| Eq :| Show)) :|| Typeable) a
     -> a
-    -> ASTF (Lambda SimpleCtx :+: Variable SimpleCtx :+: FeldDomain) a
-constFold expr a = case fmap fromSatWit (maybeWitnessSat simpleCtx expr) of
-    Just SimpleWit -> appSymCtx simpleCtx $ Literal a
-    _ -> expr
+    -> ASTF ((Lambda :+: Variable :+: Let :+: (FeldDomain :|| Eq :| Show)) :|| Typeable) a
+constFold expr a = match (\sym _ -> case sym of
+      C' (InjR (InjR (InjR (C (C' _))))) -> injC (Literal a)
+      _ -> expr
+    ) expr
 
 drawFeldPart :: Syntactic a FeldDomainAll => a -> IO ()
-drawFeldPart = drawAST . optimize simpleCtx constFold . reify
+drawFeldPart = drawAST . optimize constFold . reify
 

@@ -1,28 +1,15 @@
-{-# OPTIONS_GHC -fcontext-stack=30 #-}
+{-# LANGUAGE UndecidableInstances #-}
 
-{-# LANGUAGE OverlappingInstances #-}
-
--- | Construction and projection of tuples in the object language
---
--- The function pairs @desugarTupX@/@sugarTupX@ could be used directly in
--- 'Syntactic' instances if it wasn't for the extra @(`Proxy` ctx)@ arguments.
--- For this reason, 'Syntactic' instances have to be written manually for each
--- context. The module "Language.Syntactic.Constructs.TupleSyntacticPoly"
--- provides instances for a 'Poly' context. The exact same code can be used to
--- make instances for other contexts -- just copy/paste and replace 'Poly' and
--- 'poly' with the desired context (and probably add an extra constraint in the
--- class contexts).
+-- | Construction and elimination of tuples in the object language
 
 module Language.Syntactic.Constructs.Tuple where
 
 
 
-import Data.Proxy
 import Data.Tuple.Curry
 import Data.Tuple.Select
 
 import Language.Syntactic
-import Language.Syntactic.Interpretation.Semantics
 
 
 
@@ -31,43 +18,21 @@ import Language.Syntactic.Interpretation.Semantics
 --------------------------------------------------------------------------------
 
 -- | Expressions for constructing tuples
-data Tuple ctx a
+data Tuple sig
   where
-    Tup2 :: Sat ctx (a,b)           => Tuple ctx (a :-> b :-> Full (a,b))
-    Tup3 :: Sat ctx (a,b,c)         => Tuple ctx (a :-> b :-> c :-> Full (a,b,c))
-    Tup4 :: Sat ctx (a,b,c,d)       => Tuple ctx (a :-> b :-> c :-> d :-> Full (a,b,c,d))
-    Tup5 :: Sat ctx (a,b,c,d,e)     => Tuple ctx (a :-> b :-> c :-> d :-> e :-> Full (a,b,c,d,e))
-    Tup6 :: Sat ctx (a,b,c,d,e,f)   => Tuple ctx (a :-> b :-> c :-> d :-> e :-> f :-> Full (a,b,c,d,e,f))
-    Tup7 :: Sat ctx (a,b,c,d,e,f,g) => Tuple ctx (a :-> b :-> c :-> d :-> e :-> f :-> g :-> Full (a,b,c,d,e,f,g))
+    Tup2 :: Tuple (a :-> b :-> Full (a,b))
+    Tup3 :: Tuple (a :-> b :-> c :-> Full (a,b,c))
+    Tup4 :: Tuple (a :-> b :-> c :-> d :-> Full (a,b,c,d))
+    Tup5 :: Tuple (a :-> b :-> c :-> d :-> e :-> Full (a,b,c,d,e))
+    Tup6 :: Tuple (a :-> b :-> c :-> d :-> e :-> f :-> Full (a,b,c,d,e,f))
+    Tup7 :: Tuple (a :-> b :-> c :-> d :-> e :-> f :-> g :-> Full (a,b,c,d,e,f,g))
 
-instance WitnessCons (Tuple ctx)
+instance Constrained Tuple
   where
-    witnessCons Tup2 = ConsWit
-    witnessCons Tup3 = ConsWit
-    witnessCons Tup4 = ConsWit
-    witnessCons Tup5 = ConsWit
-    witnessCons Tup6 = ConsWit
-    witnessCons Tup7 = ConsWit
+    type Sat Tuple = Top
+    exprDict _ = Dict
 
-instance WitnessSat (Tuple ctx)
-  where
-    type SatContext (Tuple ctx) = ctx
-    witnessSat Tup2 = SatWit
-    witnessSat Tup3 = SatWit
-    witnessSat Tup4 = SatWit
-    witnessSat Tup5 = SatWit
-    witnessSat Tup6 = SatWit
-    witnessSat Tup7 = SatWit
-
-instance MaybeWitnessSat ctx (Tuple ctx)
-  where
-    maybeWitnessSat = maybeWitnessSatDefault
-
-instance MaybeWitnessSat ctx1 (Tuple ctx2)
-  where
-    maybeWitnessSat _ _ = Nothing
-
-instance Semantic (Tuple ctx)
+instance Semantic Tuple
   where
     semantics Tup2 = Sem "tup2" (,)
     semantics Tup3 = Sem "tup3" (,,)
@@ -76,93 +41,10 @@ instance Semantic (Tuple ctx)
     semantics Tup6 = Sem "tup6" (,,,,,)
     semantics Tup7 = Sem "tup7" (,,,,,,)
 
-instance ExprEq (Tuple ctx) where exprEq = exprEqSem; exprHash = exprHashSem
-instance Render (Tuple ctx) where renderPart = renderPartSem
-instance Eval   (Tuple ctx) where evaluate   = evaluateSem
-instance ToTree (Tuple ctx)
-
-
-
-desugarTup2
-    :: ( Syntactic a dom
-       , Syntactic b dom
-       , Sat ctx (Internal a, Internal b)
-       , Tuple ctx :<: dom
-       )
-    => Proxy ctx
-    -> (a,b)
-    -> ASTF dom (Internal a, Internal b)
-desugarTup2 ctx = uncurryN $ sugarSymCtx ctx Tup2
-
-desugarTup3
-    :: ( Syntactic a dom
-       , Syntactic b dom
-       , Syntactic c dom
-       , Sat ctx (Internal a, Internal b, Internal c)
-       , Tuple ctx :<: dom
-       )
-    => Proxy ctx
-    -> (a,b,c)
-    -> ASTF dom (Internal a, Internal b, Internal c)
-desugarTup3 ctx = uncurryN $ sugarSymCtx ctx Tup3
-
-desugarTup4
-    :: ( Syntactic a dom
-       , Syntactic b dom
-       , Syntactic c dom
-       , Syntactic d dom
-       , Sat ctx (Internal a, Internal b, Internal c, Internal d)
-       , Tuple ctx :<: dom
-       )
-    => Proxy ctx
-    -> (a,b,c,d)
-    -> ASTF dom (Internal a, Internal b, Internal c, Internal d)
-desugarTup4 ctx = uncurryN $ sugarSymCtx ctx Tup4
-
-desugarTup5
-    :: ( Syntactic a dom
-       , Syntactic b dom
-       , Syntactic c dom
-       , Syntactic d dom
-       , Syntactic e dom
-       , Sat ctx (Internal a, Internal b, Internal c, Internal d, Internal e)
-       , Tuple ctx :<: dom
-       )
-    => Proxy ctx
-    -> (a,b,c,d,e)
-    -> ASTF dom (Internal a, Internal b, Internal c, Internal d, Internal e)
-desugarTup5 ctx = uncurryN $ sugarSymCtx ctx Tup5
-
-desugarTup6
-    :: ( Syntactic a dom
-       , Syntactic b dom
-       , Syntactic c dom
-       , Syntactic d dom
-       , Syntactic e dom
-       , Syntactic f dom
-       , Sat ctx (Internal a, Internal b, Internal c, Internal d, Internal e, Internal f)
-       , Tuple ctx :<: dom
-       )
-    => Proxy ctx
-    -> (a,b,c,d,e,f)
-    -> ASTF dom (Internal a, Internal b, Internal c, Internal d, Internal e, Internal f)
-desugarTup6 ctx = uncurryN $ sugarSymCtx ctx Tup6
-
-desugarTup7
-    :: ( Syntactic a dom
-       , Syntactic b dom
-       , Syntactic c dom
-       , Syntactic d dom
-       , Syntactic e dom
-       , Syntactic f dom
-       , Syntactic g dom
-       , Sat ctx (Internal a, Internal b, Internal c, Internal d, Internal e, Internal f, Internal g)
-       , Tuple ctx :<: dom
-       )
-    => Proxy ctx
-    -> (a,b,c,d,e,f,g)
-    -> ASTF dom (Internal a, Internal b, Internal c, Internal d, Internal e, Internal f, Internal g)
-desugarTup7 ctx = uncurryN $ sugarSymCtx ctx Tup7
+instance Equality Tuple where equal = equalDefault; exprHash = exprHashDefault
+instance Render   Tuple where renderArgs = renderArgsDefault
+instance Eval     Tuple where evaluate   = evaluateDefault
+instance ToTree   Tuple
 
 
 
@@ -216,46 +98,22 @@ type family Sel7' a
 type instance Sel7' (a,b,c,d,e,f,g) = g
 
 -- | Expressions for selecting elements of a tuple
-data Select ctx a
+data Select a
   where
-    Sel1 :: (Sel1 a b, Sel1' a ~ b, Sat ctx b) => Select ctx (a :-> Full b)
-    Sel2 :: (Sel2 a b, Sel2' a ~ b, Sat ctx b) => Select ctx (a :-> Full b)
-    Sel3 :: (Sel3 a b, Sel3' a ~ b, Sat ctx b) => Select ctx (a :-> Full b)
-    Sel4 :: (Sel4 a b, Sel4' a ~ b, Sat ctx b) => Select ctx (a :-> Full b)
-    Sel5 :: (Sel5 a b, Sel5' a ~ b, Sat ctx b) => Select ctx (a :-> Full b)
-    Sel6 :: (Sel6 a b, Sel6' a ~ b, Sat ctx b) => Select ctx (a :-> Full b)
-    Sel7 :: (Sel7 a b, Sel7' a ~ b, Sat ctx b) => Select ctx (a :-> Full b)
+    Sel1 :: (Sel1 a b, Sel1' a ~ b) => Select (a :-> Full b)
+    Sel2 :: (Sel2 a b, Sel2' a ~ b) => Select (a :-> Full b)
+    Sel3 :: (Sel3 a b, Sel3' a ~ b) => Select (a :-> Full b)
+    Sel4 :: (Sel4 a b, Sel4' a ~ b) => Select (a :-> Full b)
+    Sel5 :: (Sel5 a b, Sel5' a ~ b) => Select (a :-> Full b)
+    Sel6 :: (Sel6 a b, Sel6' a ~ b) => Select (a :-> Full b)
+    Sel7 :: (Sel7 a b, Sel7' a ~ b) => Select (a :-> Full b)
 
-instance WitnessCons (Select ctx)
+instance Constrained Select
   where
-    witnessCons Sel1 = ConsWit
-    witnessCons Sel2 = ConsWit
-    witnessCons Sel3 = ConsWit
-    witnessCons Sel4 = ConsWit
-    witnessCons Sel5 = ConsWit
-    witnessCons Sel6 = ConsWit
-    witnessCons Sel7 = ConsWit
+    type Sat Select = Top
+    exprDict _ = Dict
 
-instance WitnessSat (Select ctx)
-  where
-    type SatContext (Select ctx) = ctx
-    witnessSat Sel1 = SatWit
-    witnessSat Sel2 = SatWit
-    witnessSat Sel3 = SatWit
-    witnessSat Sel4 = SatWit
-    witnessSat Sel5 = SatWit
-    witnessSat Sel6 = SatWit
-    witnessSat Sel7 = SatWit
-
-instance MaybeWitnessSat ctx (Select ctx)
-  where
-    maybeWitnessSat = maybeWitnessSatDefault
-
-instance MaybeWitnessSat ctx1 (Select ctx2)
-  where
-    maybeWitnessSat _ _ = Nothing
-
-instance Semantic (Select ctx)
+instance Semantic Select
   where
     semantics Sel1 = Sem "sel1" sel1
     semantics Sel2 = Sem "sel2" sel2
@@ -265,15 +123,15 @@ instance Semantic (Select ctx)
     semantics Sel6 = Sem "sel6" sel6
     semantics Sel7 = Sem "sel7" sel7
 
-instance ExprEq (Select ctx) where exprEq = exprEqSem; exprHash = exprHashSem
-instance Render (Select ctx) where renderPart = renderPartSem
-instance Eval   (Select ctx) where evaluate   = evaluateSem
-instance ToTree (Select ctx)
+instance Equality Select where equal = equalDefault; exprHash = exprHashDefault
+instance Render   Select where renderArgs = renderArgsDefault
+instance Eval     Select where evaluate   = evaluateDefault
+instance ToTree   Select
 
 -- | Return the selected position, e.g.
 --
 -- > selectPos (Sel3 poly :: Select Poly ((Int,Int,Int,Int) :-> Full Int)) = 3
-selectPos :: Select ctx a -> Int
+selectPos :: Select a -> Int
 selectPos Sel1 = 1
 selectPos Sel2 = 2
 selectPos Sel3 = 3
@@ -284,138 +142,221 @@ selectPos Sel7 = 7
 
 
 
-sugarTup2
-    :: ( Syntactic a dom
-       , Syntactic b dom
-       , Sat ctx (Internal a)
-       , Sat ctx (Internal b)
-       , Select ctx :<: dom
-       )
-    => Proxy ctx
-    -> ASTF dom (Internal a, Internal b)
-    -> (a,b)
-sugarTup2 ctx a =
-    ( sugarSymCtx ctx Sel1 a
-    , sugarSymCtx ctx Sel2 a
-    )
+-- TODO Move these instances to `Language.Syntactic.Frontend.Tuple` ?
 
-sugarTup3
-    :: ( Syntactic a dom
-       , Syntactic b dom
-       , Syntactic c dom
-       , Sat ctx (Internal a)
-       , Sat ctx (Internal b)
-       , Sat ctx (Internal c)
-       , Select ctx :<: dom
-       )
-    => Proxy ctx
-    -> ASTF dom (Internal a, Internal b, Internal c)
-    -> (a,b,c)
-sugarTup3 ctx a =
-    ( sugarSymCtx ctx Sel1 a
-    , sugarSymCtx ctx Sel2 a
-    , sugarSymCtx ctx Sel3 a
-    )
+instance
+    ( Syntactic a dom
+    , Syntactic b dom
+    , InjectC Tuple dom
+        ( Internal a
+        , Internal b
+        )
+    , InjectC Select dom (Internal a)
+    , InjectC Select dom (Internal b)
+    ) =>
+      Syntactic (a,b) dom
+  where
+    type Internal (a,b) =
+        ( Internal a
+        , Internal b
+        )
 
-sugarTup4
-    :: ( Syntactic a dom
-       , Syntactic b dom
-       , Syntactic c dom
-       , Syntactic d dom
-       , Sat ctx (Internal a)
-       , Sat ctx (Internal b)
-       , Sat ctx (Internal c)
-       , Sat ctx (Internal d)
-       , Select ctx :<: dom
-       )
-    => Proxy ctx
-    -> ASTF dom (Internal a, Internal b, Internal c, Internal d)
-    -> (a,b,c,d)
-sugarTup4 ctx a =
-    ( sugarSymCtx ctx Sel1 a
-    , sugarSymCtx ctx Sel2 a
-    , sugarSymCtx ctx Sel3 a
-    , sugarSymCtx ctx Sel4 a
-    )
+    desugar = uncurryN $ sugarN $ appSymC Tup2
 
-sugarTup5
-    :: ( Syntactic a dom
-       , Syntactic b dom
-       , Syntactic c dom
-       , Syntactic d dom
-       , Syntactic e dom
-       , Sat ctx (Internal a)
-       , Sat ctx (Internal b)
-       , Sat ctx (Internal c)
-       , Sat ctx (Internal d)
-       , Sat ctx (Internal e)
-       , Select ctx :<: dom
-       )
-    => Proxy ctx
-    -> ASTF dom (Internal a, Internal b, Internal c, Internal d, Internal e)
-    -> (a,b,c,d,e)
-sugarTup5 ctx a =
-    ( sugarSymCtx ctx Sel1 a
-    , sugarSymCtx ctx Sel2 a
-    , sugarSymCtx ctx Sel3 a
-    , sugarSymCtx ctx Sel4 a
-    , sugarSymCtx ctx Sel5 a
-    )
+    sugar a =
+        ( sugarSymC Sel1 a
+        , sugarSymC Sel2 a
+        )
 
-sugarTup6
-    :: ( Syntactic a dom
-       , Syntactic b dom
-       , Syntactic c dom
-       , Syntactic d dom
-       , Syntactic e dom
-       , Syntactic f dom
-       , Sat ctx (Internal a)
-       , Sat ctx (Internal b)
-       , Sat ctx (Internal c)
-       , Sat ctx (Internal d)
-       , Sat ctx (Internal e)
-       , Sat ctx (Internal f)
-       , Select ctx :<: dom
-       )
-    => Proxy ctx
-    -> ASTF dom (Internal a, Internal b, Internal c, Internal d, Internal e, Internal f)
-    -> (a,b,c,d,e,f)
-sugarTup6 ctx a =
-    ( sugarSymCtx ctx Sel1 a
-    , sugarSymCtx ctx Sel2 a
-    , sugarSymCtx ctx Sel3 a
-    , sugarSymCtx ctx Sel4 a
-    , sugarSymCtx ctx Sel5 a
-    , sugarSymCtx ctx Sel6 a
-    )
 
-sugarTup7
-    :: ( Syntactic a dom
-       , Syntactic b dom
-       , Syntactic c dom
-       , Syntactic d dom
-       , Syntactic e dom
-       , Syntactic f dom
-       , Syntactic g dom
-       , Sat ctx (Internal a)
-       , Sat ctx (Internal b)
-       , Sat ctx (Internal c)
-       , Sat ctx (Internal d)
-       , Sat ctx (Internal e)
-       , Sat ctx (Internal f)
-       , Sat ctx (Internal g)
-       , Select ctx :<: dom
-       )
-    => Proxy ctx
-    -> ASTF dom (Internal a, Internal b, Internal c, Internal d, Internal e, Internal f, Internal g)
-    -> (a,b,c,d,e,f,g)
-sugarTup7 ctx a =
-    ( sugarSymCtx ctx Sel1 a
-    , sugarSymCtx ctx Sel2 a
-    , sugarSymCtx ctx Sel3 a
-    , sugarSymCtx ctx Sel4 a
-    , sugarSymCtx ctx Sel5 a
-    , sugarSymCtx ctx Sel6 a
-    , sugarSymCtx ctx Sel7 a
-    )
+instance
+    ( Syntactic a dom
+    , Syntactic b dom
+    , Syntactic c dom
+    , InjectC Tuple dom
+        ( Internal a
+        , Internal b
+        , Internal c
+        )
+    , InjectC Select dom (Internal a)
+    , InjectC Select dom (Internal b)
+    , InjectC Select dom (Internal c)
+    ) =>
+      Syntactic (a,b,c) dom
+  where
+    type Internal (a,b,c) =
+        ( Internal a
+        , Internal b
+        , Internal c
+        )
+
+    desugar = uncurryN $ sugarN $ appSymC Tup3
+    sugar a =
+        ( sugarSymC Sel1 a
+        , sugarSymC Sel2 a
+        , sugarSymC Sel3 a
+        )
+
+instance
+    ( Syntactic a dom
+    , Syntactic b dom
+    , Syntactic c dom
+    , Syntactic d dom
+    , InjectC Tuple dom
+        ( Internal a
+        , Internal b
+        , Internal c
+        , Internal d
+        )
+    , InjectC Select dom (Internal a)
+    , InjectC Select dom (Internal b)
+    , InjectC Select dom (Internal c)
+    , InjectC Select dom (Internal d)
+    ) =>
+      Syntactic (a,b,c,d) dom
+  where
+    type Internal (a,b,c,d) =
+        ( Internal a
+        , Internal b
+        , Internal c
+        , Internal d
+        )
+
+    desugar = uncurryN $ sugarN $ appSymC Tup4
+    sugar a =
+        ( sugarSymC Sel1 a
+        , sugarSymC Sel2 a
+        , sugarSymC Sel3 a
+        , sugarSymC Sel4 a
+        )
+
+
+instance
+    ( Syntactic a dom
+    , Syntactic b dom
+    , Syntactic c dom
+    , Syntactic d dom
+    , Syntactic e dom
+    , InjectC Tuple dom
+        ( Internal a
+        , Internal b
+        , Internal c
+        , Internal d
+        , Internal e
+        )
+    , InjectC Select dom (Internal a)
+    , InjectC Select dom (Internal b)
+    , InjectC Select dom (Internal c)
+    , InjectC Select dom (Internal d)
+    , InjectC Select dom (Internal e)
+    ) =>
+      Syntactic (a,b,c,d,e) dom
+  where
+    type Internal (a,b,c,d,e) =
+        ( Internal a
+        , Internal b
+        , Internal c
+        , Internal d
+        , Internal e
+        )
+
+    desugar = uncurryN $ sugarN $ appSymC Tup5
+    sugar a =
+        ( sugarSymC Sel1 a
+        , sugarSymC Sel2 a
+        , sugarSymC Sel3 a
+        , sugarSymC Sel4 a
+        , sugarSymC Sel5 a
+        )
+
+instance
+    ( Syntactic a dom
+    , Syntactic b dom
+    , Syntactic c dom
+    , Syntactic d dom
+    , Syntactic e dom
+    , Syntactic f dom
+    , InjectC Tuple dom
+        ( Internal a
+        , Internal b
+        , Internal c
+        , Internal d
+        , Internal e
+        , Internal f
+        )
+    , InjectC Select dom (Internal a)
+    , InjectC Select dom (Internal b)
+    , InjectC Select dom (Internal c)
+    , InjectC Select dom (Internal d)
+    , InjectC Select dom (Internal e)
+    , InjectC Select dom (Internal f)
+    ) =>
+      Syntactic (a,b,c,d,e,f) dom
+  where
+    type Internal (a,b,c,d,e,f) =
+        ( Internal a
+        , Internal b
+        , Internal c
+        , Internal d
+        , Internal e
+        , Internal f
+        )
+
+    desugar = uncurryN $ sugarN $ appSymC Tup6
+    sugar a =
+        ( sugarSymC Sel1 a
+        , sugarSymC Sel2 a
+        , sugarSymC Sel3 a
+        , sugarSymC Sel4 a
+        , sugarSymC Sel5 a
+        , sugarSymC Sel6 a
+        )
+
+instance
+    ( Syntactic a dom
+    , Syntactic b dom
+    , Syntactic c dom
+    , Syntactic d dom
+    , Syntactic e dom
+    , Syntactic f dom
+    , Syntactic g dom
+    , InjectC Tuple dom
+        ( Internal a
+        , Internal b
+        , Internal c
+        , Internal d
+        , Internal e
+        , Internal f
+        , Internal g
+        )
+    , InjectC Select dom (Internal a)
+    , InjectC Select dom (Internal b)
+    , InjectC Select dom (Internal c)
+    , InjectC Select dom (Internal d)
+    , InjectC Select dom (Internal e)
+    , InjectC Select dom (Internal f)
+    , InjectC Select dom (Internal g)
+    ) =>
+      Syntactic (a,b,c,d,e,f,g) dom
+  where
+    type Internal (a,b,c,d,e,f,g) =
+        ( Internal a
+        , Internal b
+        , Internal c
+        , Internal d
+        , Internal e
+        , Internal f
+        , Internal g
+        )
+
+    desugar = uncurryN $ sugarN $ appSymC Tup7
+    sugar a =
+        ( sugarSymC Sel1 a
+        , sugarSymC Sel2 a
+        , sugarSymC Sel3 a
+        , sugarSymC Sel4 a
+        , sugarSymC Sel5 a
+        , sugarSymC Sel6 a
+        , sugarSymC Sel7 a
+        )
 

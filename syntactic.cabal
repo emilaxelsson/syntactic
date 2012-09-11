@@ -1,15 +1,18 @@
 Name:           syntactic
-Version:        0.10
+Version:        1.0
 Synopsis:       Generic abstract syntax, and utilities for embedded languages
 Description:    This library provides:
                 .
                   * Generic representation and manipulation of abstract syntax
-                    using a practical encoding of open data types (based on Data
-                    Types à la Carte [1])
                 .
-                  * Utilities for analyzing and transforming generic syntax
+                  * Composable AST representations (partly based on Data Types à
+                    la Carte [1])
                 .
-                  * General variable binding constructs
+                  * A collection of common syntactic constructs, including
+                    variable binding constructs
+                .
+                  * Utilities for analyzing and transforming generic abstract
+                    syntax
                 .
                   * Utilities for building extensible embedded languages based
                     on generic syntax
@@ -17,30 +20,31 @@ Description:    This library provides:
                   * A small proof-of-concept implementation of the embedded
                     language Feldspar [2] (see the @Examples@ directory)
                 .
-                Note: The library is probably mostly useful for /functional/
-                object languages, such as Feldspar. Currently, it does not
-                support cyclic programs.
+                For details, see the paper
+                \"A Generic Abstract Syntax Model for Embedded Languages\"
+                (ICFP 2012,
+                <http://www.cse.chalmers.se/~emax/documents/axelsson2012generic.pdf>).
                 .
-                The following people have contributed to Syntactic:
+                The maturity of this library varies between different modules.
+                The core part ("Language.Syntactic") is rather stable, but many
+                of the other modules are in a much more experimental state.
                 .
-                  * Anders Persson
-                .
-                \[1\] /Data types à la carte/, by Wouter Swierstra, in
-                /Journal of Functional Programming/, 2008
+                \[1\] W. Swierstra. Data Types à la Carte.
+                /Journal of Functional Programming/, 18(4):423-436, 2008,
+                <http://dx.doi.org/10.1017/S0956796808006758>.
                 .
                 \[2\] <http://hackage.haskell.org/package/feldspar-language>
 License:        BSD3
 License-file:   LICENSE
 Author:         Emil Axelsson
 Maintainer:     emax@chalmers.se
-Copyright:      Copyright (c) 2011, Emil Axelsson
+Copyright:      Copyright (c) 2011-2012, Emil Axelsson
 Homepage:       http://projects.haskell.org/syntactic/
 Category:       Language
 Build-type:     Simple
 Cabal-version:  >=1.6
 
 Extra-source-files:
-  Examples/ALaCarte.hs
   Examples/NanoFeldspar/Core.hs
   Examples/NanoFeldspar/Extra.hs
   Examples/NanoFeldspar/Vector.hs
@@ -52,8 +56,12 @@ source-repository head
 
 Library
   Exposed-modules:
+    Data.DynamicAlt
     Language.Syntactic
     Language.Syntactic.Syntax
+    Language.Syntactic.Traversal
+    Language.Syntactic.Constraint
+    Language.Syntactic.Sugar
     Language.Syntactic.Interpretation.Equality
     Language.Syntactic.Interpretation.Evaluation
     Language.Syntactic.Interpretation.Render
@@ -68,8 +76,6 @@ Library
     Language.Syntactic.Constructs.Literal
     Language.Syntactic.Constructs.Monad
     Language.Syntactic.Constructs.Tuple
-    Language.Syntactic.Constructs.TupleSyntacticPoly
-    Language.Syntactic.Constructs.TupleSyntacticSimple
     Language.Syntactic.Frontend.Monad
     Language.Syntactic.Sharing.SimpleCodeMotion
     Language.Syntactic.Sharing.Utils
@@ -82,30 +88,30 @@ Library
 
   Build-depends:
     array,
-    base >= 4.0 && < 4.6,
+    base >= 4.0 && < 4.7,
     containers,
+    constraints,
     data-hash,
+    ghc-prim,
     mtl >= 2 && < 3,
     tagged,
     transformers >= 0.2,
     tuple >= 0.2
 
   Extensions:
+    ConstraintKinds
     DeriveDataTypeable
     DeriveFunctor
-    EmptyDataDecls
     FlexibleContexts
     FlexibleInstances
     FunctionalDependencies
     GADTs
     GeneralizedNewtypeDeriving
-    MultiParamTypeClasses
     PatternGuards
     Rank2Types
     ScopedTypeVariables
     StandaloneDeriving
     TypeFamilies
     TypeOperators
-    TypeSynonymInstances
     ViewPatterns
 
