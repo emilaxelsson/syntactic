@@ -1,5 +1,5 @@
 Name:           syntactic
-Version:        1.0
+Version:        1.0.1
 Synopsis:       Generic abstract syntax, and utilities for embedded languages
 Description:    This library provides:
                 .
@@ -17,13 +17,20 @@ Description:    This library provides:
                   * Utilities for building extensible embedded languages based
                     on generic syntax
                 .
-                  * A small proof-of-concept implementation of the embedded
-                    language Feldspar [2] (see the @Examples@ directory)
-                .
-                For details, see the paper
+                For more information about the core functionality, see
                 \"A Generic Abstract Syntax Model for Embedded Languages\"
-                (ICFP 2012,
-                <http://www.cse.chalmers.se/~emax/documents/axelsson2012generic.pdf>).
+                (ICFP 2012):
+                .
+                  * Paper:
+                    <http://www.cse.chalmers.se/~emax/documents/axelsson2012generic.pdf>
+                .
+                  * Slides:
+                    <http://www.cse.chalmers.se/~emax/documents/axelsson2012generic-slides.pdf>
+                .
+                For a practical example of how to use the library, see the
+                proof-of-concept implementation Feldspar EDSL in the @Examples@
+                directory. (The real Feldspar [2] is also implemented using
+                Syntactic.)
                 .
                 The maturity of this library varies between different modules.
                 The core part ("Language.Syntactic") is rather stable, but many
