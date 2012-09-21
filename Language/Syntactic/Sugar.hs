@@ -14,7 +14,7 @@ import Language.Syntactic.Constraint
 
 -- | It is usually assumed that @(`desugar` (`sugar` a))@ has the same meaning
 -- as @a@.
-class (Constrained dom, Sat dom (Internal a)) => Syntactic a dom | a -> dom
+class Syntactic a dom | a -> dom
     -- Note: using a functional dependency rather than an associated type,
     -- because this makes it possible to make a class alias constraining dom.
     -- TODO Now that GHC allows equality super class constraints, this should be
@@ -24,7 +24,7 @@ class (Constrained dom, Sat dom (Internal a)) => Syntactic a dom | a -> dom
     desugar :: a -> ASTF dom (Internal a)
     sugar   :: ASTF dom (Internal a) -> a
 
-instance (Constrained dom, Sat dom a) => Syntactic (ASTF dom a) dom
+instance Syntactic (ASTF dom a) dom
   where
     type Internal (ASTF dom a) = a
     desugar = id
