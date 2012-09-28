@@ -30,7 +30,6 @@ instance
         )
 
     desugar = uncurryN $ sugarSymC Tup2
-
     sugar a =
         ( sugarSymC Sel1 a
         , sugarSymC Sel2 a
