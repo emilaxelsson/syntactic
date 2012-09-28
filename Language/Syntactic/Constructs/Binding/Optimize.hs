@@ -1,6 +1,8 @@
 -- | Basic optimization
 module Language.Syntactic.Constructs.Binding.Optimize where
 
+-- TODO This module should live somewhere else.
+
 
 
 import Control.Monad.Writer

@@ -187,27 +187,27 @@ class (Project sub sup, Sat sup a) => InjectC sub sup a
   where
     injC :: (DenResult sig ~ a) => sub sig -> sup sig
 
-instance InjectC sub sup sig => InjectC sub (AST sup) sig
+instance InjectC sub sup a => InjectC sub (AST sup) a
   where
     injC = Sym . injC
 
-instance (InjectC sub sup sig, pred sig) => InjectC sub (sup :| pred) sig
+instance (InjectC sub sup a, pred a) => InjectC sub (sup :| pred) a
   where
     injC = C . injC
 
-instance (InjectC sub sup sig, pred sig) => InjectC sub (sup :|| pred) sig
+instance (InjectC sub sup a, pred a) => InjectC sub (sup :|| pred) a
   where
     injC = C' . injC
 
-instance Sat expr sig => InjectC expr expr sig
+instance Sat expr a => InjectC expr expr a
   where
     injC = id
 
-instance InjectC expr1 (expr1 :+: expr2) sig
+instance InjectC expr1 (expr1 :+: expr2) a
   where
     injC = InjL
 
-instance InjectC expr1 expr3 sig => InjectC expr1 (expr2 :+: expr3) sig
+instance InjectC expr1 expr3 a => InjectC expr1 (expr2 :+: expr3) a
   where
     injC = InjR . injC
 
