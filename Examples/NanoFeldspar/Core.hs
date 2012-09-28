@@ -30,6 +30,7 @@ import Language.Syntactic.Constructs.Condition
 import Language.Syntactic.Constructs.Construct
 import Language.Syntactic.Constructs.Literal
 import Language.Syntactic.Constructs.Tuple
+import Language.Syntactic.Frontend.Tuple
 import Language.Syntactic.Sharing.SimpleCodeMotion
 
 

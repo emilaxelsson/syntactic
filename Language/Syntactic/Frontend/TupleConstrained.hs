@@ -1,7 +1,7 @@
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
--- | 'Syntactic' instances for Haskell tuples
+-- | Constrained 'Syntactic' instances for Haskell tuples
 
 module Language.Syntactic.Frontend.TupleConstrained where
 
