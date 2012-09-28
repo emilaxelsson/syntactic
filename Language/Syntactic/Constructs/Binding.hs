@@ -253,6 +253,10 @@ instance EvalBind dom => EvalBind (dom :|| pred)
   where
     evalBindSym (C' a) = evalBindSym a
 
+instance EvalBind Empty
+  where
+    evalBindSym = error "Not implemented: evalBindSym for Empty"
+
 instance EvalBind dom => EvalBind (Decor info dom)
   where
     evalBindSym = evalBindSym . decorExpr
@@ -364,6 +368,10 @@ instance AlphaEq sub sub dom env => AlphaEq (sub :| pred) (sub :| pred) dom env
 instance AlphaEq sub sub dom env => AlphaEq (sub :|| pred) (sub :|| pred) dom env
   where
     alphaEqSym (C' a) aArgs (C' b) bArgs = alphaEqSym a aArgs b bArgs
+
+instance AlphaEq Empty Empty dom env
+  where
+    alphaEqSym = error "Not implemented: alphaEqSym for Empty"
 
 instance AlphaEq dom dom dom env => AlphaEq Condition Condition dom env where alphaEqSym = alphaEqSymDefault
 instance AlphaEq dom dom dom env => AlphaEq Construct Construct dom env where alphaEqSym = alphaEqSymDefault

@@ -101,6 +101,10 @@ instance Optimize dom => Optimize (dom :|| p)
    where
     optimizeSym cf i (C' s) args = optimizeSym cf (i . C') s args
 
+instance Optimize Empty
+  where
+    optimizeSym = error "Not implemented: optimizeSym for Empty"
+
 instance Optimize Identity  where optimizeSym = optimizeSymDefault
 instance Optimize Construct where optimizeSym = optimizeSymDefault
 instance Optimize Literal   where optimizeSym = optimizeSymDefault
