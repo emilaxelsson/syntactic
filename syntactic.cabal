@@ -84,6 +84,7 @@ Library
     Language.Syntactic.Constructs.Monad
     Language.Syntactic.Constructs.Tuple
     Language.Syntactic.Frontend.Monad
+    Language.Syntactic.Frontend.Tuple
     Language.Syntactic.Sharing.SimpleCodeMotion
     Language.Syntactic.Sharing.Utils
     Language.Syntactic.Sharing.Graph
