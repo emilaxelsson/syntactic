@@ -23,5 +23,5 @@ import Language.Syntactic.Interpretation.Render
 import Language.Syntactic.Interpretation.Evaluation
 import Language.Syntactic.Interpretation.Semantics
 
-import Data.Constraint (Dict (..))
+import Data.Constraint (Constraint, Dict (..))
 

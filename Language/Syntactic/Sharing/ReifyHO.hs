@@ -35,24 +35,24 @@ import qualified Language.Syntactic.Sharing.Reify  -- For Haddock
 -- | Shorthand used by 'reifyGraphM'
 --
 -- Writes out a list of encountered nodes and returns the top expression.
-type GraphMonad dom p a = WriterT
-      [(NodeId, ASTB (NodeDomain ((Lambda :+: Variable :+: dom) :|| p)))]
+type GraphMonad dom p pVar a = WriterT
+      [(NodeId, ASTB (NodeDomain (FODomain dom p pVar)) p)]
       IO
-      (AST (NodeDomain ((Lambda :+: Variable :+: dom) :|| p)) a)
+      (AST (NodeDomain (FODomain dom p pVar)) a)
 
 
 
-reifyGraphM :: forall dom p a
-    .  (forall a . ASTF (HODomain dom p) a -> Bool)
+reifyGraphM :: forall dom p pVar a
+    .  (forall a . ASTF (HODomain dom p pVar) a -> Bool)
     -> IORef VarId
     -> IORef NodeId
-    -> IORef (History (AST (HODomain dom p)))
-    -> ASTF (HODomain dom p) a
-    -> GraphMonad dom p (Full a)
+    -> IORef (History (AST (HODomain dom p pVar)))
+    -> ASTF (HODomain dom p pVar) a
+    -> GraphMonad dom p pVar (Full a)
 
 reifyGraphM canShare vSupp nSupp history = reifyNode
   where
-    reifyNode :: ASTF (HODomain dom p) b -> GraphMonad dom p (Full b)
+    reifyNode :: ASTF (HODomain dom p pVar) b -> GraphMonad dom p pVar (Full b)
     reifyNode a
       | Dict <- exprDict a = case canShare a of
           False               -> reifyRec a
@@ -68,21 +68,23 @@ reifyGraphM canShare vSupp nSupp history = reifyNode
                 tell [(n, ASTB a')]
                 return $ injC $ Node n
 
-    reifyRec :: AST (HODomain dom p) b -> GraphMonad dom p b
+    reifyRec :: AST (HODomain dom p pVar) b -> GraphMonad dom p pVar b
     reifyRec (f :$ a)            = liftM2 (:$) (reifyRec f) (reifyNode a)
     reifyRec (Sym (C' (InjR a))) = return $ Sym $ C' $ InjR $ C' $ InjR a
-    reifyRec (Sym (C' (InjL (HOLambda f)))) = do
+    reifyRec (Sym (C' (InjL lam@(HOLambda f)))) = do
         v    <- fresh vSupp
-        body <- reifyNode $ f $ injC $ Variable v
-        return $ injC (Lambda v) :$ body
+        body <- reifyNode $ f $ injC $ constr' pProxy (Variable v)
+        return $ injC (argConstr pProxy (Lambda v)) :$ body
+      where
+        pProxy = PProxy :: PProxy pVar
 
 
 
 -- | Convert a syntax tree to a sharing-preserving graph
 reifyGraphTop
-    :: (forall a . ASTF (HODomain dom p) a -> Bool)
-    -> ASTF (HODomain dom p) a
-    -> IO (ASG ((Lambda :+: Variable :+: dom) :|| p) a, VarId)
+    :: (forall a . ASTF (HODomain dom p pVar) a -> Bool)
+    -> ASTF (HODomain dom p pVar) a
+    -> IO (ASG (FODomain dom p pVar) a, VarId)
 reifyGraphTop canShare a = do
     vSupp   <- newIORef 0
     nSupp   <- newIORef 0
@@ -97,10 +99,10 @@ reifyGraphTop canShare a = do
 -- This function is not referentially transparent (hence the 'IO'). However, it
 -- is well-behaved in the sense that the worst thing that could happen is that
 -- sharing is lost. It is not possible to get false sharing.
-reifyGraph :: Syntactic a (HODomain dom p)
-    => (forall a . ASTF (HODomain dom p) a -> Bool)
+reifyGraph :: Syntactic a (HODomain dom p pVar)
+    => (forall a . ASTF (HODomain dom p pVar) a -> Bool)
          -- ^ A function that decides whether a given node can be shared
     -> a
-    -> IO (ASG ((Lambda :+: Variable :+: dom) :|| p) (Internal a), VarId)
+    -> IO (ASG (FODomain dom p pVar) (Internal a), VarId)
 reifyGraph canShare = reifyGraphTop canShare . desugar
 

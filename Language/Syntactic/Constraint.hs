@@ -132,6 +132,27 @@ instance ToTree dom => ToTree (dom :|| pred)
 
 
 
+data PProxy :: (* -> Constraint) -> * where PProxy :: PProxy p
+
+pTop :: PProxy Top
+pTop = PProxy
+
+constr :: pred (DenResult sig) => PProxy pred -> expr sig -> (expr :| pred) sig
+constr _ = C
+
+constr' :: pred (DenResult sig) => PProxy pred -> expr sig -> (expr :||  pred) sig
+constr' _ = C'
+
+prjC :: Project (sub :| pred) sup =>
+    PProxy pred -> sup sig -> Maybe ((sub :| pred) sig)
+prjC _ = prj
+
+prjC' :: Project (sub :|| pred) sup =>
+    PProxy pred -> sup sig -> Maybe ((sub :|| pred) sig)
+prjC' _ = prj
+
+
+
 -- | Expressions that constrain their result types
 class Constrained expr
   where
@@ -245,20 +266,22 @@ liftASTE2 f (ASTE a) (ASTE b) = f a b
 
 
 -- | 'AST' with bounded existentially quantified result type
-data ASTB dom
+data ASTB dom p
   where
-    ASTB :: Sat dom a => ASTF dom a -> ASTB dom
+    ASTB :: p a => ASTF dom a -> ASTB dom p
 
 liftASTB
-    :: (forall a . Sat dom a => ASTF dom a -> b)
-    -> ASTB dom
+    :: (forall a . p a => ASTF dom a -> b)
+    -> ASTB dom p
     -> b
 liftASTB f (ASTB a) = f a
 
 liftASTB2
-    :: (forall a b . (Sat dom a, Sat dom b) => ASTF dom a -> ASTF dom b -> c)
-    -> ASTB dom -> ASTB dom -> c
+    :: (forall a b . (p a, p b) => ASTF dom a -> ASTF dom b -> c)
+    -> ASTB dom p -> ASTB dom p -> c
 liftASTB2 f (ASTB a) (ASTB b) = f a b
+
+type ASTSAT dom = ASTB dom (Sat dom)
 
 
 

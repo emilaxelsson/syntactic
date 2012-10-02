@@ -11,6 +11,7 @@ import Data.Typeable
 
 import Language.Syntactic
 import Language.Syntactic.Constructs.Binding
+import Language.Syntactic.Constructs.Binding.HigherOrder
 import Language.Syntactic.Constructs.Condition
 import Language.Syntactic.Constructs.Construct
 import Language.Syntactic.Constructs.Identity
@@ -94,11 +95,11 @@ optimizeSymDefault constFold injecter sym args = do
       else return result
 
 instance Optimize dom => Optimize (dom :| p)
-   where
+  where
     optimizeSym cf i (C s) args = optimizeSym cf (i . C) s args
 
 instance Optimize dom => Optimize (dom :|| p)
-   where
+  where
     optimizeSym cf i (C' s) args = optimizeSym cf (i . C') s args
 
 instance Optimize Empty
@@ -133,4 +134,8 @@ instance Optimize Lambda
     optimizeSym constFold injecter lam@(Lambda v) (body :* Nil) = do
         body' <- censor (delete v) $ optimizeM constFold body
         return $ injecter lam :$ body'
+
+instance Optimize dom => Optimize (ArgConstr dom p)
+  where
+    optimizeSym cf i (ArgConstr s) args = optimizeSym cf (i . ArgConstr) s args
 

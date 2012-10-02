@@ -59,22 +59,22 @@ instance ToTree Node
 -- | Environment for alpha-equivalence
 class NodeEqEnv dom a
   where
-    prjNodeEqEnv :: a -> NodeEnv dom
-    modNodeEqEnv :: (NodeEnv dom -> NodeEnv dom) -> (a -> a)
+    prjNodeEqEnv :: a -> NodeEnv dom (Sat dom)
+    modNodeEqEnv :: (NodeEnv dom (Sat dom) -> NodeEnv dom (Sat dom)) -> (a -> a)
 
-type EqEnv dom = ([(VarId,VarId)], NodeEnv dom)
+type EqEnv dom p = ([(VarId,VarId)], NodeEnv dom p)
 
-type NodeEnv dom =
+type NodeEnv dom p =
     ( Array NodeId Hash
-    , Array NodeId (ASTB dom)
+    , Array NodeId (ASTB dom p)
     )
 
-instance NodeEqEnv dom (EqEnv dom)
+instance (p ~ Sat dom) => NodeEqEnv dom (EqEnv dom p)
   where
     prjNodeEqEnv   = snd
     modNodeEqEnv f = (id *** f)
 
-instance VarEqEnv (EqEnv dom)
+instance VarEqEnv (EqEnv dom p)
   where
     prjVarEqEnv   = fst
     modVarEqEnv f = (f *** id)
@@ -85,7 +85,7 @@ instance (AlphaEq dom dom dom env, NodeEqEnv dom env) =>
     alphaEqSym (Node n1) Nil (Node n2) Nil
         | n1 == n2  = return True
         | otherwise = do
-            (hTab,nTab) :: NodeEnv dom <- asks prjNodeEqEnv
+            (hTab,nTab) :: NodeEnv dom p <- asks prjNodeEqEnv
             if hTab!n1 /= hTab!n2
               then return False
               else case (nTab!n1, nTab!n2) of
@@ -107,9 +107,9 @@ instance (AlphaEq dom dom dom env, NodeEqEnv dom env) =>
 -- A representation of a syntax tree with explicit sharing. An 'ASG' is valid if
 -- and only if 'inlineAll' succeeds (and the 'numNodes' field is correct).
 data ASG dom a = ASG
-    { topExpression :: ASTF (NodeDomain dom) a            -- ^ Top-level expression
-    , graphNodes    :: [(NodeId, ASTB (NodeDomain dom))]  -- ^ Mapping from node id to sub-expression
-    , numNodes      :: NodeId                             -- ^ Total number of nodes
+    { topExpression :: ASTF (NodeDomain dom) a              -- ^ Top-level expression
+    , graphNodes    :: [(NodeId, ASTSAT (NodeDomain dom))]  -- ^ Mapping from node id to sub-expression
+    , numNodes      :: NodeId                               -- ^ Total number of nodes
     }
 
 type NodeDomain dom = (Node :+: dom) :|| Sat dom
@@ -299,7 +299,7 @@ hashNodes = snd . foldGraph hashNode
 -- only if they are alpha-equivalent.
 partitionNodes :: forall dom a
     .  ( Equality dom
-       , AlphaEq dom dom (NodeDomain dom) (EqEnv (NodeDomain dom))
+       , AlphaEq dom dom (NodeDomain dom) (EqEnv (NodeDomain dom) (Sat dom))
        )
     => ASG dom a -> [[NodeId]]
 partitionNodes graph = concatMap (fullPartition nodeEq) approxPartitioning
@@ -319,14 +319,14 @@ partitionNodes graph = concatMap (fullPartition nodeEq) approxPartitioning
     nodeEq :: NodeId -> NodeId -> Bool
     nodeEq n1 n2 = runReader
         (liftASTB2 alphaEqM (nTab!n1) (nTab!n2))
-        (([],(hTab,nTab)) :: EqEnv (NodeDomain dom))
+        (([],(hTab,nTab)) :: EqEnv (NodeDomain dom) (Sat dom))
 
 
 
 -- | Common sub-expression elimination based on alpha-equivalence
 cse
     :: ( Equality dom
-       , AlphaEq dom dom (NodeDomain dom) (EqEnv (NodeDomain dom))
+       , AlphaEq dom dom (NodeDomain dom) (EqEnv (NodeDomain dom) (Sat dom))
        )
     => ASG dom a -> ASG dom a
 cse graph@(ASG top nodes n) = nubNodes $ reindexNodes (reixTab!) graph

@@ -129,7 +129,7 @@ type FeldDomain
     :+: Parallel
     :+: ForLoop
 
-type FeldDomainAll = HODomain (Let :+: (FeldDomain :|| Eq :| Show)) Typeable
+type FeldDomainAll = HODomain (Let :+: (FeldDomain :|| Eq :| Show)) Typeable Top
 
 newtype Data a = Data { unData :: ASTF FeldDomainAll a }
 
@@ -146,41 +146,21 @@ instance (Syntactic a FeldDomainAll, Type (Internal a)) => Syntax a
 
 
 
-defaultBindDict2 ::
-    BindDict ((Lambda :+: Variable :+: Let :+: (FeldDomain :|| Eq :| Show)) :|| Typeable)
-defaultBindDict2 = BindDict
-    { prjVariable = \a -> do
-        Variable v <- prj a
-        return v
-    , prjLambda = \a -> do
-        Lambda v <- prj a
-        return v
-    , injVariable = \ref v -> case exprDict ref of
-        Dict -> injC (Variable v)
-    , injLambda = \refa refb v -> case (exprDict refa, exprDict refb) of
-        (Dict,Dict) -> injC (Lambda v)
-    , injLet = \ref -> case exprDict ref of
-        Dict -> injC Let  -- TODO Generalize the pattern of `Dict` matching
-                          --      followed by `injC`
-    }
-
-
-
 --------------------------------------------------------------------------------
 -- * Back ends
 --------------------------------------------------------------------------------
 
 -- | Print the expression
 printFeld :: Syntactic a FeldDomainAll => a -> IO ()
-printFeld = printExpr . reifySmart defaultBindDict2 (const True)
+printFeld = printExpr . reifySmartFO (const True)
 
 -- | Draw the syntax tree
 drawFeld :: Syntactic a FeldDomainAll => a -> IO ()
-drawFeld = drawAST . reifySmart defaultBindDict2 (const True)
+drawFeld = drawAST . reifySmartFO (const True)
 
 -- | Evaluation
 eval :: Syntactic a FeldDomainAll => a -> Internal a
-eval = evalBind . reifySmart defaultBindDict2 (const True)
+eval = evalBind . reifySmartFO (const True)
 
 
 

@@ -24,7 +24,7 @@ import Language.Syntactic.Sharing.StableName
 --
 -- Writes out a list of encountered nodes and returns the top expression.
 type GraphMonad dom a = WriterT
-      [(NodeId, ASTB (NodeDomain dom))]
+      [(NodeId, ASTB (NodeDomain dom) (Sat dom))]
       IO
       (AST (NodeDomain dom) a)
 

@@ -30,8 +30,8 @@ import NanoFeldspar.Core
 -- | A predicate deciding which constructs can be shared. Literals and variables
 -- are not shared.
 canShare :: ASTF FeldDomainAll a -> Bool
-canShare (prj -> Just (Literal _))  = False
-canShare (prj -> Just (Variable _)) = False
+canShare (prj        -> Just (Literal _))       = False
+canShare (prjC' pTop -> Just (C' (Variable _))) = False
 canShare a = True
 
 -- | Draw the syntax graph after common sub-expression elimination
@@ -68,9 +68,9 @@ instance Optimize Parallel
     optimizeSym = optimizeSymDefault
 
 constFold :: forall a
-    .  ASTF ((Lambda :+: Variable :+: Let :+: (FeldDomain :|| Eq :| Show)) :|| Typeable) a
+    .  ASTF ((FODomain (Let :+: (FeldDomain :|| Eq :| Show))) Typeable Top) a
     -> a
-    -> ASTF ((Lambda :+: Variable :+: Let :+: (FeldDomain :|| Eq :| Show)) :|| Typeable) a
+    -> ASTF ((FODomain (Let :+: (FeldDomain :|| Eq :| Show))) Typeable Top) a
 constFold expr a = match (\sym _ -> case sym of
       C' (InjR (InjR (InjR (C (C' _))))) -> injC (Literal a)
       _ -> expr

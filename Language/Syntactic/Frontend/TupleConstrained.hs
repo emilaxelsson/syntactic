@@ -3,7 +3,9 @@
 
 -- | Constrained 'Syntactic' instances for Haskell tuples
 
-module Language.Syntactic.Frontend.TupleConstrained where
+module Language.Syntactic.Frontend.TupleConstrained
+    ( TupleSat
+    ) where
 
 
 

@@ -27,18 +27,18 @@ import Language.Syntactic.Constructs.Monad
 --      `(Typeable1 m, Typeable a, Typeable r)` implies `Typeable (a -> m r)`.
 
 -- | User interface to embedded monadic programs
-newtype Mon dom m a
+newtype Mon dom pVar m a
   where
     Mon
         :: { unMon :: forall r
                    .  (Monad m, Typeable r, InjectC (MONAD m) dom (m r))
-                   => Cont (ASTF (HODomain dom Typeable) (m r)) a
+                   => Cont (ASTF (HODomain dom Typeable pVar) (m r)) a
            }
-        -> Mon dom m a
+        -> Mon dom pVar m a
 
-deriving instance Functor (Mon dom m)
+deriving instance Functor (Mon dom pVar m)
 
-instance (Monad m) => Monad (Mon dom m)
+instance (Monad m) => Monad (Mon dom pVar m)
   where
     return a = Mon $ return a
     ma >>= f = Mon $ unMon ma >>= unMon . f
@@ -50,8 +50,8 @@ desugarMonad
        , Typeable1 m
        , Typeable a
        )
-    => Mon dom m (ASTF (HODomain dom Typeable) a)
-    -> ASTF (HODomain dom Typeable) (m a)
+    => Mon dom pVar m (ASTF (HODomain dom Typeable pVar) a)
+    -> ASTF (HODomain dom Typeable pVar) (m a)
 desugarMonad = flip runCont (sugarSymC Return) . unMon
 
 -- | One-layer sugaring of monadic actions
@@ -59,20 +59,22 @@ sugarMonad
     :: ( Monad m
        , Typeable1 m
        , Typeable a
+       , pVar a
        )
-    => ASTF (HODomain dom Typeable) (m a)
-    -> Mon dom m (ASTF (HODomain dom Typeable) a)
+    => ASTF (HODomain dom Typeable pVar) (m a)
+    -> Mon dom pVar m (ASTF (HODomain dom Typeable pVar) a)
 sugarMonad ma = Mon $ cont $ sugarSymC Bind ma
 
-instance ( Syntactic a (HODomain dom Typeable)
+instance ( Syntactic a (HODomain dom Typeable pVar)
          , InjectC (MONAD m) dom (m (Internal a))
          , Monad m
          , Typeable1 m
          , Typeable (Internal a)
+         , pVar (Internal a)
          ) =>
-           Syntactic (Mon dom m a) (HODomain dom Typeable)
+           Syntactic (Mon dom pVar m a) (HODomain dom Typeable pVar)
   where
-    type Internal (Mon dom m a) = m (Internal a)
+    type Internal (Mon dom pVar m a) = m (Internal a)
     desugar = desugarMonad . fmap desugar
     sugar   = fmap sugar   . sugarMonad
 
