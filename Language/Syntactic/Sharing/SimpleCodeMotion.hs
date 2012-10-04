@@ -1,3 +1,6 @@
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RecordWildCards #-}
+
 -- | Simple code motion transformation performing common sub-expression
 -- elimination and variable hoisting. Note that the implementation is very
 -- inefficient.
@@ -5,9 +8,12 @@
 -- The code is based on an implementation by Gergely Dévai.
 
 module Language.Syntactic.Sharing.SimpleCodeMotion
-    ( BindDict (..)
+    ( PrjDict (..)
+    , InjDict (..)
+    , MkInjDict
     , codeMotion
-    , bindDictFO
+    , prjDictFO
+    , mkInjDictFO
     , reifySmart
     , reifySmartFO
     ) where
@@ -24,14 +30,20 @@ import Language.Syntactic.Constructs.Binding.HigherOrder
 
 
 
--- | Interface for binding constructs
-data BindDict dom pVar = BindDict
-    { prjVariable :: forall sig . dom sig -> Maybe ((Variable :|| pVar) sig)
-    , prjLambda   :: forall sig . dom sig -> Maybe ((ArgConstr Lambda pVar) sig)
-    , injVariable :: forall a   . pVar a => ASTF dom a -> VarId -> dom (Full a)
-    , injLambda   :: forall a b . pVar a => ASTF dom a -> ASTF dom b -> VarId -> dom (b :-> Full (a -> b))
-    , injLet      :: forall a b . ASTF dom b -> dom (a :-> (a -> b) :-> Full b)
+data PrjDict dom = PrjDict
+    { prjVariable :: forall sig . dom sig -> Maybe VarId
+    , prjLambda   :: forall sig . dom sig -> Maybe VarId
     }
+
+-- | Interface for binding constructs
+data InjDict dom a b = InjDict
+    { injVariable :: VarId -> dom (Full a)
+    , injLambda   :: VarId -> dom (b :-> Full (a -> b))
+    , injLet      :: dom (a :-> (a -> b) :-> Full b)
+    }
+
+type MkInjDict dom = forall a b .
+    ASTF dom a -> ASTF dom b -> Maybe (InjDict dom a b)
 
 
 
@@ -71,10 +83,6 @@ nonTerminal :: AST dom a -> Bool
 nonTerminal (_ :$ _) = True
 nonTerminal _        = False
 
--- | Function that decides whether a given symbol can be shared
-type CanShare dom pVar =
-    forall sig . dom sig -> Maybe (Dict (pVar (DenResult sig)))
-
 -- | Environment for the expression in the 'choose' function
 data Env dom = Env
     { inLambda :: Bool  -- ^ Whether the current expression is inside a lambda
@@ -86,18 +94,16 @@ data Env dom = Env
         -- expression
     }
 
-independent ::
-    CanShare dom pVar -> BindDict dom pVar -> Env dom -> AST dom a -> Bool
-independent cs bd env (Sym (prjVariable bd -> Just (C' (Variable v)))) =
+independent :: PrjDict dom -> Env dom -> AST dom a -> Bool
+independent pd env (Sym (prjVariable pd -> Just v)) =
     not (v `member` dependencies env)
-independent cs bd env (f :$ a) =
-    independent cs bd env f && independent cs bd env a
-independent _ _ _ _ = True
+independent pd env (f :$ a) =
+    independent pd env f && independent pd env a
+independent _ _ _ = True
 
 -- | Checks whether a sub-expression in a given environment can be lifted out
-liftable ::
-    CanShare dom pVar -> BindDict dom pVar -> Env dom -> ASTF dom a -> Bool
-liftable cs bd env a = independent cs bd env a && heuristic
+liftable :: PrjDict dom -> Env dom -> ASTF dom a -> Bool
+liftable pd env a = independent pd env a && heuristic
     -- Lifting dependent expressions is semantically incorrect
   where
     heuristic
@@ -106,12 +112,11 @@ liftable cs bd env a = independent cs bd env a && heuristic
 
 -- | Choose a sub-expression to share
 choose
-    :: AlphaEq dom dom dom [(VarId,VarId)]
-    => CanShare dom pVar
-    -> BindDict dom pVar
+    :: (AlphaEq dom dom dom [(VarId,VarId)])
+    => PrjDict dom
     -> ASTF dom a
-    -> Maybe (ASTB dom pVar)
-choose cs bd a = chooseEnv cs bd env a
+    -> Maybe (ASTE dom)
+choose pd a = chooseEnv pd env a
   where
     env = Env
         { inLambda     = False
@@ -119,105 +124,101 @@ choose cs bd a = chooseEnv cs bd env a
         , dependencies = empty
         }
 
-data Temp pVar a
-  where
-    Temp :: Maybe (Dict (pVar a)) -> Temp pVar (Full a)
-
 -- | Choose a sub-expression to share in an 'Env' environment
-chooseEnv :: forall dom pVar a
-    .  CanShare dom pVar
-    -> BindDict dom pVar
+chooseEnv :: forall dom a
+    .  PrjDict dom
     -> Env dom
     -> ASTF dom a
-    -> Maybe (ASTB dom pVar)
-chooseEnv cs bd env a
-    | Temp (Just Dict) :: Temp pVar (Full a) <- match (const . Temp . cs) a
-    , liftable cs bd env a
-    = Just (ASTB a)
-chooseEnv cs bd env a = chooseEnvSub cs bd env a
+    -> Maybe (ASTE dom)
+chooseEnv pd env a
+    | liftable pd env a = Just (ASTE a)
+chooseEnv pd env a = chooseEnvSub pd env a
 
 -- | Like 'chooseEnv', but does not consider the top expression for sharing
 chooseEnvSub
-    :: CanShare dom pVar
-    -> BindDict dom pVar
+    :: PrjDict dom
     -> Env dom
     -> AST dom a
-    -> Maybe (ASTB dom pVar)
-chooseEnvSub cs bd env (Sym lam :$ a)
-    | Just (ArgConstr (Lambda v)) <- prjLambda bd lam
-    = chooseEnv cs bd (env' v) a
+    -> Maybe (ASTE dom)
+chooseEnvSub pd env (Sym lam :$ a)
+    | Just v <- prjLambda pd lam
+    = chooseEnv pd (env' v) a
   where
     env' v = env
         { inLambda     = True
         , dependencies = insert v (dependencies env)
         }
-chooseEnvSub cs bd env (f :$ a) =
-    chooseEnvSub cs bd env f `mplus` chooseEnv cs bd env a
-chooseEnvSub _ _ _ _ = Nothing
+chooseEnvSub pd env (f :$ a) =
+    chooseEnvSub pd env f `mplus` chooseEnv pd env a
+chooseEnvSub _ _ _ = Nothing
 
 
 
 -- | Perform common sub-expression elimination and variable hoisting
-codeMotion :: forall dom pVar a
+codeMotion :: forall dom a
     .  ( ConstrainedBy dom Typeable
        , AlphaEq dom dom dom [(VarId,VarId)]
        )
-    => BindDict dom pVar
-    -> (forall sig . dom sig -> Maybe (Dict (pVar (DenResult sig))))
+    => PrjDict dom
+    -> MkInjDict dom
     -> ASTF dom a
     -> State VarId (ASTF dom a)
-codeMotion bd cs a
-    | Just b <- choose cs bd a = share b
-    | otherwise                = descend a
+codeMotion pd mkId a
+    | Just (ASTE b) <- choose pd a, Just id <- mkId b a = share id b
+    | otherwise = descend a
   where
-    share (ASTB b) = do
-        b' <- codeMotion bd cs b
+    share :: InjDict dom b a -> ASTF dom b -> State VarId (ASTF dom a)
+    share id b = do
+        b' <- codeMotion pd mkId b
         v  <- get; put (v+1)
-        let x = Sym (injVariable bd b v)
-        body <- codeMotion bd cs $ substitute b x a
+        let x = Sym (injVariable id v)
+        body <- codeMotion pd mkId $ substitute b x a
         return
-            $  Sym (injLet bd body)
+            $  Sym (injLet id)
             :$ b'
-            :$ (Sym (injLambda bd b' body v) :$ body)
+            :$ (Sym (injLambda id v) :$ body)
 
     descend :: AST dom b -> State VarId (AST dom b)
-    descend (f :$ a) = liftM2 (:$) (descend f) (codeMotion bd cs a)
+    descend (f :$ a) = liftM2 (:$) (descend f) (codeMotion pd mkId a)
     descend a        = return a
 
 
 
-defaultBindDict
+defaultPrjDict :: (Variable :<: dom, Lambda :<: dom, Constrained dom)
+    => PrjDict (dom :|| Typeable)
+defaultPrjDict = PrjDict
+    (fmap (\(Variable v) -> v) . prj)
+    (fmap (\(Lambda   v) -> v) . prj)
+
+prjDictFO :: forall dom pVar . PrjDict (FODomain dom Typeable pVar)
+prjDictFO = PrjDict
+    (fmap (\(C' (Variable v) :: (Variable :|| pVar) a) -> v) . prjC' p)
+    (fmap (\(ArgConstr (Lambda v)) -> v) . prjArgConstr p)
+  where
+    p = PProxy :: PProxy pVar
+
+defaultMkInjDict
     :: (Variable :<: dom, Lambda :<: dom, Let :<: dom, Constrained dom)
-    => BindDict (dom :|| Typeable) Top
-defaultBindDict = BindDict
-    { prjVariable = fmap C' . prj
+    => MkInjDict (dom :|| Typeable)
+defaultMkInjDict a b
+    | Dict <- exprDict a
+    , Dict <- exprDict b
+    = Just $ InjDict
+        { injVariable = \v -> C' $ inj (Variable v)
+        , injLambda   = \v -> C' $ inj (Lambda v)
+        , injLet      = C' $ inj Let
+        }
 
-    , prjLambda = \a -> do
-        lam@(Lambda _) <- prj a
-        return (ArgConstr lam)
-
-    , injVariable = \ref v -> case exprDict ref of
-        Dict -> C' $ inj (Variable v)
-    , injLambda = \refa refb v -> case (exprDict refa, exprDict refb) of
-        (Dict, Dict) -> C' $ inj (Lambda v)
-    , injLet = \ref -> case exprDict ref of
-        Dict -> C' $ inj Let
-    }
-
-
-
-bindDictFO
+mkInjDictFO
     :: (Let :<: dom)
-    => BindDict (FODomain dom Typeable Top) Top
-bindDictFO = BindDict
-    { prjVariable = prj
-    , prjLambda   = prj
-    , injVariable = \ref v -> case exprDict ref of
-        Dict -> injC (constr' pTop (Variable v))
-    , injLambda = \refa refb v -> case (exprDict refa, exprDict refb) of
-        (Dict, Dict) -> injC $ argConstr pTop $ Lambda v
-    , injLet = \ref -> case exprDict ref of
-        Dict -> C' $ inj Let
+    => MkInjDict (FODomain dom Typeable Top)
+mkInjDictFO a b
+    | Dict <- exprDict a
+    , Dict <- exprDict b
+    = Just $ InjDict
+        { injVariable = \v -> injC (constr' pTop (Variable v))
+        , injLambda   = \v -> injC (argConstr pTop (Lambda v))
+        , injLet      = C' $ inj Let
     }
 
 
@@ -226,19 +227,19 @@ bindDictFO = BindDict
 
 -- | Like 'reify' but with common sub-expression elimination and variable
 -- hoisting
-reifySmart :: forall dom a
-    .  ( AlphaEq dom dom (FODomain dom Typeable Top) [(VarId,VarId)]
-       , Syntactic a (HODomain dom Typeable Top)
+reifySmart :: forall dom pVar a
+    .  ( AlphaEq dom dom (FODomain dom Typeable pVar) [(VarId,VarId)]
+       , Syntactic a (HODomain dom Typeable pVar)
        )
-    => BindDict (FODomain dom Typeable Top) Top
-    -> (forall sig . FODomain dom Typeable Top sig -> Bool)
+    => MkInjDict (FODomain dom Typeable pVar)
+    -> (forall sig . FODomain dom Typeable pVar sig -> Bool)
     -> a
-    -> ASTF (FODomain dom Typeable Top) (Internal a)
-reifySmart dict cs = flip evalState 0 .
-    (codeMotion dict cs' <=< reifyM . desugar)
+    -> ASTF (FODomain dom Typeable pVar) (Internal a)
+reifySmart mkId cs = flip evalState 0 .
+    (codeMotion prjDictFO mkId' <=< reifyM . desugar)
   where
-    cs' :: FODomain dom Typeable Top sig -> Maybe (Dict (Top (DenResult sig)))
-    cs' a = if cs a then Just Dict else Nothing
+    mkId' :: MkInjDict (FODomain dom Typeable pVar)
+    mkId' a b = if simpleMatch (const . cs) a then mkId a b else Nothing
 
 reifySmartFO
   :: ( Let :<: dom
@@ -248,5 +249,5 @@ reifySmartFO
   => (forall sig . FODomain dom Typeable Top sig -> Bool)
   -> a
   -> ASTF (FODomain dom Typeable Top) (Internal a)
-reifySmartFO = reifySmart bindDictFO
+reifySmartFO = reifySmart mkInjDictFO
 

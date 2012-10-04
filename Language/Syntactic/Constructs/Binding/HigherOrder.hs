@@ -13,6 +13,7 @@ module Language.Syntactic.Constructs.Binding.HigherOrder
     , FODomain
     , ArgConstr (..)
     , argConstr
+    , prjArgConstr
     , FunCompositional (..)
     , lambda
     , reifyM
@@ -53,6 +54,10 @@ instance Constrained dom => Constrained (ArgConstr dom p)
     type Sat (ArgConstr dom p) = Sat dom
     exprDict (ArgConstr s) = exprDict s
 
+instance Project sub sup => Project sub (ArgConstr sup p)
+  where
+    prj (ArgConstr s) = prj s
+
 instance Equality dom => Equality (ArgConstr dom p)
   where
     equal (ArgConstr a) (ArgConstr b) = equal a b
@@ -82,6 +87,11 @@ argConstr :: p a
     => PProxy p
     -> dom (b :-> Full (a -> b)) -> ArgConstr dom p (b :-> Full (a -> b))
 argConstr _ = ArgConstr
+
+-- TODO Change Lambda to sub
+prjArgConstr :: Project (ArgConstr Lambda p) sup =>
+    PProxy p -> sup sig -> Maybe (ArgConstr Lambda p sig)
+prjArgConstr _ = prj
 
 class FunCompositional p
   where
