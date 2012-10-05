@@ -135,7 +135,11 @@ instance Optimize Lambda
         body' <- censor (delete v) $ optimizeM constFold body
         return $ injecter lam :$ body'
 
-instance Optimize dom => Optimize (ArgConstr dom p)
+instance Optimize dom => Optimize (SubConstr1 dom p)
   where
-    optimizeSym cf i (ArgConstr s) args = optimizeSym cf (i . ArgConstr) s args
+    optimizeSym cf i (SubConstr1 s) args = optimizeSym cf (i . SubConstr1) s args
+
+instance Optimize dom => Optimize (SubConstr2 dom pa pb)
+  where
+    optimizeSym cf i (SubConstr2 s) args = optimizeSym cf (i . SubConstr2) s args
 

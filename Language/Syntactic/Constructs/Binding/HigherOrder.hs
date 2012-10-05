@@ -11,9 +11,6 @@ module Language.Syntactic.Constructs.Binding.HigherOrder
     , HOLambda (..)
     , HODomain
     , FODomain
-    , ArgConstr (..)
-    , argConstr
-    , prjArgConstr
     , FunCompositional (..)
     , lambda
     , reifyM
@@ -38,60 +35,17 @@ data HOLambda dom p pVar a
         => (ASTF (HODomain dom p pVar) a -> ASTF (HODomain dom p pVar) b)
         -> HOLambda dom p pVar (Full (a -> b))
 
-type HODomain dom p pVar =
-    (HOLambda dom p pVar :+: (Variable :|| pVar) :+: dom) :|| p
+type HODomain dom p pVar = (HOLambda dom p pVar :+: (Variable :|| pVar) :+: dom) :|| p
 
-type FODomain dom p pVar =
-    (ArgConstr Lambda pVar :+: (Variable :|| pVar) :+: dom) :|| p
+type FODomain dom p pVar = (SubConstr2 Lambda pVar Top :+: (Variable :|| pVar) :+: dom) :|| p
 
-data ArgConstr dom p sig
+instance EvalBind dom => EvalBind (SubConstr2 dom pa pb)
   where
-    ArgConstr :: p a =>
-        dom (b :-> Full (a -> b)) -> ArgConstr dom p (b :-> Full (a -> b))
+    evalBindSym (SubConstr2 a) = evalBindSym a
 
-instance Constrained dom => Constrained (ArgConstr dom p)
+instance AlphaEq sub sub dom env => AlphaEq (SubConstr2 sub pa pb) (SubConstr2 sub pa pb) dom env
   where
-    type Sat (ArgConstr dom p) = Sat dom
-    exprDict (ArgConstr s) = exprDict s
-
-instance Project sub sup => Project sub (ArgConstr sup p)
-  where
-    prj (ArgConstr s) = prj s
-
-instance Equality dom => Equality (ArgConstr dom p)
-  where
-    equal (ArgConstr a) (ArgConstr b) = equal a b
-    exprHash (ArgConstr s)            = exprHash s
-
-instance Render dom => Render (ArgConstr dom p)
-  where
-    renderArgs args (ArgConstr s) = renderArgs args s
-
-instance ToTree dom => ToTree (ArgConstr dom p)
-  where
-    toTreeArgs args (ArgConstr a) = toTreeArgs args a
-
-instance Eval dom => Eval (ArgConstr dom p)
-  where
-    evaluate (ArgConstr a) = evaluate a
-
-instance EvalBind dom => EvalBind (ArgConstr dom p)
-  where
-    evalBindSym (ArgConstr a) = evalBindSym a
-
-instance AlphaEq sub sub dom env => AlphaEq (ArgConstr sub p) (ArgConstr sub p) dom env
-  where
-    alphaEqSym (ArgConstr a) aArgs (ArgConstr b) bArgs = alphaEqSym a aArgs b bArgs
-
-argConstr :: p a
-    => PProxy p
-    -> dom (b :-> Full (a -> b)) -> ArgConstr dom p (b :-> Full (a -> b))
-argConstr _ = ArgConstr
-
--- TODO Change Lambda to sub
-prjArgConstr :: Project (ArgConstr Lambda p) sup =>
-    PProxy p -> sup sig -> Maybe (ArgConstr Lambda p sig)
-prjArgConstr _ = prj
+    alphaEqSym (SubConstr2 a) aArgs (SubConstr2 b) bArgs = alphaEqSym a aArgs b bArgs
 
 class FunCompositional p
   where
@@ -131,7 +85,7 @@ reifyM (Sym (C' (InjR a))) = return $ Sym $ C' $ InjR a
 reifyM (Sym (C' (InjL lam@(HOLambda f)))) = do
     v    <- get; put (v+1)
     body <- reifyM $ f $ injC $ constr' pProxy (Variable v)
-    return $ injC (argConstr pProxy (Lambda v)) :$ body
+    return $ injC (subConstr2 pProxy pTop (Lambda v)) :$ body
   where
     pProxy = PProxy :: PProxy pVar
 

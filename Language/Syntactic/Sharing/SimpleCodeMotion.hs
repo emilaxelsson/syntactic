@@ -192,10 +192,11 @@ defaultPrjDict = PrjDict
 
 prjDictFO :: forall dom pVar . PrjDict (FODomain dom Typeable pVar)
 prjDictFO = PrjDict
-    (fmap (\(C' (Variable v) :: (Variable :|| pVar) a) -> v) . prjC' p)
-    (fmap (\(ArgConstr (Lambda v)) -> v) . prjArgConstr p)
+    (fmap (\(C' (Variable v)) -> v) . prjC' (Variable 0) pVar)
+    (fmap (\(SubConstr2 (Lambda v)) -> v) . prjSubConstr2 (Lambda 0) pVar pTop)
+--    (fmap (\(SubConstr2 (Lambda v) :: SubConstr2 Lambda pVar Top sss) -> v) . prjSubConstr2 p pTop)
   where
-    p = PProxy :: PProxy pVar
+    pVar = PProxy :: PProxy pVar
 
 defaultMkInjDict
     :: (Variable :<: dom, Lambda :<: dom, Let :<: dom, Constrained dom)
@@ -217,7 +218,7 @@ mkInjDictFO a b
     , Dict <- exprDict b
     = Just $ InjDict
         { injVariable = \v -> injC (constr' pTop (Variable v))
-        , injLambda   = \v -> injC (argConstr pTop (Lambda v))
+        , injLambda   = \v -> injC (subConstr2 pTop pTop (Lambda v))
         , injLet      = C' $ inj Let
     }
 

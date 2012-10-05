@@ -74,7 +74,7 @@ reifyGraphM canShare vSupp nSupp history = reifyNode
     reifyRec (Sym (C' (InjL lam@(HOLambda f)))) = do
         v    <- fresh vSupp
         body <- reifyNode $ f $ injC $ constr' pProxy (Variable v)
-        return $ injC (argConstr pProxy (Lambda v)) :$ body
+        return $ injC (subConstr2 pProxy pTop (Lambda v)) :$ body
       where
         pProxy = PProxy :: PProxy pVar
 

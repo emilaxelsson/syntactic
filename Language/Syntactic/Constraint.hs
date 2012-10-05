@@ -30,6 +30,14 @@ infixr 5 :/\:
 class    Top a
 instance Top a
 
+-- | Proxy type for passing a type predicate @(* -> Constraint)@ to a function
+data PProxy :: (* -> Constraint) -> *
+  where
+    PProxy :: PProxy p
+
+pTop :: PProxy Top
+pTop = PProxy
+
 -- | Evidence that the predicate @sub@ is a subset of @sup@
 type Sub sub sup = forall a . Dict (sub a) -> Dict (sup a)
 
@@ -132,24 +140,21 @@ instance ToTree dom => ToTree (dom :|| pred)
 
 
 
-data PProxy :: (* -> Constraint) -> * where PProxy :: PProxy p
-
-pTop :: PProxy Top
-pTop = PProxy
-
-constr :: pred (DenResult sig) => PProxy pred -> expr sig -> (expr :| pred) sig
+-- | The 'C' constructor with an explicit predicate argument
+constr :: p (DenResult sig) => PProxy p -> expr sig -> (expr :| p) sig
 constr _ = C
 
-constr' :: pred (DenResult sig) => PProxy pred -> expr sig -> (expr :||  pred) sig
+-- | The 'C'' constructor with an explicit predicate argument
+constr' :: p (DenResult sig) => PProxy p -> expr sig -> (expr :|| p) sig
 constr' _ = C'
 
-prjC :: Project (sub :| pred) sup =>
-    PProxy pred -> sup sig -> Maybe ((sub :| pred) sig)
-prjC _ = prj
+-- | Guide projection of a constrained symbol by an explicit type predicate
+prjC :: Project (sub :| p) sup => sub sig1 -> PProxy p -> sup sig -> Maybe ((sub :| p) sig)
+prjC _ _ = prj
 
-prjC' :: Project (sub :|| pred) sup =>
-    PProxy pred -> sup sig -> Maybe ((sub :|| pred) sig)
-prjC' _ = prj
+-- | Guide projection of a constrained symbol by an explicit type predicate
+prjC' :: Project (sub :|| p) sup => sub sig1 -> PProxy p -> sup sig -> Maybe ((sub :|| p) sig)
+prjC' _ _ = prj
 
 
 
@@ -241,9 +246,97 @@ instance InjectC expr1 expr3 a => InjectC expr1 (expr2 :+: expr3) a
 -- > appSymC :: InjectC expr (AST dom) x
 -- >     => expr (a :-> b :-> ... :-> Full x)
 -- >     -> (ASTF dom a -> ASTF dom b -> ... -> ASTF dom x)
-appSymC :: (ApplySym sig f dom, InjectC sym (AST dom) (DenResult sig)) =>
-    sym sig -> f
+appSymC :: (ApplySym sig f dom, InjectC sym (AST dom) (DenResult sig)) => sym sig -> f
 appSymC = appSym' . injC
+
+
+
+-- | Similar to '(:||)', but rather than constraining the whole result type, it assumes a result
+-- type of the form @c a@ and constrains the @a@.
+data SubConstr1 dom p sig
+  where
+    SubConstr1 :: (p a, DenResult sig ~ c a) => dom sig -> SubConstr1 dom p sig
+
+instance Constrained dom => Constrained (SubConstr1 dom p)
+  where
+    type Sat (SubConstr1 dom p) = Sat dom
+    exprDict (SubConstr1 s) = exprDict s
+
+instance Project sub sup => Project sub (SubConstr1 sup p)
+  where
+    prj (SubConstr1 s) = prj s
+
+instance Equality dom => Equality (SubConstr1 dom p)
+  where
+    equal (SubConstr1 a) (SubConstr1 b) = equal a b
+    exprHash (SubConstr1 s) = exprHash s
+
+instance Render dom => Render (SubConstr1 dom p)
+  where
+    renderArgs args (SubConstr1 s) = renderArgs args s
+
+instance ToTree dom => ToTree (SubConstr1 dom p)
+  where
+    toTreeArgs args (SubConstr1 a) = toTreeArgs args a
+
+instance Eval dom => Eval (SubConstr1 dom p)
+  where
+    evaluate (SubConstr1 a) = evaluate a
+
+
+
+-- | Similar to 'SubConstr1', but it assumes a result type of the form @c a b@ and constrains both
+-- @a@ and @b@.
+data SubConstr2 dom pa pb sig
+  where
+    SubConstr2 :: (DenResult sig ~ c a b, pa a, pb b) => dom sig -> SubConstr2 dom pa pb sig
+
+instance Constrained dom => Constrained (SubConstr2 dom pa pb)
+  where
+    type Sat (SubConstr2 dom pa pb) = Sat dom
+    exprDict (SubConstr2 s) = exprDict s
+
+instance Project sub sup => Project sub (SubConstr2 sup pa pb)
+  where
+    prj (SubConstr2 s) = prj s
+
+instance Equality dom => Equality (SubConstr2 dom pa pb)
+  where
+    equal (SubConstr2 a) (SubConstr2 b) = equal a b
+    exprHash (SubConstr2 s) = exprHash s
+
+instance Render dom => Render (SubConstr2 dom pa pb)
+  where
+    renderArgs args (SubConstr2 s) = renderArgs args s
+
+instance ToTree dom => ToTree (SubConstr2 dom pa pb)
+  where
+    toTreeArgs args (SubConstr2 a) = toTreeArgs args a
+
+instance Eval dom => Eval (SubConstr2 dom pa pb)
+  where
+    evaluate (SubConstr2 a) = evaluate a
+
+
+
+-- | The 'SubConstr1' constructor with an explicit predicate argument
+subConstr1 :: (DenResult sig ~ c a, p a) => PProxy p -> dom sig -> SubConstr1 dom p sig
+subConstr1 _ = SubConstr1
+
+-- | The 'SubConstr2' constructor with explicit predicate arguments
+subConstr2 :: (DenResult sig ~ c a b, pa a, pb b) =>
+    PProxy pa -> PProxy pb -> dom sig -> SubConstr2 dom pa pb sig
+subConstr2 _ _ = SubConstr2
+
+-- | Guide projection of a 'SubConstr1' symbol by an explicit type predicate
+prjSubConstr1 :: Project (SubConstr1 sym p) sup =>
+    sym sig1 -> PProxy pa -> sup sig -> Maybe (SubConstr1 sym p sig)
+prjSubConstr1 _ _ = prj
+
+-- | Guide projection of a 'SubConstr2' symbol by an explicit type predicate
+prjSubConstr2 :: Project (SubConstr2 sym pa pb) sup =>
+    sym sig1 -> PProxy pa -> PProxy pb -> sup sig -> Maybe (SubConstr2 sym pa pb sig)
+prjSubConstr2 _ _ _ = prj
 
 
 
@@ -297,8 +390,7 @@ type ASTSAT dom = ASTB dom (Sat dom)
 -- > test :: AST (A :+: (B:||Eq) :+: Empty) a
 -- > test = injC (undefined :: (B :|| Eq) a)
 --
--- Without 'Empty', this would lead to an overlapping instance error due to the
--- instances
+-- Without 'Empty', this would lead to an overlapping instance error due to the instances
 --
 -- > InjectC (B :|| Eq) (B :|| Eq) (DenResult a)
 --
