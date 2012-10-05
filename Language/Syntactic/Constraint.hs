@@ -7,6 +7,8 @@ module Language.Syntactic.Constraint where
 
 
 
+import Data.Typeable
+
 import Data.Constraint
 
 import Language.Syntactic.Syntax
@@ -37,6 +39,9 @@ data PProxy :: (* -> Constraint) -> *
 
 pTop :: PProxy Top
 pTop = PProxy
+
+pTypeable :: P Typeable
+pTypeable = P
 
 -- | Evidence that the predicate @sub@ is a subset of @sup@
 type Sub sub sup = forall a . Dict (sub a) -> Dict (sup a)
@@ -195,8 +200,8 @@ type ConstrainedBy expr c = (Constrained expr, Sat expr :< c)
 
 -- | A version of 'exprDict' that returns a constraint for a particular
 -- predicate @p@ as long as @(p :< Sat dom)@ holds
-exprDictSub :: ConstrainedBy expr p => expr a -> Dict (p (DenResult a))
-exprDictSub = sub . exprDict
+exprDictSub :: ConstrainedBy expr p => P p -> expr a -> Dict (p (DenResult a))
+exprDictSub _ = sub . exprDict
 
 -- | A version of 'exprDict' that works for domains of the form
 -- @(dom1 :+: dom2)@ as long as @(Sat dom1 ~ Sat dom2)@ holds

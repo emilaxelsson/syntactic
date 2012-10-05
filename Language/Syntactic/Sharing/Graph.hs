@@ -227,8 +227,8 @@ inlineAll (ASG top nodes n) = inline top
     inline (s :$ a) = inline s :$ inline a
     inline s@(Sym (C' (InjL (Node n)))) = case nodeMap ! n of
         ASTB a
-          | Dict :: Dict (Typeable x) <- exprDictSub s
-          , Dict :: Dict (Typeable y) <- exprDictSub a
+          | Dict <- exprDictSub pTypeable s
+          , Dict <- exprDictSub pTypeable a
           -> case gcast a of
                Nothing -> error "inlineAll: type mismatch"
                Just a  -> inline a
@@ -271,8 +271,8 @@ inlineSingle graph@(ASG top nodes n) = ASG top' nodes' n'
         | occs!n > 1 = injC $ Node n
         | otherwise = case nodeTab ! n of
             ASTB a
-              | Dict :: Dict (Typeable x) <- exprDictSub s
-              , Dict :: Dict (Typeable y) <- exprDictSub a
+              | Dict <- exprDictSub pTypeable s
+              , Dict <- exprDictSub pTypeable a
               -> case gcast a of
                    Nothing -> error "inlineSingle: type mismatch"
                    Just a  -> inline a

@@ -56,8 +56,8 @@ substitute :: forall dom a b
     -> ASTF dom b  -- ^ Whole expression
     -> ASTF dom b
 substitute x y a
-    | Dict :: Dict (Typeable a) <- exprDictSub y
-    , Dict :: Dict (Typeable b) <- exprDictSub a
+    | Dict <- exprDictSub pTypeable y
+    , Dict <- exprDictSub pTypeable a
     , Just y' <- gcast y, alphaEq x a = y'
     | otherwise = subst a
   where

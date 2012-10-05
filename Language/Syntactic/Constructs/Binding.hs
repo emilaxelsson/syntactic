@@ -178,8 +178,8 @@ subst v new a = go a
     go var
         | Just (Variable w) <- prj var
         , v==w
-        , Dict :: Dict (Typeable a) <- exprDictSub new
-        , Dict :: Dict (Typeable x) <- exprDictSub var
+        , Dict <- exprDictSub pTypeable new
+        , Dict <- exprDictSub pTypeable var
         , Just new' <- gcast new
         = new'
     go a = a
@@ -223,7 +223,7 @@ instance (EvalBind sub1, EvalBind sub2) => EvalBind (sub1 :+: sub2)
 evalBindM :: (EvalBind dom, ConstrainedBy dom Typeable) =>
     ASTF dom a -> Reader [(VarId,Dynamic)] a
 evalBindM a
-    | Dict :: Dict (Typeable a) <- exprDictSub a
+    | Dict <- exprDictSub pTypeable a
     = liftM result $ match (\s -> liftM Full . evalBindSym s) a
 
 -- | Evaluation of closed expressions
