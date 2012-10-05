@@ -41,6 +41,6 @@ instance Monad m => Eval     (MONAD m) where evaluate   = evaluateDefault
 instance Monad m => ToTree   (MONAD m)
 
 -- | Projection with explicit monad type
-prjMonad :: (MONAD m :<: sup) => Proxy (m ()) -> sup sig -> Maybe (MONAD m sig)
+prjMonad :: Project (MONAD m) sup => Proxy (m ()) -> sup sig -> Maybe (MONAD m sig)
 prjMonad _ = prj
 
