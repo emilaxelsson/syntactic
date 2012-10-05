@@ -30,20 +30,27 @@ import Language.Syntactic.Constructs.Binding.HigherOrder
 
 
 
+-- | Interface for projecting binding constructs
 data PrjDict dom = PrjDict
     { prjVariable :: forall sig . dom sig -> Maybe VarId
     , prjLambda   :: forall sig . dom sig -> Maybe VarId
     }
 
--- | Interface for binding constructs
+-- | Interface for injecting binding constructs
 data InjDict dom a b = InjDict
     { injVariable :: VarId -> dom (Full a)
     , injLambda   :: VarId -> dom (b :-> Full (a -> b))
     , injLet      :: dom (a :-> (a -> b) :-> Full b)
     }
 
-type MkInjDict dom = forall a b .
-    ASTF dom a -> ASTF dom b -> Maybe (InjDict dom a b)
+-- | A function that, if possible, returns an 'InjDict' for sharing a specific sub-expression. The
+-- first argument is the expression to be shared, and the second argument the expression in which it
+-- will be shared.
+--
+-- This function makes the caller of 'codeMotion' responsible for making sure that the necessary
+-- type constraints are fulfilled (otherwise 'Nothing' is returned). It also makes it possible to
+-- transfer information, e.g. from the shared expression to the introduced variable.
+type MkInjDict dom = forall a b . ASTF dom a -> ASTF dom b -> Maybe (InjDict dom a b)
 
 
 
@@ -184,6 +191,7 @@ codeMotion pd mkId a
 
 
 
+-- | A default 'PrjDict' implementation
 prjDictDefault :: (Variable :<: dom, Lambda :<: dom, Constrained dom)
     => PrjDict (dom :|| Typeable)
 prjDictDefault = PrjDict
@@ -191,12 +199,14 @@ prjDictDefault = PrjDict
     , prjLambda   = fmap (\(Lambda v)   -> v) . prj
     }
 
+-- | A 'PrjDict' implementation for 'FODomain'
 prjDictFO :: forall dom pVar . PrjDict (FODomain dom Typeable pVar)
 prjDictFO = PrjDict
     { prjVariable = fmap (\(C' (Variable v)) -> v)       . prjP (P::P (Variable :|| pVar))
     , prjLambda   = fmap (\(SubConstr2 (Lambda v)) -> v) . prjP (P::P (SubConstr2 Lambda pVar Top))
     }
 
+-- | A default 'MkInjDict' implementation
 mkInjDictDefault
     :: (Variable :<: dom, Lambda :<: dom, Let :<: dom, Constrained dom)
     => MkInjDict (dom :|| Typeable)
@@ -209,6 +219,7 @@ mkInjDictDefault a b
         , injLet      = C' $ inj Let
         }
 
+-- | An 'MkInjDict' implementation for 'FODomain'
 mkInjDictFO :: (Let :<: dom) => MkInjDict (FODomain dom Typeable Top)
 mkInjDictFO a b
     | Dict <- exprDict a
@@ -226,8 +237,7 @@ mkInjDictFO a b
 
 -- TODO Abstract away from Typeable?
 
--- | Like 'reify' but with common sub-expression elimination and variable
--- hoisting
+-- | Like 'reify' but with common sub-expression elimination and variable hoisting
 reifySmart :: forall dom pVar a
     .  ( AlphaEq dom dom (FODomain dom Typeable pVar) [(VarId,VarId)]
        , Syntactic a (HODomain dom Typeable pVar)
@@ -241,6 +251,7 @@ reifySmart mkId cs = flip evalState 0 . (codeMotion prjDictFO mkId' <=< reifyM .
     mkId' :: MkInjDict (FODomain dom Typeable pVar)
     mkId' a b = if simpleMatch (const . cs) a then mkId a b else Nothing
 
+-- | 'reifySmart' specialized for a domain with no type constraints on variables
 reifySmartFO
   :: ( Let :<: dom
      , Syntactic a (HODomain dom Typeable Top)

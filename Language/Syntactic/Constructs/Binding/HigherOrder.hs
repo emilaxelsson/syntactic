@@ -34,8 +34,11 @@ data HOLambda dom p pVar a
         => (ASTF (HODomain dom p pVar) a -> ASTF (HODomain dom p pVar) b)
         -> HOLambda dom p pVar (Full (a -> b))
 
+-- | Adding support for higher-order abstract syntax to a domain
 type HODomain dom p pVar = (HOLambda dom p pVar :+: (Variable :|| pVar) :+: dom) :|| p
 
+-- | Equivalent to 'HODomain' (including type constraints), but using a first-order representation
+-- of binding
 type FODomain dom p pVar = (SubConstr2 Lambda pVar Top :+: (Variable :|| pVar) :+: dom) :|| p
 
 
