@@ -20,11 +20,16 @@ module Language.Syntactic.Syntax
     , Project (..)
     , (:<:) (..)
     , appSym
+      -- * Type inference
+    , symType
+    , prjP
     ) where
 
 
 
 import Data.Typeable
+
+import Data.PolyProxy
 
 
 
@@ -154,4 +159,18 @@ instance (expr1 :<: expr3) => (expr1 :<: (expr2 :+: expr3))
 -- >     -> (ASTF dom a -> ASTF dom b -> ... -> ASTF dom x)
 appSym :: (ApplySym sig f dom, sym :<: AST dom) => sym sig -> f
 appSym = appSym' . inj
+
+
+
+--------------------------------------------------------------------------------
+-- * Type inference
+--------------------------------------------------------------------------------
+
+-- | Constrain a symbol to a specific type
+symType :: P sym -> sym sig -> sym sig
+symType _ = id
+
+-- | Projection to a specific symbol type
+prjP :: Project sub sup => P sub -> sup sig -> Maybe (sub sig)
+prjP _ = prj
 

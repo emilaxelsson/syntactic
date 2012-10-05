@@ -30,8 +30,8 @@ import NanoFeldspar.Core
 -- | A predicate deciding which constructs can be shared. Literals and variables
 -- are not shared.
 canShare :: ASTF FeldDomainAll a -> Bool
-canShare (prj             -> Just (Literal _))       = False
-canShare (prjC' (Variable 0) pTop -> Just (C' (Variable _))) = False
+canShare (prj                            -> Just (Literal _))       = False
+canShare (prjP (P::P (Variable :|| Top)) -> Just (C' (Variable _))) = False
 canShare a = True
 
 -- | Draw the syntax graph after common sub-expression elimination

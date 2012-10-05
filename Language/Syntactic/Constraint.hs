@@ -1,7 +1,9 @@
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
--- | Type constrained syntax trees
+-- TODO Only `InjectC` should be used overlapped. Move to separate module?
+
+-- | Type-constrained syntax trees
 
 module Language.Syntactic.Constraint where
 
@@ -11,6 +13,7 @@ import Data.Typeable
 
 import Data.Constraint
 
+import Data.PolyProxy
 import Language.Syntactic.Syntax
 import Language.Syntactic.Interpretation.Equality
 import Language.Syntactic.Interpretation.Render
@@ -32,13 +35,8 @@ infixr 5 :/\:
 class    Top a
 instance Top a
 
--- | Proxy type for passing a type predicate @(* -> Constraint)@ to a function
-data PProxy :: (* -> Constraint) -> *
-  where
-    PProxy :: PProxy p
-
-pTop :: PProxy Top
-pTop = PProxy
+pTop :: P Top
+pTop = P
 
 pTypeable :: P Typeable
 pTypeable = P
@@ -55,7 +53,7 @@ weakR :: Sub (c1 :/\: c2) c2
 weakR Dict = Dict
 
 -- | Subset relation on type predicates
-class sub :< sup
+class (sub :: * -> Constraint) :< (sup :: * -> Constraint)
   where
     -- | Compute evidence that @sub@ is a subset of @sup@ (i.e. that @(sup a)@
     -- implies @(sub a)@)
@@ -80,7 +78,7 @@ instance (ps :< q) => ((p :/\: ps) :< q)
 --------------------------------------------------------------------------------
 
 -- | Constrain the result type of the expression by the given predicate
-data (expr :| pred) sig
+data (:|) :: (* -> *) -> (* -> Constraint) -> (* -> *)
   where
     C :: pred (DenResult sig) => expr sig -> (expr :| pred) sig
 
@@ -116,7 +114,7 @@ instance ToTree dom => ToTree (dom :| pred)
 --
 -- > type Sat (dom :|  pred) = pred :/\: Sat dom
 -- > type Sat (dom :|| pred) = pred
-data (expr :|| pred) sig
+data (:||) :: (* -> *) -> (* -> Constraint) -> (* -> *)
   where
     C' :: pred (DenResult sig) => expr sig -> (expr :|| pred) sig
 
@@ -145,30 +143,12 @@ instance ToTree dom => ToTree (dom :|| pred)
 
 
 
--- | The 'C' constructor with an explicit predicate argument
-constr :: p (DenResult sig) => PProxy p -> expr sig -> (expr :| p) sig
-constr _ = C
-
--- | The 'C'' constructor with an explicit predicate argument
-constr' :: p (DenResult sig) => PProxy p -> expr sig -> (expr :|| p) sig
-constr' _ = C'
-
--- | Guide projection of a constrained symbol by an explicit type predicate
-prjC :: Project (sub :| p) sup => sub sig1 -> PProxy p -> sup sig -> Maybe ((sub :| p) sig)
-prjC _ _ = prj
-
--- | Guide projection of a constrained symbol by an explicit type predicate
-prjC' :: Project (sub :|| p) sup => sub sig1 -> PProxy p -> sup sig -> Maybe ((sub :|| p) sig)
-prjC' _ _ = prj
-
-
-
 -- | Expressions that constrain their result types
 class Constrained expr
   where
     -- | Returns a predicate that is satisfied by the result type of all
     -- expressions of the given type (see 'exprDict').
-    type Sat (expr :: * -> *) :: * -> Constraint
+    type Sat expr :: * -> Constraint
 
     -- | Compute a constraint on the result type of an expression
     exprDict :: expr a -> Dict (Sat expr (DenResult a))
@@ -196,7 +176,7 @@ instance Constrained (dom :|| pred)
     type Sat (dom :|| pred) = pred
     exprDict (C' s) = Dict
 
-type ConstrainedBy expr c = (Constrained expr, Sat expr :< c)
+type ConstrainedBy expr p = (Constrained expr, Sat expr :< p)
 
 -- | A version of 'exprDict' that returns a constraint for a particular
 -- predicate @p@ as long as @(p :< Sat dom)@ holds
@@ -256,9 +236,9 @@ appSymC = appSym' . injC
 
 
 
--- | Similar to '(:||)', but rather than constraining the whole result type, it assumes a result
+-- | Similar to ':||', but rather than constraining the whole result type, it assumes a result
 -- type of the form @c a@ and constrains the @a@.
-data SubConstr1 dom p sig
+data SubConstr1 :: (* -> *) -> (* -> Constraint) -> (* -> *)
   where
     SubConstr1 :: (p a, DenResult sig ~ c a) => dom sig -> SubConstr1 dom p sig
 
@@ -290,9 +270,9 @@ instance Eval dom => Eval (SubConstr1 dom p)
 
 
 
--- | Similar to 'SubConstr1', but it assumes a result type of the form @c a b@ and constrains both
--- @a@ and @b@.
-data SubConstr2 dom pa pb sig
+-- | Similar to 'SubConstr1', but assumes a result type of the form @c a b@ and constrains both @a@
+-- and @b@.
+data SubConstr2 :: (* -> *) -> (* -> Constraint) -> (* -> Constraint) -> (* -> *)
   where
     SubConstr2 :: (DenResult sig ~ c a b, pa a, pb b) => dom sig -> SubConstr2 dom pa pb sig
 
@@ -324,29 +304,12 @@ instance Eval dom => Eval (SubConstr2 dom pa pb)
 
 
 
--- | The 'SubConstr1' constructor with an explicit predicate argument
-subConstr1 :: (DenResult sig ~ c a, p a) => PProxy p -> dom sig -> SubConstr1 dom p sig
-subConstr1 _ = SubConstr1
-
--- | The 'SubConstr2' constructor with explicit predicate arguments
-subConstr2 :: (DenResult sig ~ c a b, pa a, pb b) =>
-    PProxy pa -> PProxy pb -> dom sig -> SubConstr2 dom pa pb sig
-subConstr2 _ _ = SubConstr2
-
--- | Guide projection of a 'SubConstr1' symbol by an explicit type predicate
-prjSubConstr1 :: Project (SubConstr1 sym p) sup =>
-    sym sig1 -> PProxy pa -> sup sig -> Maybe (SubConstr1 sym p sig)
-prjSubConstr1 _ _ = prj
-
--- | Guide projection of a 'SubConstr2' symbol by an explicit type predicate
-prjSubConstr2 :: Project (SubConstr2 sym pa pb) sup =>
-    sym sig1 -> PProxy pa -> PProxy pb -> sup sig -> Maybe (SubConstr2 sym pa pb sig)
-prjSubConstr2 _ _ _ = prj
-
-
+--------------------------------------------------------------------------------
+-- * Existential quantification
+--------------------------------------------------------------------------------
 
 -- | 'AST' with existentially quantified result type
-data ASTE dom
+data ASTE :: (* -> *) -> *
   where
     ASTE :: ASTF dom a -> ASTE dom
 
@@ -364,7 +327,7 @@ liftASTE2 f (ASTE a) (ASTE b) = f a b
 
 
 -- | 'AST' with bounded existentially quantified result type
-data ASTB dom p
+data ASTB :: (* -> *) -> (* -> Constraint) -> *
   where
     ASTB :: p a => ASTF dom a -> ASTB dom p
 
@@ -383,7 +346,9 @@ type ASTSAT dom = ASTB dom (Sat dom)
 
 
 
+--------------------------------------------------------------------------------
 -- * Misc.
+--------------------------------------------------------------------------------
 
 -- | Empty symbol type
 --
@@ -402,7 +367,7 @@ type ASTSAT dom = ASTB dom (Sat dom)
 -- and
 --
 -- > InjectC sub sup a, pred a) => InjectC sub (sup :|| pred) a
-data Empty a
+data Empty :: * -> *
 
 instance Constrained Empty
   where

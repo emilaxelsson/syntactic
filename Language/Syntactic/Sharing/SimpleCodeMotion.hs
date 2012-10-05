@@ -184,24 +184,23 @@ codeMotion pd mkId a
 
 
 
-defaultPrjDict :: (Variable :<: dom, Lambda :<: dom, Constrained dom)
+prjDictDefault :: (Variable :<: dom, Lambda :<: dom, Constrained dom)
     => PrjDict (dom :|| Typeable)
-defaultPrjDict = PrjDict
-    (fmap (\(Variable v) -> v) . prj)
-    (fmap (\(Lambda   v) -> v) . prj)
+prjDictDefault = PrjDict
+    { prjVariable = fmap (\(Variable v) -> v) . prj
+    , prjLambda   = fmap (\(Lambda v)   -> v) . prj
+    }
 
 prjDictFO :: forall dom pVar . PrjDict (FODomain dom Typeable pVar)
 prjDictFO = PrjDict
-    (fmap (\(C' (Variable v)) -> v) . prjC' (Variable 0) pVar)
-    (fmap (\(SubConstr2 (Lambda v)) -> v) . prjSubConstr2 (Lambda 0) pVar pTop)
---    (fmap (\(SubConstr2 (Lambda v) :: SubConstr2 Lambda pVar Top sss) -> v) . prjSubConstr2 p pTop)
-  where
-    pVar = PProxy :: PProxy pVar
+    { prjVariable = fmap (\(C' (Variable v)) -> v)       . prjP (P::P (Variable :|| pVar))
+    , prjLambda   = fmap (\(SubConstr2 (Lambda v)) -> v) . prjP (P::P (SubConstr2 Lambda pVar Top))
+    }
 
-defaultMkInjDict
+mkInjDictDefault
     :: (Variable :<: dom, Lambda :<: dom, Let :<: dom, Constrained dom)
     => MkInjDict (dom :|| Typeable)
-defaultMkInjDict a b
+mkInjDictDefault a b
     | Dict <- exprDict a
     , Dict <- exprDict b
     = Just $ InjDict
@@ -210,17 +209,18 @@ defaultMkInjDict a b
         , injLet      = C' $ inj Let
         }
 
-mkInjDictFO
-    :: (Let :<: dom)
-    => MkInjDict (FODomain dom Typeable Top)
+mkInjDictFO :: (Let :<: dom) => MkInjDict (FODomain dom Typeable Top)
 mkInjDictFO a b
     | Dict <- exprDict a
     , Dict <- exprDict b
     = Just $ InjDict
-        { injVariable = \v -> injC (constr' pTop (Variable v))
-        , injLambda   = \v -> injC (subConstr2 pTop pTop (Lambda v))
+        { injVariable = \v -> injC (symType pVar $ C' (Variable v))
+        , injLambda   = \v -> injC (symType pLam $ SubConstr2 (Lambda v))
         , injLet      = C' $ inj Let
-    }
+        }
+  where
+    pVar = P::P (Variable :|| Top)
+    pLam = P::P (SubConstr2 Lambda Top Top)
 
 
 
@@ -236,8 +236,7 @@ reifySmart :: forall dom pVar a
     -> (forall sig . FODomain dom Typeable pVar sig -> Bool)
     -> a
     -> ASTF (FODomain dom Typeable pVar) (Internal a)
-reifySmart mkId cs = flip evalState 0 .
-    (codeMotion prjDictFO mkId' <=< reifyM . desugar)
+reifySmart mkId cs = flip evalState 0 . (codeMotion prjDictFO mkId' <=< reifyM . desugar)
   where
     mkId' :: MkInjDict (FODomain dom Typeable pVar)
     mkId' a b = if simpleMatch (const . cs) a then mkId a b else Nothing

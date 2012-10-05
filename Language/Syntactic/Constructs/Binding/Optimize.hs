@@ -106,6 +106,14 @@ instance Optimize Empty
   where
     optimizeSym = error "Not implemented: optimizeSym for Empty"
 
+instance Optimize dom => Optimize (SubConstr1 dom p)
+  where
+    optimizeSym cf i (SubConstr1 s) args = optimizeSym cf (i . SubConstr1) s args
+
+instance Optimize dom => Optimize (SubConstr2 dom pa pb)
+  where
+    optimizeSym cf i (SubConstr2 s) args = optimizeSym cf (i . SubConstr2) s args
+
 instance Optimize Identity  where optimizeSym = optimizeSymDefault
 instance Optimize Construct where optimizeSym = optimizeSymDefault
 instance Optimize Literal   where optimizeSym = optimizeSymDefault
@@ -134,12 +142,4 @@ instance Optimize Lambda
     optimizeSym constFold injecter lam@(Lambda v) (body :* Nil) = do
         body' <- censor (delete v) $ optimizeM constFold body
         return $ injecter lam :$ body'
-
-instance Optimize dom => Optimize (SubConstr1 dom p)
-  where
-    optimizeSym cf i (SubConstr1 s) args = optimizeSym cf (i . SubConstr1) s args
-
-instance Optimize dom => Optimize (SubConstr2 dom pa pb)
-  where
-    optimizeSym cf i (SubConstr2 s) args = optimizeSym cf (i . SubConstr2) s args
 

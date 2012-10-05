@@ -9,13 +9,13 @@ import Data.Typeable
 import GHC.Prim
 import Unsafe.Coerce
 
-import Data.Proxy
+import Data.PolyProxy
 
 
 
 data Dynamic = Dynamic TypeRep Any
 
-toDyn :: forall a b . Typeable (a -> b) => Proxy (a -> b) -> a -> Dynamic
+toDyn :: forall a b . Typeable (a -> b) => P (a -> b) -> a -> Dynamic
 toDyn _ a = case splitTyConApp $ typeOf (undefined :: a -> b) of
     (_,[ta,_]) -> Dynamic ta (unsafeCoerce a)
 

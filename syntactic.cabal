@@ -1,5 +1,5 @@
 Name:           syntactic
-Version:        1.1.1
+Version:        1.1.2
 Synopsis:       Generic abstract syntax, and utilities for embedded languages
 Description:    This library provides:
                 .
@@ -63,6 +63,7 @@ source-repository head
 
 Library
   Exposed-modules:
+    Data.PolyProxy
     Data.DynamicAlt
     Language.Syntactic
     Language.Syntactic.Syntax
@@ -103,7 +104,6 @@ Library
     data-hash,
     ghc-prim,
     mtl >= 2 && < 3,
-    tagged,
     transformers >= 0.2,
     tuple >= 0.2
 

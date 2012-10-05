@@ -12,8 +12,6 @@ import Control.Monad
 
 import Language.Syntactic
 
-import Data.Proxy
-
 
 
 data MONAD m sig
@@ -41,6 +39,6 @@ instance Monad m => Eval     (MONAD m) where evaluate   = evaluateDefault
 instance Monad m => ToTree   (MONAD m)
 
 -- | Projection with explicit monad type
-prjMonad :: Project (MONAD m) sup => Proxy (m ()) -> sup sig -> Maybe (MONAD m sig)
+prjMonad :: Project (MONAD m) sup => P m -> sup sig -> Maybe (MONAD m sig)
 prjMonad _ = prj
 

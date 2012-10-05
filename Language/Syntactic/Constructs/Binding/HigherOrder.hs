@@ -11,7 +11,6 @@ module Language.Syntactic.Constructs.Binding.HigherOrder
     , HOLambda (..)
     , HODomain
     , FODomain
-    , FunCompositional (..)
     , lambda
     , reifyM
     , reifyTop
@@ -38,18 +37,6 @@ data HOLambda dom p pVar a
 type HODomain dom p pVar = (HOLambda dom p pVar :+: (Variable :|| pVar) :+: dom) :|| p
 
 type FODomain dom p pVar = (SubConstr2 Lambda pVar Top :+: (Variable :|| pVar) :+: dom) :|| p
-
-instance EvalBind dom => EvalBind (SubConstr2 dom pa pb)
-  where
-    evalBindSym (SubConstr2 a) = evalBindSym a
-
-instance AlphaEq sub sub dom env => AlphaEq (SubConstr2 sub pa pb) (SubConstr2 sub pa pb) dom env
-  where
-    alphaEqSym (SubConstr2 a) aArgs (SubConstr2 b) bArgs = alphaEqSym a aArgs b bArgs
-
-class FunCompositional p
-  where
-    funCompose :: Dict (p a) -> Dict (p b) -> Dict (p (a -> b))
 
 
 
@@ -78,16 +65,16 @@ instance
 
 
 reifyM :: forall dom p pVar a
-    .  AST (HODomain dom p pVar) a
-    -> State VarId (AST (FODomain dom p pVar) a)
+    . AST (HODomain dom p pVar) a -> State VarId (AST (FODomain dom p pVar) a)
 reifyM (f :$ a)            = liftM2 (:$) (reifyM f) (reifyM a)
 reifyM (Sym (C' (InjR a))) = return $ Sym $ C' $ InjR a
-reifyM (Sym (C' (InjL lam@(HOLambda f)))) = do
+reifyM (Sym (C' (InjL (HOLambda f)))) = do
     v    <- get; put (v+1)
-    body <- reifyM $ f $ injC $ constr' pProxy (Variable v)
-    return $ injC (subConstr2 pProxy pTop (Lambda v)) :$ body
+    body <- reifyM $ f $ injC $ symType pVar $ C' (Variable v)
+    return $ injC (symType pLam $ SubConstr2 (Lambda v)) :$ body
   where
-    pProxy = PProxy :: PProxy pVar
+    pVar = P::P (Variable :|| pVar)
+    pLam = P::P (SubConstr2 Lambda pVar Top)
 
 -- | Translating expressions with higher-order binding to corresponding
 -- expressions using first-order binding

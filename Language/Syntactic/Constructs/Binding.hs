@@ -13,8 +13,8 @@ import Data.Tree
 import Data.Typeable
 
 import Data.Hash
-import Data.Proxy
 
+import Data.PolyProxy
 import Data.DynamicAlt
 import Language.Syntactic
 import Language.Syntactic.Constructs.Condition
@@ -253,6 +253,14 @@ instance EvalBind dom => EvalBind (dom :|| pred)
   where
     evalBindSym (C' a) = evalBindSym a
 
+instance EvalBind dom => EvalBind (SubConstr1 dom p)
+  where
+    evalBindSym (SubConstr1 a) = evalBindSym a
+
+instance EvalBind dom => EvalBind (SubConstr2 dom pa pb)
+  where
+    evalBindSym (SubConstr2 a) = evalBindSym a
+
 instance EvalBind Empty
   where
     evalBindSym = error "Not implemented: evalBindSym for Empty"
@@ -289,8 +297,8 @@ instance EvalBind Lambda
             $ \a -> flip runReader ((v, toDyn (funType lam) a):env)
             $ evalBindM body
       where
-        funType :: Lambda (b :-> Full (a -> b)) -> Proxy (a -> b)
-        funType _ = Proxy
+        funType :: Lambda (b :-> Full (a -> b)) -> P (a -> b)
+        funType _ = P
 
 
 
@@ -368,6 +376,14 @@ instance AlphaEq sub sub dom env => AlphaEq (sub :| pred) (sub :| pred) dom env
 instance AlphaEq sub sub dom env => AlphaEq (sub :|| pred) (sub :|| pred) dom env
   where
     alphaEqSym (C' a) aArgs (C' b) bArgs = alphaEqSym a aArgs b bArgs
+
+instance AlphaEq sub sub dom env => AlphaEq (SubConstr1 sub p) (SubConstr1 sub p) dom env
+  where
+    alphaEqSym (SubConstr1 a) aArgs (SubConstr1 b) bArgs = alphaEqSym a aArgs b bArgs
+
+instance AlphaEq sub sub dom env => AlphaEq (SubConstr2 sub pa pb) (SubConstr2 sub pa pb) dom env
+  where
+    alphaEqSym (SubConstr2 a) aArgs (SubConstr2 b) bArgs = alphaEqSym a aArgs b bArgs
 
 instance AlphaEq Empty Empty dom env
   where

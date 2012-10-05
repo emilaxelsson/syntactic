@@ -71,12 +71,13 @@ reifyGraphM canShare vSupp nSupp history = reifyNode
     reifyRec :: AST (HODomain dom p pVar) b -> GraphMonad dom p pVar b
     reifyRec (f :$ a)            = liftM2 (:$) (reifyRec f) (reifyNode a)
     reifyRec (Sym (C' (InjR a))) = return $ Sym $ C' $ InjR $ C' $ InjR a
-    reifyRec (Sym (C' (InjL lam@(HOLambda f)))) = do
+    reifyRec (Sym (C' (InjL (HOLambda f)))) = do
         v    <- fresh vSupp
-        body <- reifyNode $ f $ injC $ constr' pProxy (Variable v)
-        return $ injC (subConstr2 pProxy pTop (Lambda v)) :$ body
+        body <- reifyNode $ f $ injC $ symType pVar $ C' (Variable v)
+        return $ injC (symType pLam $ SubConstr2 (Lambda v)) :$ body
       where
-        pProxy = PProxy :: PProxy pVar
+        pVar = P::P (Variable :|| pVar)
+        pLam = P::P (SubConstr2 Lambda pVar Top)
 
 
 
