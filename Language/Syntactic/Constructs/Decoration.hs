@@ -64,17 +64,6 @@ instance Eval expr => Eval (Decor info expr)
 
 
 
-injDecor :: (sub :<: sup) =>
-    info (DenResult sig) -> sub sig -> AST (Decor info sup) sig
-injDecor info = Sym . Decor info . inj
-
-prjDecor :: (sub :<: sup) =>
-    AST (Decor info sup) sig -> Maybe (info (DenResult sig), sub sig)
-prjDecor a = do
-    Sym (Decor info b) <- return a
-    c                  <- prj b
-    return (info, c)
-
 -- | Get the decoration of the top-level node
 getInfo :: AST (Decor info dom) sig -> info (DenResult sig)
 getInfo (Sym (Decor info _)) = info
