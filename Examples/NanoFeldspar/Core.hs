@@ -144,6 +144,9 @@ instance Type a => Syntactic (Data a) FeldDomainAll
 class    (Syntactic a FeldDomainAll, Type (Internal a)) => Syntax a
 instance (Syntactic a FeldDomainAll, Type (Internal a)) => Syntax a
 
+mkInjDict :: MkInjDict (FODomain (Let :+: (FeldDomain :|| Eq :| Show)) Typeable Top)
+mkInjDict = mkInjDictFO (const (Just Dict))
+
 
 
 --------------------------------------------------------------------------------
@@ -152,15 +155,16 @@ instance (Syntactic a FeldDomainAll, Type (Internal a)) => Syntax a
 
 -- | Print the expression
 printFeld :: Syntactic a FeldDomainAll => a -> IO ()
-printFeld = printExpr . reifySmartFO (const True)
+printFeld = printExpr . reifySmart mkInjDict
+  -- TODO Should not share literals and variables? (See `canShare` in NanoFeldspar.Extra.)
 
 -- | Draw the syntax tree
 drawFeld :: Syntactic a FeldDomainAll => a -> IO ()
-drawFeld = drawAST . reifySmartFO (const True)
+drawFeld = drawAST . reifySmart mkInjDict
 
 -- | Evaluation
 eval :: Syntactic a FeldDomainAll => a -> Internal a
-eval = evalBind . reifySmartFO (const True)
+eval = evalBind . reifySmart mkInjDict
 
 
 

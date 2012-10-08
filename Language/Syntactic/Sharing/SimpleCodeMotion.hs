@@ -1,9 +1,5 @@
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE RecordWildCards #-}
-
--- | Simple code motion transformation performing common sub-expression
--- elimination and variable hoisting. Note that the implementation is very
--- inefficient.
+-- | Simple code motion transformation performing common sub-expression elimination and variable
+-- hoisting. Note that the implementation is very inefficient.
 --
 -- The code is based on an implementation by Gergely Dévai.
 
@@ -13,9 +9,8 @@ module Language.Syntactic.Sharing.SimpleCodeMotion
     , MkInjDict
     , codeMotion
     , prjDictFO
-    , mkInjDictFO
     , reifySmart
-    , reifySmartFO
+    , mkInjDictFO
     ) where
 
 
@@ -102,10 +97,8 @@ data Env dom = Env
     }
 
 independent :: PrjDict dom -> Env dom -> AST dom a -> Bool
-independent pd env (Sym (prjVariable pd -> Just v)) =
-    not (v `member` dependencies env)
-independent pd env (f :$ a) =
-    independent pd env f && independent pd env a
+independent pd env (Sym (prjVariable pd -> Just v)) = not (v `member` dependencies env)
+independent pd env (f :$ a) = independent pd env f && independent pd env a
 independent _ _ _ = True
 
 -- | Checks whether a sub-expression in a given environment can be lifted out
@@ -113,9 +106,7 @@ liftable :: PrjDict dom -> Env dom -> ASTF dom a -> Bool
 liftable pd env a = independent pd env a && heuristic
     -- Lifting dependent expressions is semantically incorrect
   where
-    heuristic
-        =  nonTerminal a
-        && (inLambda env || (counter env (ASTE a) > 1))
+    heuristic =  nonTerminal a && (inLambda env || (counter env (ASTE a) > 1))
 
 -- | Choose a sub-expression to share
 choose
@@ -155,8 +146,7 @@ chooseEnvSub pd env (Sym lam :$ a)
         { inLambda     = True
         , dependencies = insert v (dependencies env)
         }
-chooseEnvSub pd env (f :$ a) =
-    chooseEnvSub pd env f `mplus` chooseEnv pd env a
+chooseEnvSub pd env (f :$ a) = chooseEnvSub pd env f `mplus` chooseEnv pd env a
 chooseEnvSub _ _ _ = Nothing
 
 
@@ -191,74 +181,56 @@ codeMotion pd mkId a
 
 
 
--- | A default 'PrjDict' implementation
-prjDictDefault :: (Variable :<: dom, Lambda :<: dom, Constrained dom)
-    => PrjDict (dom :|| Typeable)
-prjDictDefault = PrjDict
-    { prjVariable = fmap (\(Variable v) -> v) . prj
-    , prjLambda   = fmap (\(Lambda v)   -> v) . prj
-    }
-
 -- | A 'PrjDict' implementation for 'FODomain'
-prjDictFO :: forall dom pVar . PrjDict (FODomain dom Typeable pVar)
+prjDictFO :: forall dom p pVar . PrjDict (FODomain dom p pVar)
 prjDictFO = PrjDict
     { prjVariable = fmap (\(C' (Variable v)) -> v)       . prjP (P::P (Variable :|| pVar))
     , prjLambda   = fmap (\(SubConstr2 (Lambda v)) -> v) . prjP (P::P (SubConstr2 Lambda pVar Top))
     }
 
--- | A default 'MkInjDict' implementation
-mkInjDictDefault
-    :: (Variable :<: dom, Lambda :<: dom, Let :<: dom, Constrained dom)
-    => MkInjDict (dom :|| Typeable)
-mkInjDictDefault a b
-    | Dict <- exprDict a
-    , Dict <- exprDict b
-    = Just $ InjDict
-        { injVariable = \v -> C' $ inj (Variable v)
-        , injLambda   = \v -> C' $ inj (Lambda v)
-        , injLet      = C' $ inj Let
-        }
+-- | Like 'reify' but with common sub-expression elimination and variable hoisting
+reifySmart :: forall dom p pVar a
+    .  ( AlphaEq dom dom (FODomain dom p pVar) [(VarId,VarId)]
+       , Syntactic a (HODomain dom p pVar)
+       , p :< Typeable
+       )
+    => MkInjDict (FODomain dom p pVar)
+    -> a
+    -> ASTF (FODomain dom p pVar) (Internal a)
+reifySmart mkId = flip evalState 0 . (codeMotion prjDictFO mkId <=< reifyM . desugar)
+
+
+
+data Temp p a
+  where
+    Temp :: {unTemp :: Maybe (Dict (p a))} -> Temp p (Full a)
 
 -- | An 'MkInjDict' implementation for 'FODomain'
-mkInjDictFO :: (Let :<: dom) => MkInjDict (FODomain dom Typeable Top)
-mkInjDictFO a b
+--
+-- The supplied function determines whether or not an expression (represented by its top-most
+-- symbol) can be shared by returning a witness that the type of the expression satisfies the
+-- predicate @pVar@.
+mkInjDictFO :: forall dom pVar . (Let :<: dom)
+    => (forall sig . dom sig -> Maybe (Dict (pVar (DenResult sig))))
+    -> MkInjDict (FODomain dom Typeable pVar)
+mkInjDictFO pVarWit a b
     | Dict <- exprDict a
     , Dict <- exprDict b
+    , Just Dict <- pVarWit' a
     = Just $ InjDict
         { injVariable = \v -> injC (symType pVar $ C' (Variable v))
         , injLambda   = \v -> injC (symType pLam $ SubConstr2 (Lambda v))
         , injLet      = C' $ inj Let
         }
   where
-    pVar = P::P (Variable :|| Top)
-    pLam = P::P (SubConstr2 Lambda Top Top)
+    pVar = P::P (Variable :|| pVar)
+    pLam = P::P (SubConstr2 Lambda pVar Top)
 
-
-
--- TODO Abstract away from Typeable?
-
--- | Like 'reify' but with common sub-expression elimination and variable hoisting
-reifySmart :: forall dom pVar a
-    .  ( AlphaEq dom dom (FODomain dom Typeable pVar) [(VarId,VarId)]
-       , Syntactic a (HODomain dom Typeable pVar)
-       )
-    => MkInjDict (FODomain dom Typeable pVar)
-    -> (forall sig . FODomain dom Typeable pVar sig -> Bool)
-    -> a
-    -> ASTF (FODomain dom Typeable pVar) (Internal a)
-reifySmart mkId cs = flip evalState 0 . (codeMotion prjDictFO mkId' <=< reifyM . desugar)
-  where
-    mkId' :: MkInjDict (FODomain dom Typeable pVar)
-    mkId' a b = if simpleMatch (const . cs) a then mkId a b else Nothing
-
--- | 'reifySmart' specialized for a domain with no type constraints on variables
-reifySmartFO
-  :: ( Let :<: dom
-     , Syntactic a (HODomain dom Typeable Top)
-     , AlphaEq dom dom (FODomain dom Typeable Top) [(VarId, VarId)]
-     )
-  => (forall sig . FODomain dom Typeable Top sig -> Bool)
-  -> a
-  -> ASTF (FODomain dom Typeable Top) (Internal a)
-reifySmartFO = reifySmart mkInjDictFO
+    pVarWit' :: ASTF (FODomain dom Typeable pVar) a -> Maybe (Dict (pVar a))
+    pVarWit' = unTemp . match (\(C' s) _ -> case s of
+        InjL _ -> Temp Nothing
+        InjR (InjL _) -> Temp Nothing
+        InjR (InjR s) -> Temp (pVarWit s)
+      )
+mkInjDictFO _ _ _ = Nothing
 
