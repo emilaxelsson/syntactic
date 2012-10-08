@@ -129,7 +129,8 @@ type FeldDomain
     :+: Parallel
     :+: ForLoop
 
-type FeldDomainAll = HODomain (Let :+: (FeldDomain :|| Eq :| Show)) Typeable Top
+type FeldSyms      = Let :+: (FeldDomain :|| Eq :| Show)
+type FeldDomainAll = HODomain FeldSyms Typeable Top
 
 newtype Data a = Data { unData :: ASTF FeldDomainAll a }
 
@@ -144,8 +145,16 @@ instance Type a => Syntactic (Data a) FeldDomainAll
 class    (Syntactic a FeldDomainAll, Type (Internal a)) => Syntax a
 instance (Syntactic a FeldDomainAll, Type (Internal a)) => Syntax a
 
-mkInjDict :: MkInjDict (FODomain (Let :+: (FeldDomain :|| Eq :| Show)) Typeable Top)
-mkInjDict = mkInjDictFO (const (Just Dict))
+-- | A predicate deciding which constructs can be shared. Variables, lambdas and literals are not
+-- shared.
+canShare :: ASTF (FODomain FeldSyms Typeable Top) a -> Maybe (Dict (Top a))
+canShare (prjP (P::P (Variable :|| Top))          -> Just _) = Nothing
+canShare (prjP (P::P (SubConstr2 Lambda Top Top)) -> Just _) = Nothing
+canShare (prj -> Just (Literal _)) = Nothing
+canShare _  = Just Dict
+
+canShareDict :: MkInjDict (FODomain FeldSyms Typeable Top)
+canShareDict = mkInjDictFO canShare
 
 
 
@@ -155,16 +164,16 @@ mkInjDict = mkInjDictFO (const (Just Dict))
 
 -- | Print the expression
 printFeld :: Syntactic a FeldDomainAll => a -> IO ()
-printFeld = printExpr . reifySmart mkInjDict
+printFeld = printExpr . reifySmart canShareDict
   -- TODO Should not share literals and variables? (See `canShare` in NanoFeldspar.Extra.)
 
 -- | Draw the syntax tree
 drawFeld :: Syntactic a FeldDomainAll => a -> IO ()
-drawFeld = drawAST . reifySmart mkInjDict
+drawFeld = drawAST . reifySmart canShareDict
 
 -- | Evaluation
 eval :: Syntactic a FeldDomainAll => a -> Internal a
-eval = evalBind . reifySmart mkInjDict
+eval = evalBind . reifySmart canShareDict
 
 
 

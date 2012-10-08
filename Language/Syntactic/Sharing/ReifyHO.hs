@@ -36,9 +36,9 @@ import qualified Language.Syntactic.Sharing.Reify  -- For Haddock
 --
 -- Writes out a list of encountered nodes and returns the top expression.
 type GraphMonad dom p pVar a = WriterT
-      [(NodeId, ASTB (NodeDomain (FODomain dom p pVar)) p)]
-      IO
-      (AST (NodeDomain (FODomain dom p pVar)) a)
+    [(NodeId, ASTB (NodeDomain (FODomain dom p pVar)) p)]
+    IO
+    (AST (NodeDomain (FODomain dom p pVar)) a)
 
 
 
@@ -55,7 +55,7 @@ reifyGraphM canShare vSupp nSupp history = reifyNode
     reifyNode :: ASTF (HODomain dom p pVar) b -> GraphMonad dom p pVar (Full b)
     reifyNode a
       | Dict <- exprDict a = case canShare a of
-          False               -> reifyRec a
+          False -> reifyRec a
           True | a `seq` True -> do
             st   <- liftIO $ makeStableName a
             hist <- liftIO $ readIORef history

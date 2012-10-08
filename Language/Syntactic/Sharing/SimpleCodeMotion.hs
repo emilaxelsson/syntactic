@@ -201,22 +201,17 @@ reifySmart mkId = flip evalState 0 . (codeMotion prjDictFO mkId <=< reifyM . des
 
 
 
-data Temp p a
-  where
-    Temp :: {unTemp :: Maybe (Dict (p a))} -> Temp p (Full a)
-
 -- | An 'MkInjDict' implementation for 'FODomain'
 --
--- The supplied function determines whether or not an expression (represented by its top-most
--- symbol) can be shared by returning a witness that the type of the expression satisfies the
--- predicate @pVar@.
+-- The supplied function determines whether or not an expression can be shared by returning a
+-- witness that the type of the expression satisfies the predicate @pVar@.
 mkInjDictFO :: forall dom pVar . (Let :<: dom)
-    => (forall sig . dom sig -> Maybe (Dict (pVar (DenResult sig))))
+    => (forall a . ASTF (FODomain dom Typeable pVar) a -> Maybe (Dict (pVar a)))
     -> MkInjDict (FODomain dom Typeable pVar)
-mkInjDictFO pVarWit a b
+mkInjDictFO canShare a b
     | Dict <- exprDict a
     , Dict <- exprDict b
-    , Just Dict <- pVarWit' a
+    , Just Dict <- canShare a
     = Just $ InjDict
         { injVariable = \v -> injC (symType pVar $ C' (Variable v))
         , injLambda   = \v -> injC (symType pLam $ SubConstr2 (Lambda v))
@@ -225,12 +220,5 @@ mkInjDictFO pVarWit a b
   where
     pVar = P::P (Variable :|| pVar)
     pLam = P::P (SubConstr2 Lambda pVar Top)
-
-    pVarWit' :: ASTF (FODomain dom Typeable pVar) a -> Maybe (Dict (pVar a))
-    pVarWit' = unTemp . match (\(C' s) _ -> case s of
-        InjL _ -> Temp Nothing
-        InjR (InjL _) -> Temp Nothing
-        InjR (InjR s) -> Temp (pVarWit s)
-      )
 mkInjDictFO _ _ _ = Nothing
 

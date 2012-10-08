@@ -24,9 +24,9 @@ import Language.Syntactic.Sharing.StableName
 --
 -- Writes out a list of encountered nodes and returns the top expression.
 type GraphMonad dom a = WriterT
-      [(NodeId, ASTB (NodeDomain dom) (Sat dom))]
-      IO
-      (AST (NodeDomain dom) a)
+    [(NodeId, ASTB (NodeDomain dom) (Sat dom))]
+    IO
+    (AST (NodeDomain dom) a)
 
 
 
@@ -42,7 +42,7 @@ reifyGraphM canShare nSupp history = reifyNode
     reifyNode :: ASTF dom b -> GraphMonad dom (Full b)
     reifyNode a
       | Dict <- exprDict a = case canShare a of
-          False               -> reifyRec a
+          False -> reifyRec a
           True | a `seq` True -> do
             st   <- liftIO $ makeStableName a
             hist <- liftIO $ readIORef history

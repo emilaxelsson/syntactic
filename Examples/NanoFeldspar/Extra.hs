@@ -27,17 +27,18 @@ import NanoFeldspar.Core
 -- * Graph reification
 --------------------------------------------------------------------------------
 
--- | A predicate deciding which constructs can be shared. Literals and variables
--- are not shared.
-canShare :: ASTF FeldDomainAll a -> Bool
-canShare (prj                            -> Just (Literal _))       = False
-canShare (prjP (P::P (Variable :|| Top)) -> Just (C' (Variable _))) = False
-canShare a = True
+-- | A predicate deciding which constructs can be shared. Variables, lambdas and literals are not
+-- shared.
+canShare2 :: ASTF (HODomain FeldSyms Typeable Top) a -> Bool
+canShare2 (prjP (P::P (Variable :|| Top))               -> Just _) = False
+canShare2 (prjP (P::P (HOLambda FeldSyms Typeable Top)) -> Just _) = False
+canShare2 (prj -> Just (Literal _)) = False
+canShare2 _  = True
 
 -- | Draw the syntax graph after common sub-expression elimination
 drawFeldCSE :: Syntactic a FeldDomainAll => a -> IO ()
 drawFeldCSE a = do
-    (g,_) <- reifyGraph canShare a
+    (g,_) <- reifyGraph canShare2 a
     drawASG
       $ reindexNodesFrom0
       $ inlineSingle
@@ -47,7 +48,7 @@ drawFeldCSE a = do
 -- | Draw the syntax graph after observing sharing
 drawFeldObs :: Syntactic a FeldDomainAll => a -> IO ()
 drawFeldObs a = do
-    (g,_) <- reifyGraph canShare a
+    (g,_) <- reifyGraph canShare2 a
     drawASG
       $ reindexNodesFrom0
       $ inlineSingle
