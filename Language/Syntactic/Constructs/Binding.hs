@@ -253,11 +253,11 @@ instance EvalBind dom => EvalBind (dom :|| pred)
   where
     evalBindSym (C' a) = evalBindSym a
 
-instance EvalBind dom => EvalBind (SubConstr1 dom p)
+instance EvalBind dom => EvalBind (SubConstr1 c dom p)
   where
     evalBindSym (SubConstr1 a) = evalBindSym a
 
-instance EvalBind dom => EvalBind (SubConstr2 dom pa pb)
+instance EvalBind dom => EvalBind (SubConstr2 c dom pa pb)
   where
     evalBindSym (SubConstr2 a) = evalBindSym a
 
@@ -377,11 +377,12 @@ instance AlphaEq sub sub dom env => AlphaEq (sub :|| pred) (sub :|| pred) dom en
   where
     alphaEqSym (C' a) aArgs (C' b) bArgs = alphaEqSym a aArgs b bArgs
 
-instance AlphaEq sub sub dom env => AlphaEq (SubConstr1 sub p) (SubConstr1 sub p) dom env
+instance AlphaEq sub sub dom env => AlphaEq (SubConstr1 c sub p) (SubConstr1 c sub p) dom env
   where
     alphaEqSym (SubConstr1 a) aArgs (SubConstr1 b) bArgs = alphaEqSym a aArgs b bArgs
 
-instance AlphaEq sub sub dom env => AlphaEq (SubConstr2 sub pa pb) (SubConstr2 sub pa pb) dom env
+instance AlphaEq sub sub dom env =>
+    AlphaEq (SubConstr2 c sub pa pb) (SubConstr2 c sub pa pb) dom env
   where
     alphaEqSym (SubConstr2 a) aArgs (SubConstr2 b) bArgs = alphaEqSym a aArgs b bArgs
 

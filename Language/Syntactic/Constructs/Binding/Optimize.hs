@@ -106,11 +106,11 @@ instance Optimize Empty
   where
     optimizeSym = error "Not implemented: optimizeSym for Empty"
 
-instance Optimize dom => Optimize (SubConstr1 dom p)
+instance Optimize dom => Optimize (SubConstr1 c dom p)
   where
     optimizeSym cf i (SubConstr1 s) args = optimizeSym cf (i . SubConstr1) s args
 
-instance Optimize dom => Optimize (SubConstr2 dom pa pb)
+instance Optimize dom => Optimize (SubConstr2 c dom pa pb)
   where
     optimizeSym cf i (SubConstr2 s) args = optimizeSym cf (i . SubConstr2) s args
 

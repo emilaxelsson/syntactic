@@ -238,33 +238,33 @@ appSymC = appSym' . injC
 
 -- | Similar to ':||', but rather than constraining the whole result type, it assumes a result
 -- type of the form @c a@ and constrains the @a@.
-data SubConstr1 :: (* -> *) -> (* -> Constraint) -> (* -> *)
+data SubConstr1 :: (* -> *) -> (* -> *) -> (* -> Constraint) -> (* -> *)
   where
-    SubConstr1 :: (p a, DenResult sig ~ c a) => dom sig -> SubConstr1 dom p sig
+    SubConstr1 :: (p a, DenResult sig ~ c a) => dom sig -> SubConstr1 c dom p sig
 
-instance Constrained dom => Constrained (SubConstr1 dom p)
+instance Constrained dom => Constrained (SubConstr1 c dom p)
   where
-    type Sat (SubConstr1 dom p) = Sat dom
+    type Sat (SubConstr1 c dom p) = Sat dom
     exprDict (SubConstr1 s) = exprDict s
 
-instance Project sub sup => Project sub (SubConstr1 sup p)
+instance Project sub sup => Project sub (SubConstr1 c sup p)
   where
     prj (SubConstr1 s) = prj s
 
-instance Equality dom => Equality (SubConstr1 dom p)
+instance Equality dom => Equality (SubConstr1 c dom p)
   where
     equal (SubConstr1 a) (SubConstr1 b) = equal a b
     exprHash (SubConstr1 s) = exprHash s
 
-instance Render dom => Render (SubConstr1 dom p)
+instance Render dom => Render (SubConstr1 c dom p)
   where
     renderArgs args (SubConstr1 s) = renderArgs args s
 
-instance ToTree dom => ToTree (SubConstr1 dom p)
+instance ToTree dom => ToTree (SubConstr1 c dom p)
   where
     toTreeArgs args (SubConstr1 a) = toTreeArgs args a
 
-instance Eval dom => Eval (SubConstr1 dom p)
+instance Eval dom => Eval (SubConstr1 c dom p)
   where
     evaluate (SubConstr1 a) = evaluate a
 
@@ -272,33 +272,33 @@ instance Eval dom => Eval (SubConstr1 dom p)
 
 -- | Similar to 'SubConstr1', but assumes a result type of the form @c a b@ and constrains both @a@
 -- and @b@.
-data SubConstr2 :: (* -> *) -> (* -> Constraint) -> (* -> Constraint) -> (* -> *)
+data SubConstr2 :: (* -> * -> *) -> (* -> *) -> (* -> Constraint) -> (* -> Constraint) -> (* -> *)
   where
-    SubConstr2 :: (DenResult sig ~ c a b, pa a, pb b) => dom sig -> SubConstr2 dom pa pb sig
+    SubConstr2 :: (DenResult sig ~ c a b, pa a, pb b) => dom sig -> SubConstr2 c dom pa pb sig
 
-instance Constrained dom => Constrained (SubConstr2 dom pa pb)
+instance Constrained dom => Constrained (SubConstr2 c dom pa pb)
   where
-    type Sat (SubConstr2 dom pa pb) = Sat dom
+    type Sat (SubConstr2 c dom pa pb) = Sat dom
     exprDict (SubConstr2 s) = exprDict s
 
-instance Project sub sup => Project sub (SubConstr2 sup pa pb)
+instance Project sub sup => Project sub (SubConstr2 c sup pa pb)
   where
     prj (SubConstr2 s) = prj s
 
-instance Equality dom => Equality (SubConstr2 dom pa pb)
+instance Equality dom => Equality (SubConstr2 c dom pa pb)
   where
     equal (SubConstr2 a) (SubConstr2 b) = equal a b
     exprHash (SubConstr2 s) = exprHash s
 
-instance Render dom => Render (SubConstr2 dom pa pb)
+instance Render dom => Render (SubConstr2 c dom pa pb)
   where
     renderArgs args (SubConstr2 s) = renderArgs args s
 
-instance ToTree dom => ToTree (SubConstr2 dom pa pb)
+instance ToTree dom => ToTree (SubConstr2 c dom pa pb)
   where
     toTreeArgs args (SubConstr2 a) = toTreeArgs args a
 
-instance Eval dom => Eval (SubConstr2 dom pa pb)
+instance Eval dom => Eval (SubConstr2 c dom pa pb)
   where
     evaluate (SubConstr2 a) = evaluate a
 

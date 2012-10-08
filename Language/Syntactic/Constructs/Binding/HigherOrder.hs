@@ -39,7 +39,7 @@ type HODomain dom p pVar = (HOLambda dom p pVar :+: (Variable :|| pVar) :+: dom)
 
 -- | Equivalent to 'HODomain' (including type constraints), but using a first-order representation
 -- of binding
-type FODomain dom p pVar = (SubConstr2 Lambda pVar Top :+: (Variable :|| pVar) :+: dom) :|| p
+type FODomain dom p pVar = (SubConstr2 (->) Lambda pVar Top :+: (Variable :|| pVar) :+: dom) :|| p
 
 
 
@@ -77,7 +77,7 @@ reifyM (Sym (C' (InjL (HOLambda f)))) = do
     return $ injC (symType pLam $ SubConstr2 (Lambda v)) :$ body
   where
     pVar = P::P (Variable :|| pVar)
-    pLam = P::P (SubConstr2 Lambda pVar Top)
+    pLam = P::P (SubConstr2 (->) Lambda pVar Top)
 
 -- | Translating expressions with higher-order binding to corresponding
 -- expressions using first-order binding
