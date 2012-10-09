@@ -1,5 +1,5 @@
 Name:           syntactic
-Version:        1.2
+Version:        1.2.1
 Synopsis:       Generic abstract syntax, and utilities for embedded languages
 Description:    This library provides:
                 .
@@ -53,10 +53,9 @@ Cabal-version:  >=1.10
 Tested-with:    GHC==7.6.1, GHC==7.4.2
 
 extra-source-files:
-  examples/NanoFeldspar/Core.hs
-  examples/NanoFeldspar/Extra.hs
-  examples/NanoFeldspar/Vector.hs
-  examples/NanoFeldspar/Test.hs
+  CONTRIBUTORS
+  examples/NanoFeldspar/*.hs
+  tests/gold/*.txt
 
 source-repository head
   type:     darcs
