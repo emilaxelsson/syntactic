@@ -42,7 +42,6 @@ import Language.Syntactic.Sharing.SimpleCodeMotion
 -- | Convenient class alias
 class    (Ord a, Show a, Typeable a) => Type a
 instance (Ord a, Show a, Typeable a) => Type a
-  -- TODO Use type synonym instead?
 
 type Length = Int
 type Index  = Int
@@ -165,7 +164,6 @@ canShareDict = mkInjDictFO canShare
 -- | Print the expression
 printFeld :: Syntactic a FeldDomainAll => a -> IO ()
 printFeld = printExpr . reifySmart canShareDict
-  -- TODO Should not share literals and variables? (See `canShare` in NanoFeldspar.Extra.)
 
 -- | Draw the syntax tree
 drawFeld :: Syntactic a FeldDomainAll => a -> IO ()
