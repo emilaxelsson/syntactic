@@ -5,6 +5,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 
 -- | A minimal Feldspar core language implementation. The intention of this
 -- module is to demonstrate how to quickly make a language prototype using
@@ -23,7 +24,7 @@ module NanoFeldspar.Core where
 
 import Data.Typeable
 
-import Language.Syntactic
+import Language.Syntactic as Syntactic
 import Language.Syntactic.Constructs.Binding
 import Language.Syntactic.Constructs.Binding.HigherOrder
 import Language.Syntactic.Constructs.Condition
@@ -161,13 +162,21 @@ canShareDict = mkInjDictFO canShare
 -- * Back ends
 --------------------------------------------------------------------------------
 
--- | Print the expression
-printFeld :: Syntactic a FeldDomainAll => a -> IO ()
-printFeld = printExpr . reifySmart canShareDict
+-- | Show the expression
+showExpr :: Syntactic a FeldDomainAll => a -> String
+showExpr = render . reifySmart canShareDict
 
--- | Draw the syntax tree
-drawFeld :: Syntactic a FeldDomainAll => a -> IO ()
-drawFeld = drawAST . reifySmart canShareDict
+-- | Print the expression
+printExpr :: Syntactic a FeldDomainAll => a -> IO ()
+printExpr = Syntactic.printExpr . reifySmart canShareDict
+
+-- | Draw the syntax tree using ASCII
+showAST :: Syntactic a FeldDomainAll => a -> String
+showAST = Syntactic.showAST . reifySmart canShareDict
+
+-- | Draw the syntax tree on the terminal using ASCII
+drawAST :: Syntactic a FeldDomainAll => a -> IO ()
+drawAST = Syntactic.drawAST . reifySmart canShareDict
 
 -- | Evaluation
 eval :: Syntactic a FeldDomainAll => a -> Internal a

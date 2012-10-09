@@ -10,7 +10,7 @@ module NanoFeldspar.Extra where
 
 import Data.Typeable
 
-import Language.Syntactic
+import Language.Syntactic as Syntactic
 import Language.Syntactic.Constructs.Binding
 import Language.Syntactic.Constructs.Binding.HigherOrder
 import Language.Syntactic.Constructs.Binding.Optimize
@@ -36,8 +36,8 @@ canShare2 (prj -> Just (Literal _)) = False
 canShare2 _  = True
 
 -- | Draw the syntax graph after common sub-expression elimination
-drawFeldCSE :: Syntactic a FeldDomainAll => a -> IO ()
-drawFeldCSE a = do
+drawCSE :: Syntactic a FeldDomainAll => a -> IO ()
+drawCSE a = do
     (g,_) <- reifyGraph canShare2 a
     drawASG
       $ reindexNodesFrom0
@@ -46,8 +46,8 @@ drawFeldCSE a = do
       $ g
 
 -- | Draw the syntax graph after observing sharing
-drawFeldObs :: Syntactic a FeldDomainAll => a -> IO ()
-drawFeldObs a = do
+drawObs :: Syntactic a FeldDomainAll => a -> IO ()
+drawObs a = do
     (g,_) <- reifyGraph canShare2 a
     drawASG
       $ reindexNodesFrom0
@@ -77,6 +77,6 @@ constFold expr a = match (\sym _ -> case sym of
       _ -> expr
     ) expr
 
-drawFeldPart :: Syntactic a FeldDomainAll => a -> IO ()
-drawFeldPart = drawAST . optimize constFold . reify
+drawPart :: Syntactic a FeldDomainAll => a -> IO ()
+drawPart = Syntactic.drawAST . optimize constFold . reify
 
