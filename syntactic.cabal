@@ -129,7 +129,7 @@ library
     ViewPatterns
 
   other-extensions:
-    PolyKinds
+    -- Not understood by Cabal: PolyKinds
     OverlappingInstances
     UndecidableInstances
 
@@ -162,7 +162,39 @@ test-suite NanoFeldsparEval
     syntactic,
     base >= 4 && < 4.7,
     QuickCheck >= 2.4 && < 3,
-    test-framework >= 0.6 && < 0.7,
-    test-framework-th >= 0.2 && < 0.3,
-    test-framework-quickcheck2 >= 0.2 && < 0.3
+    test-framework >= 0.6,
+    test-framework-th >= 0.2,
+    test-framework-quickcheck2 >= 0.2
+
+test-suite NanoFeldsparTree
+  type: exitcode-stdio-1.0
+
+  hs-source-dirs: tests examples
+
+  main-is: NanoFeldsparTree.hs
+
+  other-modules:
+
+  default-language: Haskell2010
+
+  default-extensions:
+    FlexibleContexts
+    FlexibleInstances
+    GADTs
+    MultiParamTypeClasses
+    ScopedTypeVariables
+    TypeFamilies
+    TypeOperators
+    UndecidableInstances
+    ViewPatterns
+
+  other-extensions:
+    TemplateHaskell
+
+  build-depends:
+    syntactic,
+    base >= 4 && < 4.7,
+    bytestring,
+    test-framework >= 0.6,
+    test-framework-golden >= 1.1
 
