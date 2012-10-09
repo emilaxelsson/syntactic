@@ -24,9 +24,6 @@ import Language.Syntactic
 -- to
 --
 -- > AST (Decor info dom) sig
---
--- Injection\/projection of an decorated tree is done using 'injDecor' \/
--- 'prjDecor'.
 data Decor info expr sig
   where
     Decor

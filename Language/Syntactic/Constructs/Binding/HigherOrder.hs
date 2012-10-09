@@ -11,6 +11,7 @@ module Language.Syntactic.Constructs.Binding.HigherOrder
     , HOLambda (..)
     , HODomain
     , FODomain
+    , CLambda
     , lambda
     , reifyM
     , reifyTop
@@ -39,7 +40,10 @@ type HODomain dom p pVar = (HOLambda dom p pVar :+: (Variable :|| pVar) :+: dom)
 
 -- | Equivalent to 'HODomain' (including type constraints), but using a first-order representation
 -- of binding
-type FODomain dom p pVar = (SubConstr2 (->) Lambda pVar Top :+: (Variable :|| pVar) :+: dom) :|| p
+type FODomain dom p pVar = (CLambda pVar :+: (Variable :|| pVar) :+: dom) :|| p
+
+-- | 'Lambda' with a constraint on the bound variable type
+type CLambda pVar = SubConstr2 (->) Lambda pVar Top
 
 
 
@@ -77,7 +81,7 @@ reifyM (Sym (C' (InjL (HOLambda f)))) = do
     return $ injC (symType pLam $ SubConstr2 (Lambda v)) :$ body
   where
     pVar = P::P (Variable :|| pVar)
-    pLam = P::P (SubConstr2 (->) Lambda pVar Top)
+    pLam = P::P (CLambda pVar)
 
 -- | Translating expressions with higher-order binding to corresponding
 -- expressions using first-order binding
@@ -87,7 +91,6 @@ reifyTop = flip evalState 0 . reifyM
   -- variables) in the argument. This is guaranteed by the exported interface.
 
 -- | Reify an n-ary syntactic function
-reify :: Syntactic a (HODomain dom p pVar) =>
-    a -> ASTF (FODomain dom p pVar) (Internal a)
+reify :: Syntactic a (HODomain dom p pVar) => a -> ASTF (FODomain dom p pVar) (Internal a)
 reify = reifyTop . desugar
 

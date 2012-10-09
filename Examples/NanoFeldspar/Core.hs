@@ -148,8 +148,8 @@ instance (Syntactic a FeldDomainAll, Type (Internal a)) => Syntax a
 -- | A predicate deciding which constructs can be shared. Variables, lambdas and literals are not
 -- shared.
 canShare :: ASTF (FODomain FeldSyms Typeable Top) a -> Maybe (Dict (Top a))
-canShare (prjP (P::P (Variable :|| Top))               -> Just _) = Nothing
-canShare (prjP (P::P (SubConstr2 (->) Lambda Top Top)) -> Just _) = Nothing
+canShare (prjP (P::P (Variable :|| Top)) -> Just _) = Nothing
+canShare (prjP (P::P (CLambda Top))      -> Just _) = Nothing
 canShare (prj -> Just (Literal _)) = Nothing
 canShare _  = Just Dict
 

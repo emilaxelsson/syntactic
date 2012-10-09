@@ -185,7 +185,7 @@ codeMotion pd mkId a
 prjDictFO :: forall dom p pVar . PrjDict (FODomain dom p pVar)
 prjDictFO = PrjDict
     { prjVariable = fmap (\(C' (Variable v)) -> v)       . prjP (P::P (Variable :|| pVar))
-    , prjLambda   = fmap (\(SubConstr2 (Lambda v)) -> v) . prjP (P::P (SubConstr2 (->) Lambda pVar Top))
+    , prjLambda   = fmap (\(SubConstr2 (Lambda v)) -> v) . prjP (P::P (CLambda pVar))
     }
 
 -- | Like 'reify' but with common sub-expression elimination and variable hoisting
@@ -219,6 +219,6 @@ mkInjDictFO canShare a b
         }
   where
     pVar = P::P (Variable :|| pVar)
-    pLam = P::P (SubConstr2 (->) Lambda pVar Top)
+    pLam = P::P (CLambda pVar)
 mkInjDictFO _ _ _ = Nothing
 

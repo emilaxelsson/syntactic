@@ -77,7 +77,7 @@ reifyGraphM canShare vSupp nSupp history = reifyNode
         return $ injC (symType pLam $ SubConstr2 (Lambda v)) :$ body
       where
         pVar = P::P (Variable :|| pVar)
-        pLam = P::P (SubConstr2 (->) Lambda pVar Top)
+        pLam = P::P (CLambda pVar)
 
 
 
