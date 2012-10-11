@@ -49,16 +49,21 @@ data AST dom sig
 
 infixl 1 :$
 
+instance Functor dom => Functor (AST dom)
+  where
+    fmap f (Sym s)  = Sym (fmap f s)
+    fmap f (g :$ s) = (fmap (fmap f) g) :$ s
+
 -- | Fully applied abstract syntax tree
 type ASTF dom a = AST dom (Full a)
 
 -- | Signature of a fully applied symbol
 newtype Full a = Full { result :: a }
-  deriving (Eq, Show, Typeable)
+  deriving (Eq, Show, Typeable, Functor)
 
 -- | Signature of a partially applied (or unapplied) symbol
 newtype a :-> sig = Partial (a -> sig)
-  deriving (Typeable)
+  deriving (Typeable, Functor)
 
 infixr :->
 
@@ -96,6 +101,7 @@ data (dom1 :+: dom2) a
   where
     InjL :: dom1 a -> (dom1 :+: dom2) a
     InjR :: dom2 a -> (dom1 :+: dom2) a
+  deriving (Functor)
 
 infixr :+:
 
