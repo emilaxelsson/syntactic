@@ -100,7 +100,7 @@ reifyGraphTop canShare a = do
 -- This function is not referentially transparent (hence the 'IO'). However, it
 -- is well-behaved in the sense that the worst thing that could happen is that
 -- sharing is lost. It is not possible to get false sharing.
-reifyGraph :: Syntactic a (HODomain dom p pVar)
+reifyGraph :: (Syntactic a, Domain a ~ HODomain dom p pVar)
     => (forall a . ASTF (HODomain dom p pVar) a -> Bool)
          -- ^ A function that decides whether a given node can be shared
     -> a

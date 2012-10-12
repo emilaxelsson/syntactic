@@ -55,14 +55,15 @@ lambda
 lambda = injC . HOLambda
 
 instance
-    ( Syntactic a (HODomain dom p pVar)
-    , Syntactic b (HODomain dom p pVar)
+    ( Syntactic a, Domain a ~ HODomain dom p pVar
+    , Syntactic b, Domain b ~ HODomain dom p pVar
     , p (Internal a -> Internal b)
     , p (Internal a)
     , pVar (Internal a)
     ) =>
-      Syntactic (a -> b) (HODomain dom p pVar)
+      Syntactic (a -> b)
   where
+    type Domain (a -> b)   = Domain a
     type Internal (a -> b) = Internal a -> Internal b
     desugar f = lambda (desugar . f . sugar)
     sugar     = error "sugar not implemented for (a -> b)"
@@ -91,6 +92,7 @@ reifyTop = flip evalState 0 . reifyM
   -- variables) in the argument. This is guaranteed by the exported interface.
 
 -- | Reify an n-ary syntactic function
-reify :: Syntactic a (HODomain dom p pVar) => a -> ASTF (FODomain dom p pVar) (Internal a)
+reify :: (Syntactic a, Domain a ~ HODomain dom p pVar) =>
+    a -> ASTF (FODomain dom p pVar) (Internal a)
 reify = reifyTop . desugar
 

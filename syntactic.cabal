@@ -1,5 +1,5 @@
 Name:           syntactic
-Version:        1.2.1
+Version:        1.3
 Synopsis:       Generic abstract syntax, and utilities for embedded languages
 Description:    This library provides:
                 .

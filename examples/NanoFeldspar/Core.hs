@@ -135,15 +135,16 @@ type FeldDomainAll = HODomain FeldSyms Typeable Top
 newtype Data a = Data { unData :: ASTF FeldDomainAll a }
 
 -- | Declaring 'Data' as syntactic sugar
-instance Type a => Syntactic (Data a) FeldDomainAll
+instance Type a => Syntactic (Data a)
   where
+    type Domain (Data a)   = FeldDomainAll
     type Internal (Data a) = a
     desugar = unData
     sugar   = Data
 
 -- | Specialization of the 'Syntactic' class for the Feldspar domain
-class    (Syntactic a FeldDomainAll, Type (Internal a)) => Syntax a
-instance (Syntactic a FeldDomainAll, Type (Internal a)) => Syntax a
+class    (Syntactic a, Domain a ~ FeldDomainAll, Type (Internal a)) => Syntax a
+instance (Syntactic a, Domain a ~ FeldDomainAll, Type (Internal a)) => Syntax a
 
 -- | A predicate deciding which constructs can be shared. Variables, lambdas and literals are not
 -- shared.
@@ -163,23 +164,23 @@ canShareDict = mkInjDictFO canShare
 --------------------------------------------------------------------------------
 
 -- | Show the expression
-showExpr :: Syntactic a FeldDomainAll => a -> String
+showExpr :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> String
 showExpr = render . reifySmart canShareDict
 
 -- | Print the expression
-printExpr :: Syntactic a FeldDomainAll => a -> IO ()
+printExpr :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> IO ()
 printExpr = Syntactic.printExpr . reifySmart canShareDict
 
 -- | Draw the syntax tree using ASCII
-showAST :: Syntactic a FeldDomainAll => a -> String
+showAST :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> String
 showAST = Syntactic.showAST . reifySmart canShareDict
 
 -- | Draw the syntax tree on the terminal using ASCII
-drawAST :: Syntactic a FeldDomainAll => a -> IO ()
+drawAST :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> IO ()
 drawAST = Syntactic.drawAST . reifySmart canShareDict
 
 -- | Evaluation
-eval :: Syntactic a FeldDomainAll => a -> Internal a
+eval :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> Internal a
 eval = evalBind . reifySmart canShareDict
 
 

@@ -14,24 +14,22 @@ import Language.Syntactic.Constraint
 
 -- | It is usually assumed that @(`desugar` (`sugar` a))@ has the same meaning
 -- as @a@.
-class Syntactic a dom | a -> dom
-    -- Note: using a functional dependency rather than an associated type,
-    -- because this makes it possible to make a class alias constraining dom.
-    -- TODO Now that GHC allows equality super class constraints, this should be
-    --      changed to an associated type.
+class Syntactic a
   where
+    type Domain a :: * -> *
     type Internal a
-    desugar :: a -> ASTF dom (Internal a)
-    sugar   :: ASTF dom (Internal a) -> a
+    desugar :: a -> ASTF (Domain a) (Internal a)
+    sugar   :: ASTF (Domain a) (Internal a) -> a
 
-instance Syntactic (ASTF dom a) dom
+instance Syntactic (ASTF dom a)
   where
+    type Domain (ASTF dom a)   = dom
     type Internal (ASTF dom a) = a
     desugar = id
     sugar   = id
 
 -- | Syntactic type casting
-resugar :: (Syntactic a dom, Syntactic b dom, Internal a ~ Internal b) => a -> b
+resugar :: (Syntactic a, Syntactic b, Domain a ~ Domain b, Internal a ~ Internal b) => a -> b
 resugar = sugar . desugar
 
 -- | N-ary syntactic functions
@@ -39,10 +37,14 @@ resugar = sugar . desugar
 -- 'desugarN' has any type of the form:
 --
 -- > desugarN ::
--- >     ( Syntactic a dom
--- >     , Syntactic b dom
+-- >     ( Syntactic a
+-- >     , Syntactic b
 -- >     , ...
--- >     , Syntactic x dom
+-- >     , Syntactic x
+-- >     , Domain a ~ dom
+-- >     , Domain b ~ dom
+-- >     , ...
+-- >     , Domain x ~ dom
 -- >     ) => (a -> b -> ... -> x)
 -- >       -> (  ASTF dom (Internal a)
 -- >          -> ASTF dom (Internal b)
@@ -56,13 +58,14 @@ class SyntacticN a internal | a -> internal
     desugarN :: a -> internal
     sugarN   :: internal -> a
 
-instance (Syntactic a dom, ia ~ AST dom (Full (Internal a))) => SyntacticN a ia
+instance (Syntactic a, Domain a ~ dom, ia ~ AST dom (Full (Internal a))) => SyntacticN a ia
   where
     desugarN = desugar
     sugarN   = sugar
 
 instance
-    ( Syntactic a dom
+    ( Syntactic a
+    , Domain a ~ dom
     , ia ~ Internal a
     , SyntacticN b ib
     ) =>

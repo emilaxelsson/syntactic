@@ -36,7 +36,7 @@ canShare2 (prj -> Just (Literal _)) = False
 canShare2 _  = True
 
 -- | Draw the syntax graph after common sub-expression elimination
-drawCSE :: Syntactic a FeldDomainAll => a -> IO ()
+drawCSE :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> IO ()
 drawCSE a = do
     (g,_) <- reifyGraph canShare2 a
     drawASG
@@ -46,7 +46,7 @@ drawCSE a = do
       $ g
 
 -- | Draw the syntax graph after observing sharing
-drawObs :: Syntactic a FeldDomainAll => a -> IO ()
+drawObs :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> IO ()
 drawObs a = do
     (g,_) <- reifyGraph canShare2 a
     drawASG
@@ -77,6 +77,6 @@ constFold expr a = match (\sym _ -> case sym of
       _ -> expr
     ) expr
 
-drawPart :: Syntactic a FeldDomainAll => a -> IO ()
+drawPart :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> IO ()
 drawPart = Syntactic.drawAST . optimize constFold . reify
 

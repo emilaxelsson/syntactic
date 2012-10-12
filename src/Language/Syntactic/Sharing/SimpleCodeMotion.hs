@@ -191,7 +191,8 @@ prjDictFO = PrjDict
 -- | Like 'reify' but with common sub-expression elimination and variable hoisting
 reifySmart :: forall dom p pVar a
     .  ( AlphaEq dom dom (FODomain dom p pVar) [(VarId,VarId)]
-       , Syntactic a (HODomain dom p pVar)
+       , Syntactic a
+       , Domain a ~ HODomain dom p pVar
        , p :< Typeable
        )
     => MkInjDict (FODomain dom p pVar)

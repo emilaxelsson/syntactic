@@ -65,15 +65,17 @@ sugarMonad
     -> Mon dom pVar m (ASTF (HODomain dom Typeable pVar) a)
 sugarMonad ma = Mon $ cont $ sugarSymC Bind ma
 
-instance ( Syntactic a (HODomain dom Typeable pVar)
+instance ( Syntactic a
+         , Domain a ~ HODomain dom Typeable pVar
          , InjectC (MONAD m) dom (m (Internal a))
          , Monad m
          , Typeable1 m
          , Typeable (Internal a)
          , pVar (Internal a)
          ) =>
-           Syntactic (Mon dom pVar m a) (HODomain dom Typeable pVar)
+           Syntactic (Mon dom pVar m a)
   where
+    type Domain (Mon dom pVar m a)   = Domain a
     type Internal (Mon dom pVar m a) = m (Internal a)
     desugar = desugarMonad . fmap desugar
     sugar   = fmap sugar   . sugarMonad

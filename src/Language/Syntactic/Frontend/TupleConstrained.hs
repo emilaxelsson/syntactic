@@ -46,8 +46,8 @@ sugarSymC' s = sugarSymC (C' s :: (sym :|| p) sig)
 
 
 instance
-    ( Syntactic a dom
-    , Syntactic b dom
+    ( Syntactic a, Domain a ~ dom
+    , Syntactic b, Domain b ~ dom
     , TupleSat dom p
     , p (Internal a, Internal b)
     , p (Internal a)
@@ -59,8 +59,9 @@ instance
     , InjectC (Select :|| p) dom (Internal a)
     , InjectC (Select :|| p) dom (Internal b)
     ) =>
-      Syntactic (a,b) dom
+      Syntactic (a,b)
   where
+    type Domain (a,b) = Domain a
     type Internal (a,b) =
         ( Internal a
         , Internal b
@@ -73,9 +74,9 @@ instance
         )
 
 instance
-    ( Syntactic a dom
-    , Syntactic b dom
-    , Syntactic c dom
+    ( Syntactic a, Domain a ~ dom
+    , Syntactic b, Domain b ~ dom
+    , Syntactic c, Domain c ~ dom
     , TupleSat dom p
     , p ( Internal a
         , Internal b
@@ -93,8 +94,9 @@ instance
     , InjectC (Select :|| p) dom (Internal b)
     , InjectC (Select :|| p) dom (Internal c)
     ) =>
-      Syntactic (a,b,c) dom
+      Syntactic (a,b,c)
   where
+    type Domain (a,b,c) = Domain a
     type Internal (a,b,c) =
         ( Internal a
         , Internal b
@@ -109,10 +111,10 @@ instance
         )
 
 instance
-    ( Syntactic a dom
-    , Syntactic b dom
-    , Syntactic c dom
-    , Syntactic d dom
+    ( Syntactic a, Domain a ~ dom
+    , Syntactic b, Domain b ~ dom
+    , Syntactic c, Domain c ~ dom
+    , Syntactic d, Domain d ~ dom
     , TupleSat dom p
     , p ( Internal a
         , Internal b
@@ -134,8 +136,9 @@ instance
     , InjectC (Select :|| p) dom (Internal c)
     , InjectC (Select :|| p) dom (Internal d)
     ) =>
-      Syntactic (a,b,c,d) dom
+      Syntactic (a,b,c,d)
   where
+    type Domain (a,b,c,d) = Domain a
     type Internal (a,b,c,d) =
         ( Internal a
         , Internal b
@@ -152,11 +155,11 @@ instance
         )
 
 instance
-    ( Syntactic a dom
-    , Syntactic b dom
-    , Syntactic c dom
-    , Syntactic d dom
-    , Syntactic e dom
+    ( Syntactic a, Domain a ~ dom
+    , Syntactic b, Domain b ~ dom
+    , Syntactic c, Domain c ~ dom
+    , Syntactic d, Domain d ~ dom
+    , Syntactic e, Domain e ~ dom
     , TupleSat dom p
     , p ( Internal a
         , Internal b
@@ -182,8 +185,9 @@ instance
     , InjectC (Select :|| p) dom (Internal d)
     , InjectC (Select :|| p) dom (Internal e)
     ) =>
-      Syntactic (a,b,c,d,e) dom
+      Syntactic (a,b,c,d,e)
   where
+    type Domain (a,b,c,d,e) = Domain a
     type Internal (a,b,c,d,e) =
         ( Internal a
         , Internal b
@@ -202,12 +206,12 @@ instance
         )
 
 instance
-    ( Syntactic a dom
-    , Syntactic b dom
-    , Syntactic c dom
-    , Syntactic d dom
-    , Syntactic e dom
-    , Syntactic f dom
+    ( Syntactic a, Domain a ~ dom
+    , Syntactic b, Domain b ~ dom
+    , Syntactic c, Domain c ~ dom
+    , Syntactic d, Domain d ~ dom
+    , Syntactic e, Domain e ~ dom
+    , Syntactic f, Domain f ~ dom
     , TupleSat dom p
     , p ( Internal a
         , Internal b
@@ -237,8 +241,9 @@ instance
     , InjectC (Select :|| p) dom (Internal e)
     , InjectC (Select :|| p) dom (Internal f)
     ) =>
-      Syntactic (a,b,c,d,e,f) dom
+      Syntactic (a,b,c,d,e,f)
   where
+    type Domain (a,b,c,d,e,f) = Domain a
     type Internal (a,b,c,d,e,f) =
         ( Internal a
         , Internal b
@@ -259,13 +264,13 @@ instance
         )
 
 instance
-    ( Syntactic a dom
-    , Syntactic b dom
-    , Syntactic c dom
-    , Syntactic d dom
-    , Syntactic e dom
-    , Syntactic f dom
-    , Syntactic g dom
+    ( Syntactic a, Domain a ~ dom
+    , Syntactic b, Domain b ~ dom
+    , Syntactic c, Domain c ~ dom
+    , Syntactic d, Domain d ~ dom
+    , Syntactic e, Domain e ~ dom
+    , Syntactic f, Domain f ~ dom
+    , Syntactic g, Domain g ~ dom
     , TupleSat dom p
     , p ( Internal a
         , Internal b
@@ -299,8 +304,9 @@ instance
     , InjectC (Select :|| p) dom (Internal f)
     , InjectC (Select :|| p) dom (Internal g)
     ) =>
-      Syntactic (a,b,c,d,e,f,g) dom
+      Syntactic (a,b,c,d,e,f,g)
   where
+    type Domain (a,b,c,d,e,f,g) = Domain a
     type Internal (a,b,c,d,e,f,g) =
         ( Internal a
         , Internal b

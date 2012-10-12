@@ -31,8 +31,9 @@ data Vector a
   where
     Indexed :: Data Length -> (Data Index -> a) -> Vector a
 
-instance Syntax a => Syntactic (Vector a) FeldDomainAll
+instance Syntax a => Syntactic (Vector a)
   where
+    type Domain (Vector a)   = FeldDomainAll
     type Internal (Vector a) = [Internal a]
     desugar = desugar . freezeVector . map resugar
     sugar   = map resugar . unfreezeVector . sugar
