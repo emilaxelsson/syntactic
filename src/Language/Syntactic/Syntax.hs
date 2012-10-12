@@ -29,17 +29,10 @@ module Language.Syntactic.Syntax
 
 
 
+import Control.Monad.Instances  -- Not needed in GHC 7.6
 import Data.Typeable
 
 import Data.PolyProxy
-
-
-
-#if __GLASGOW_HASKELL__ < 706
-instance Functor ((->) a)
-  where
-    fmap f = (f .)
-#endif
 
 
 
@@ -59,13 +52,13 @@ data AST dom sig
 
 infixl 1 :$
 
+-- | Fully applied abstract syntax tree
+type ASTF dom a = AST dom (Full a)
+
 instance Functor dom => Functor (AST dom)
   where
     fmap f (Sym s)  = Sym (fmap f s)
-    fmap f (g :$ s) = (fmap (fmap f) g) :$ s
-
--- | Fully applied abstract syntax tree
-type ASTF dom a = AST dom (Full a)
+    fmap f (s :$ a) = fmap (fmap f) s :$ a
 
 -- | Signature of a fully applied symbol
 newtype Full a = Full { result :: a }
