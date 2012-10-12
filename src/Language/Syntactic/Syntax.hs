@@ -1,6 +1,8 @@
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+{-# OPTIONS_GHC -cpp #-}
+
 -- | Generic representation of typed syntax trees
 --
 -- For details, see: A Generic Abstract Syntax Model for Embedded Languages
@@ -30,6 +32,14 @@ module Language.Syntactic.Syntax
 import Data.Typeable
 
 import Data.PolyProxy
+
+
+
+#if __GLASGOW_HASKELL__ < 706
+instance Functor ((->) a)
+  where
+    fmap f = (f .)
+#endif
 
 
 
