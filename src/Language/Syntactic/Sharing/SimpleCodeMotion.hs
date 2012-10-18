@@ -81,10 +81,6 @@ count a b
     cnt (f :$ b) = cnt f + count a b
     cnt _        = 0
 
-nonTerminal :: AST dom a -> Bool
-nonTerminal (_ :$ _) = True
-nonTerminal _        = False
-
 -- | Environment for the expression in the 'choose' function
 data Env dom = Env
     { inLambda :: Bool  -- ^ Whether the current expression is inside a lambda
@@ -101,12 +97,17 @@ independent pd env (Sym (prjVariable pd -> Just v)) = not (v `member` dependenci
 independent pd env (f :$ a) = independent pd env f && independent pd env a
 independent _ _ _ = True
 
+isVariable :: PrjDict dom -> ASTF dom a -> Bool
+isVariable pd (Sym (prjVariable pd -> Just _)) = True
+isVariable pd _ = False
+
 -- | Checks whether a sub-expression in a given environment can be lifted out
 liftable :: PrjDict dom -> Env dom -> ASTF dom a -> Bool
-liftable pd env a = independent pd env a && heuristic
+liftable pd env a = independent pd env a && not (isVariable pd a) && heuristic
     -- Lifting dependent expressions is semantically incorrect
+    -- Lifting variables would cause `codeMotion` to loop
   where
-    heuristic =  nonTerminal a && (inLambda env || (counter env (ASTE a) > 1))
+    heuristic = inLambda env || (counter env (ASTE a) > 1)
 
 
 
@@ -118,7 +119,7 @@ data Chosen dom a
 
 -- | Choose a sub-expression to share
 choose :: forall dom a
-    .  (AlphaEq dom dom dom [(VarId,VarId)])
+    .  AlphaEq dom dom dom [(VarId,VarId)]
     => PrjDict dom
     -> MkInjDict dom
     -> ASTF dom a
