@@ -108,46 +108,48 @@ liftable pd env a = independent pd env a && heuristic
   where
     heuristic =  nonTerminal a && (inLambda env || (counter env (ASTE a) > 1))
 
--- | Choose a sub-expression to share
-choose
-    :: (AlphaEq dom dom dom [(VarId,VarId)])
-    => PrjDict dom
-    -> ASTF dom a
-    -> Maybe (ASTE dom)
-choose pd a = chooseEnv pd env a
+
+
+-- | A sub-expression chosen to be shared together with an evidence that it can actually be shared
+-- in the whole expression under consideration
+data Chosen dom a
   where
-    env = Env
+    Chosen :: InjDict dom b a -> ASTF dom b -> Chosen dom a
+
+-- | Choose a sub-expression to share
+choose :: forall dom a
+    .  (AlphaEq dom dom dom [(VarId,VarId)])
+    => PrjDict dom
+    -> MkInjDict dom
+    -> ASTF dom a
+    -> Maybe (Chosen dom a)
+choose pd mkId a = chooseEnv initEnv a
+  where
+    initEnv = Env
         { inLambda     = False
         , counter      = \(ASTE b) -> count b a
         , dependencies = empty
         }
 
--- | Choose a sub-expression to share in an 'Env' environment
-chooseEnv :: forall dom a
-    .  PrjDict dom
-    -> Env dom
-    -> ASTF dom a
-    -> Maybe (ASTE dom)
-chooseEnv pd env a
-    | liftable pd env a = Just (ASTE a)
-chooseEnv pd env a = chooseEnvSub pd env a
+    chooseEnv :: Env dom -> ASTF dom b -> Maybe (Chosen dom a)
+    chooseEnv env b
+        | liftable pd env b = do
+            id <- mkId b a
+            return $ Chosen id b
+    chooseEnv env b = chooseEnvSub env b
 
--- | Like 'chooseEnv', but does not consider the top expression for sharing
-chooseEnvSub
-    :: PrjDict dom
-    -> Env dom
-    -> AST dom a
-    -> Maybe (ASTE dom)
-chooseEnvSub pd env (Sym lam :$ a)
-    | Just v <- prjLambda pd lam
-    = chooseEnv pd (env' v) a
-  where
-    env' v = env
-        { inLambda     = True
-        , dependencies = insert v (dependencies env)
-        }
-chooseEnvSub pd env (f :$ a) = chooseEnvSub pd env f `mplus` chooseEnv pd env a
-chooseEnvSub _ _ _ = Nothing
+    -- | Like 'chooseEnv', but does not consider the top expression for sharing
+    chooseEnvSub :: Env dom -> AST dom b -> Maybe (Chosen dom a)
+    chooseEnvSub env (Sym lam :$ b)
+        | Just v <- prjLambda pd lam
+        = chooseEnv (env' v) b
+      where
+        env' v = env
+            { inLambda     = True
+            , dependencies = insert v (dependencies env)
+            }
+    chooseEnvSub env (s :$ b) = chooseEnvSub env s `mplus` chooseEnv env b
+    chooseEnvSub _ _ = Nothing
 
 
 
@@ -161,7 +163,7 @@ codeMotion :: forall dom a
     -> ASTF dom a
     -> State VarId (ASTF dom a)
 codeMotion pd mkId a
-    | Just (ASTE b) <- choose pd a, Just id <- mkId b a = share id b
+    | Just (Chosen id b) <- choose pd mkId a = share id b
     | otherwise = descend a
   where
     share :: InjDict dom b a -> ASTF dom b -> State VarId (ASTF dom a)
