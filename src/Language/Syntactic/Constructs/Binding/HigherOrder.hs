@@ -12,7 +12,7 @@ module Language.Syntactic.Constructs.Binding.HigherOrder
     , HODomain
     , FODomain
     , CLambda
-    , lambda
+    , IsHODomain (..)
     , reifyM
     , reifyTop
     , reify
@@ -47,16 +47,19 @@ type CLambda pVar = SubConstr2 (->) Lambda pVar Top
 
 
 
--- | Lambda binding
-lambda
-    :: (p (a -> b), p a, pVar a)
-    => (ASTF (HODomain dom p pVar) a -> ASTF (HODomain dom p pVar) b)
-    -> ASTF (HODomain dom p pVar) (a -> b)
-lambda = injC . HOLambda
+-- | An abstraction of 'HODomain'
+class IsHODomain dom p pVar | dom -> p pVar
+  where
+    lambda :: (p (a -> b), p a, pVar a) => (ASTF dom a -> ASTF dom b) -> ASTF dom (a -> b)
+
+instance IsHODomain (HODomain dom p pVar) p pVar
+  where
+    lambda = injC . HOLambda
 
 instance
-    ( Syntactic a, Domain a ~ HODomain dom p pVar
-    , Syntactic b, Domain b ~ HODomain dom p pVar
+    ( Syntactic a, Domain a ~ dom
+    , Syntactic b, Domain b ~ dom
+    , IsHODomain dom p pVar
     , p (Internal a -> Internal b)
     , p (Internal a)
     , pVar (Internal a)
