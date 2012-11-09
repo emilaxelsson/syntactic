@@ -100,6 +100,14 @@ mapArgsM :: Monad m
     -> (forall sig . Args c1 sig -> m (Args c2 sig))
 mapArgsM f = unwrapMonad . mapArgsA (WrapMonad . f)
 
+-- | Right fold for an 'Args' list
+foldrArgs
+    :: (forall a . c (Full a) -> b -> b)
+    -> b
+    -> (forall sig . Args c sig -> b)
+foldrArgs f b Nil       = b
+foldrArgs f b (a :* as) = f a (foldrArgs f b as)
+
 -- | Apply a (partially applied) symbol to a list of argument terms
 appArgs :: AST dom sig -> Args (AST dom) sig -> ASTF dom (DenResult sig)
 appArgs a Nil       = a
