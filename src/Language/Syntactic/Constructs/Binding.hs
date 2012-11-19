@@ -108,6 +108,10 @@ instance ToTree Lambda
   where
     toTreeArgs [body] (Lambda v) = Node ("Lambda " ++ show v) [body]
 
+-- | Allow an existing binding to be used with a body of a different type
+reuseLambda :: Lambda (b :-> Full (a -> b)) -> Lambda (c :-> Full (a -> c))
+reuseLambda (Lambda v) = Lambda v
+
 
 
 --------------------------------------------------------------------------------
