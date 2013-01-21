@@ -134,9 +134,9 @@ choose pd mkId a = chooseEnv initEnv a
 
     chooseEnv :: Env dom -> ASTF dom b -> Maybe (Chosen dom a)
     chooseEnv env b
-        | liftable pd env b = do
-            id <- mkId b a
-            return $ Chosen id b
+        | liftable pd env b
+        , Just id <- mkId b a
+        = Just $ Chosen id b
     chooseEnv env b = chooseEnvSub env b
 
     -- | Like 'chooseEnv', but does not consider the top expression for sharing
