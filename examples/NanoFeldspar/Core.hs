@@ -102,7 +102,6 @@ instance Semantic ForLoop
         , semanticEval = \len init body -> foldl (flip body) init [0 .. len-1]
         }
 
-
 instance Equality ForLoop where equal = equalDefault; exprHash = exprHashDefault
 instance Render   ForLoop where renderArgs = renderArgsDefault
 instance Eval     ForLoop where evaluate   = evaluateDefault

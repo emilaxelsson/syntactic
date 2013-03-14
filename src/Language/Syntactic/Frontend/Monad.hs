@@ -10,6 +10,7 @@ module Language.Syntactic.Frontend.Monad where
 
 
 
+import Control.Applicative
 import Control.Monad.Cont
 import Data.Typeable
 
@@ -41,6 +42,11 @@ instance (Monad m) => Monad (Mon dom m)
   where
     return a = Mon $ return a
     ma >>= f = Mon $ unMon ma >>= unMon . f
+
+instance (Monad m, Applicative m) => Applicative (Mon dom m)
+  where
+    pure  = return
+    (<*>) = ap
 
 -- | One-layer desugaring of monadic actions
 desugarMonad
