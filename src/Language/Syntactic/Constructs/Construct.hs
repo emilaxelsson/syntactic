@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 -- | Provides a simple way to make syntactic constructs for prototyping. Note
 -- that 'Construct' is quite unsafe as it only uses 'String' to distinguish
 -- between different constructs. Also, 'Construct' has a very free type that
@@ -24,8 +26,5 @@ instance Semantic Construct
   where
     semantics (Construct name den) = Sem name den
 
-instance Equality Construct where equal = equalDefault; exprHash = exprHashDefault
-instance Render   Construct where renderArgs = renderArgsDefault
-instance Eval     Construct where evaluate   = evaluateDefault
-instance ToTree   Construct
+semanticInstances ''Construct
 

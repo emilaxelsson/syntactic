@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 -- | Conditional expressions
 
 module Language.Syntactic.Constructs.Condition where
@@ -21,8 +23,5 @@ instance Semantic Condition
   where
     semantics Condition = Sem "condition" (\c t e -> if c then t else e)
 
-instance Equality Condition where equal = equalDefault; exprHash = exprHashDefault
-instance Render   Condition where renderArgs = renderArgsDefault
-instance Eval     Condition where evaluate   = evaluateDefault
-instance ToTree   Condition
+semanticInstances ''Condition
 

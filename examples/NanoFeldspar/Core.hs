@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -69,10 +70,8 @@ instance Semantic Parallel
         , semanticEval = \len ixf -> map ixf [0 .. len-1]
         }
 
-instance Equality Parallel where equal = equalDefault; exprHash = exprHashDefault
-instance Render   Parallel where renderArgs = renderArgsDefault
-instance Eval     Parallel where evaluate   = evaluateDefault
-instance ToTree   Parallel
+semanticInstances ''Parallel
+
 instance EvalBind Parallel where evalBindSym = evalBindSymDefault
 
 instance AlphaEq dom dom dom env => AlphaEq Parallel Parallel dom env
@@ -102,10 +101,8 @@ instance Semantic ForLoop
         , semanticEval = \len init body -> foldl (flip body) init [0 .. len-1]
         }
 
-instance Equality ForLoop where equal = equalDefault; exprHash = exprHashDefault
-instance Render   ForLoop where renderArgs = renderArgsDefault
-instance Eval     ForLoop where evaluate   = evaluateDefault
-instance ToTree   ForLoop
+semanticInstances ''ForLoop
+
 instance EvalBind ForLoop where evalBindSym = evalBindSymDefault
 
 instance AlphaEq dom dom dom env => AlphaEq ForLoop ForLoop dom env

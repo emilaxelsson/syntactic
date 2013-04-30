@@ -1,8 +1,13 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 -- | Default implementations of some interpretation functions
 
 module Language.Syntactic.Interpretation.Semantics where
 
 
+
+import Language.Haskell.TH
+import Language.Haskell.TH.Quote
 
 import Data.Hash
 
@@ -74,3 +79,13 @@ renderArgsDefault args = renderArgs args . semantics
 evaluateDefault :: Semantic expr => expr a -> Denotation a
 evaluateDefault = evaluate . semantics
 
+semanticInstances :: Name -> DecsQ
+semanticInstances n =
+    [d|
+        instance Equality $(typ) where equal = equalDefault ; exprHash = exprHashDefault
+        instance Render $(typ) where renderArgs = renderArgsDefault
+        instance ToTree $(typ)
+        instance Eval $(typ) where evaluate = evaluateDefault
+    |]
+  where
+    typ = conT n

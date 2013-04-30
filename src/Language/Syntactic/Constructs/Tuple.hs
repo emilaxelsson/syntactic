@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 -- | Construction and elimination of tuples in the object language
 
 module Language.Syntactic.Constructs.Tuple where
@@ -38,10 +40,7 @@ instance Semantic Tuple
     semantics Tup6 = Sem "tup6" (,,,,,)
     semantics Tup7 = Sem "tup7" (,,,,,,)
 
-instance Equality Tuple where equal = equalDefault; exprHash = exprHashDefault
-instance Render   Tuple where renderArgs = renderArgsDefault
-instance Eval     Tuple where evaluate   = evaluateDefault
-instance ToTree   Tuple
+semanticInstances ''Tuple
 
 
 
@@ -120,10 +119,7 @@ instance Semantic Select
     semantics Sel6 = Sem "sel6" sel6
     semantics Sel7 = Sem "sel7" sel7
 
-instance Equality Select where equal = equalDefault; exprHash = exprHashDefault
-instance Render   Select where renderArgs = renderArgsDefault
-instance Eval     Select where evaluate   = evaluateDefault
-instance ToTree   Select
+semanticInstances ''Select
 
 -- | Return the selected position, e.g.
 --

@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 -- | Identity function
 
 module Language.Syntactic.Constructs.Identity where
@@ -22,8 +24,5 @@ instance Semantic Identity
   where
     semantics Id = Sem "id" id
 
-instance Equality Identity where equal = equalDefault; exprHash = exprHashDefault
-instance Render   Identity where renderArgs = renderArgsDefault
-instance Eval     Identity where evaluate   = evaluateDefault
-instance ToTree   Identity
+semanticInstances ''Identity
 
