@@ -26,17 +26,17 @@ prop_3 a b = eval prog3 a b' == ref a b'
         l = min a b
         u = max a b
 
-prop_4 a = eval prog4 a == ref a
+prop_5 a = eval prog5 a == ref a
   where
     ref a = let (b,c) = (a*2,a*3) in (b-c)*(c-b)
 
-prop_5 = eval prog5 == ref
+prop_6 = eval prog6 == ref
   where
     ref = as!!1 + sum as + sum as
       where
         as = map (*2) [1..20]
 
-prop_7 a = eval prog7 a == ref a
+prop_8 a = eval prog8 a == ref a
   where
     ref a = [a .. a+9]
 
