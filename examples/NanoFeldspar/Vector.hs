@@ -49,6 +49,11 @@ indexed = Indexed
 index :: Vector a -> Data Index -> a
 index (Indexed _ ixf) = ixf
 
+(!) :: Vector a -> Data Index -> a
+Indexed _ ixf ! i = ixf i
+
+infixl 9 !
+
 freezeVector :: Type a => Vector (Data a) -> Data [a]
 freezeVector vec = parallel (length vec) (index vec)
 
@@ -83,6 +88,12 @@ zipWith f a b = map (uncurry f) $ zip a b
 fold :: Syntax b => (a -> b -> b) -> b -> Vector a -> b
 fold f b (Indexed len ixf) = forLoop len b (\i st -> f (ixf i) st)
 
-sum :: (Type a, Num a) => Vector (Data a) -> Data a
+sum :: (Num a, Syntax a) => Vector a -> a
 sum = fold (+) 0
+
+type Matrix a = Vector (Vector (Data a))
+
+-- | Transpose of a matrix. Assumes that the number of rows is > 0.
+transpose :: Type a => Matrix a -> Matrix a
+transpose a = indexed (length (a!0)) $ \k -> indexed (length a) $ \l -> a ! l ! k
 
