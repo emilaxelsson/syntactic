@@ -211,11 +211,13 @@ reifySmart mkId = flip evalState 0 . (codeMotion prjDictFO mkId <=< reifyM . des
 -- witness that the type of the expression satisfies the predicate @pVar@.
 mkInjDictFO :: forall dom pVar . (Let :<: dom)
     => (forall a . ASTF (FODomain dom Typeable pVar) a -> Maybe (Dict (pVar a)))
+    -> (forall b . ASTF (FODomain dom Typeable pVar) b -> Bool)
     -> MkInjDict (FODomain dom Typeable pVar)
-mkInjDictFO canShare a b
+mkInjDictFO canShare canShareIn a b
     | Dict <- exprDict a
     , Dict <- exprDict b
     , Just Dict <- canShare a
+    , canShareIn b
     = Just $ InjDict
         { injVariable = \v -> injC (symType pVar $ C' (Variable v))
         , injLambda   = \v -> injC (symType pLam $ SubConstr2 (Lambda v))
@@ -224,5 +226,5 @@ mkInjDictFO canShare a b
   where
     pVar = P::P (Variable :|| pVar)
     pLam = P::P (CLambda pVar)
-mkInjDictFO _ _ _ = Nothing
+mkInjDictFO _ _ _ _ = Nothing
 

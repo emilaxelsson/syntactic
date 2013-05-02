@@ -149,8 +149,13 @@ canShare (lam :$ _)
 canShare (prj -> Just (Literal _)) = Nothing
 canShare _  = Just Dict
 
+canShareIn :: ASTF (FODomain FeldSyms Typeable Top) a -> Bool
+canShareIn (lam :$ _)
+    | Just _ <- prjP (P::P (CLambda Top)) lam = False
+canShareIn _ = True
+
 canShareDict :: MkInjDict (FODomain FeldSyms Typeable Top)
-canShareDict = mkInjDictFO canShare
+canShareDict = mkInjDictFO canShare canShareIn
 
 
 
