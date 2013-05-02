@@ -11,37 +11,39 @@ import NanoFeldspar.Vector
 
 
 --------------------------------------------------------------------------------
--- Basic operations
+-- Basic examples
 --------------------------------------------------------------------------------
 
--- Parallel arrays
+-- Parallel array
 prog1 :: Data Int -> Data Int -> Data [Int]
 prog1 a b = parallel a (\i -> min (i+3) b)
-
--- Evaluation
-test1_1 = eval prog1 10 20
-
--- Print the expression
-test1_2 = printExpr prog1
-
--- Render the syntax tree
-test1_3 = drawAST prog1
 
 -- Common sub-expressions
 prog2 :: Data Int -> Data Int
 prog2 a = max (min a a) (min a a)
 
--- Basic vector operations
-prog3 :: Data Index -> Data Index -> Data Index
-prog3 a b = sum $ reverse (l ... u)
-  where
-    l = min a b
-    u = max a b
+-- Invariant code hoisting
+prog3 :: Data Int -> Data [Int]
+prog3 a = parallel a (\i -> (a+a)*i)
 
--- Explicit sharing
-prog4 :: Data Index -> Data Index
-prog4 a = share (a*2,a*3) $ \(b,c) -> (b-c)*(c-b)
+-- Scalar product
+scProd :: Vector (Data Float) -> Vector (Data Float) -> Data Float
+scProd a b = sum (zipWith (*) a b)
 
+forEach = flip map
+
+-- Matrix multiplication
+matMul :: Matrix Float -> Matrix Float -> Matrix Float
+matMul a b = forEach a $ \a' ->
+               forEach (transpose b) $ \b' ->
+                 scProd a' b'
+
+-- Note that
+--
+--   * `transpose` is fused with `scProd`
+--   * some invariant expressions have been hoisted out of `parallel` and `forLoop` (see the
+--     `Let` nodes)
+test_matMul = drawAST matMul
 
 
 --------------------------------------------------------------------------------
