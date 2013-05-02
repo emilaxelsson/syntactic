@@ -73,13 +73,13 @@ test5_3 = drawObs prog5
 prog6 :: Data Int -> Data Int
 prog6 a = (a==10) ? (max 5 (6+7), max 5 (6+7))
 
-test6 = drawPart prog6
+test6 = drawSimp prog6
   -- Reduced to the literal 13
 
 prog7 a = c ? (parallel 10 (+a), parallel 10 (+a))
   where
     c = (a*a*a*a) == 23
 
-test7 = drawPart prog7
+test7 = drawSimp prog7
   -- The condition gets pruned away
 
