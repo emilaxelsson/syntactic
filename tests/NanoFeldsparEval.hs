@@ -9,10 +9,16 @@ import NanoFeldspar.Test
 
 
 
+prop_scProd a b = eval scProd a' b' == ref a' b'
+  where
+    a' = take 20 a
+    b' = take 20 b
+    ref a b = sum (zipWith (*) a b)
+
 prop_1 a b = eval prog1 a' b == ref a' b
   where
     a' = a `mod` 20
-    ref a b = [min (i+3) b | i <- [0..a'-1]]
+    ref a b = [min (i+3) b | i <- [0..a-1]]
 
 prop_2 a = eval prog2 a == ref a
   where
@@ -25,6 +31,11 @@ prop_3 a b = eval prog3 a b' == ref a b'
       where
         l = min a b
         u = max a b
+
+prop_4 a = eval prog4 a' == ref a'
+  where
+    a' = a `mod` 20
+    ref a = [(a+a)*i | i <- [0..a-1]]
 
 prop_5 a = eval prog5 a == ref a
   where

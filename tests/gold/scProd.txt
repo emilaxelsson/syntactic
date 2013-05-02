@@ -1,0 +1,39 @@
+Lambda 0
+|
+`- Lambda 1
+   |
+   `- forLoop
+      |
+      +- min
+      |  |
+      |  +- arrLength
+      |  |  |
+      |  |  `- var:0
+      |  |
+      |  `- arrLength
+      |     |
+      |     `- var:1
+      |
+      +- 0.0
+      |
+      `- Lambda 2
+         |
+         `- Lambda 3
+            |
+            `- (+)
+               |
+               +- (*)
+               |  |
+               |  +- getIx
+               |  |  |
+               |  |  +- var:0
+               |  |  |
+               |  |  `- var:2
+               |  |
+               |  `- getIx
+               |     |
+               |     +- var:1
+               |     |
+               |     `- var:2
+               |
+               `- var:3
