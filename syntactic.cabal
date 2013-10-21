@@ -99,7 +99,7 @@ library
 
   build-depends:
     array,
-    base >= 4 && < 4.7,
+    base >= 4 && < 4.8,
     containers,
     constraints,
     data-hash,
@@ -161,7 +161,7 @@ test-suite NanoFeldsparEval
 
   build-depends:
     syntactic,
-    base >= 4 && < 4.7,
+    base,
     mtl >= 2 && < 3,
     QuickCheck >= 2.4 && < 3,
     test-framework >= 0.6,
@@ -195,7 +195,7 @@ test-suite NanoFeldsparTree
 
   build-depends:
     syntactic,
-    base >= 4 && < 4.7,
+    base,
     bytestring,
     mtl >= 2 && < 3,
     test-framework >= 0.6,
