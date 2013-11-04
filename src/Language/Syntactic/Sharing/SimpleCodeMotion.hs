@@ -120,11 +120,12 @@ data Chosen dom a
 -- | Choose a sub-expression to share
 choose :: forall dom a
     .  AlphaEq dom dom dom [(VarId,VarId)]
-    => PrjDict dom
+    => (forall c. ASTF dom c -> Bool)
+    -> PrjDict dom
     -> MkInjDict dom
     -> ASTF dom a
     -> Maybe (Chosen dom a)
-choose pd mkId a = chooseEnv initEnv a
+choose hoistOver pd mkId a = chooseEnv initEnv a
   where
     initEnv = Env
         { inLambda     = False
@@ -137,7 +138,9 @@ choose pd mkId a = chooseEnv initEnv a
         | liftable pd env b
         , Just id <- mkId b a
         = Just $ Chosen id b
-    chooseEnv env b = chooseEnvSub env b
+    chooseEnv env b
+        | hoistOver b = chooseEnvSub env b
+        | otherwise       = Nothing
 
     -- | Like 'chooseEnv', but does not consider the top expression for sharing
     chooseEnvSub :: Env dom -> AST dom b -> Maybe (Chosen dom a)
@@ -159,27 +162,28 @@ codeMotion :: forall dom a
     .  ( ConstrainedBy dom Typeable
        , AlphaEq dom dom dom [(VarId,VarId)]
        )
-    => PrjDict dom
+    => (forall c. ASTF dom c -> Bool)  -- ^ Control wether a sub-expression can be hoisted over the given expression
+    -> PrjDict dom
     -> MkInjDict dom
     -> ASTF dom a
     -> State VarId (ASTF dom a)
-codeMotion pd mkId a
-    | Just (Chosen id b) <- choose pd mkId a = share id b
+codeMotion hoistOver pd mkId a
+    | Just (Chosen id b) <- choose hoistOver pd mkId a = share id b
     | otherwise = descend a
   where
     share :: InjDict dom b a -> ASTF dom b -> State VarId (ASTF dom a)
     share id b = do
-        b' <- codeMotion pd mkId b
+        b' <- codeMotion hoistOver pd mkId b
         v  <- get; put (v+1)
         let x = Sym (injVariable id v)
-        body <- codeMotion pd mkId $ substitute b x a
+        body <- codeMotion hoistOver pd mkId $ substitute b x a
         return
             $  Sym (injLet id)
             :$ b'
             :$ (Sym (injLambda id v) :$ body)
 
     descend :: AST dom b -> State VarId (AST dom b)
-    descend (f :$ a) = liftM2 (:$) (descend f) (codeMotion pd mkId a)
+    descend (f :$ a) = liftM2 (:$) (descend f) (codeMotion hoistOver pd mkId a)
     descend a        = return a
 
 
@@ -198,10 +202,11 @@ reifySmart :: forall dom p pVar a
        , Domain a ~ HODomain dom p pVar
        , p :< Typeable
        )
-    => MkInjDict (FODomain dom p pVar)
+    => (forall c. ASTF (FODomain dom p pVar) c -> Bool)
+    -> MkInjDict (FODomain dom p pVar)
     -> a
     -> ASTF (FODomain dom p pVar) (Internal a)
-reifySmart mkId = flip evalState 0 . (codeMotion prjDictFO mkId <=< reifyM . desugar)
+reifySmart hoistOver mkId = flip evalState 0 . (codeMotion hoistOver prjDictFO mkId <=< reifyM . desugar)
 
 
 
