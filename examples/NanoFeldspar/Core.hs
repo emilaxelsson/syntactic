@@ -165,23 +165,23 @@ canShareDict = mkInjDictFO canShare canShareIn
 
 -- | Show the expression
 showExpr :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> String
-showExpr = render . reifySmart canShareDict
+showExpr = render . reifySmart (const True) canShareDict
 
 -- | Print the expression
 printExpr :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> IO ()
-printExpr = Syntactic.printExpr . reifySmart canShareDict
+printExpr = Syntactic.printExpr . reifySmart (const True) canShareDict
 
 -- | Draw the syntax tree using ASCII
 showAST :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> String
-showAST = Syntactic.showAST . reifySmart canShareDict
+showAST = Syntactic.showAST . reifySmart (const True) canShareDict
 
 -- | Draw the syntax tree on the terminal using ASCII
 drawAST :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> IO ()
-drawAST = Syntactic.drawAST . reifySmart canShareDict
+drawAST = Syntactic.drawAST . reifySmart (const True) canShareDict
 
 -- | Evaluation
 eval :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> Internal a
-eval = evalBind . reifySmart canShareDict
+eval = evalBind . reifySmart (const True) canShareDict
 
 
 

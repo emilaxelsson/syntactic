@@ -82,7 +82,7 @@ constFold expr a = match (\sym _ -> case sym of
 reifySimp :: (Syntactic a, Domain a ~ FeldDomainAll) =>
     a -> ASTF ((FODomain (Let :+: (FeldDomain :|| Eq :| Show))) Typeable Top) (Internal a)
 reifySimp = flip evalState 0 .
-    (   codeMotion prjDictFO canShareDict
+    (   codeMotion (const True) prjDictFO canShareDict
     .   optimize constFold
     <=< reifyM
     .   desugar
