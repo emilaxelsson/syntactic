@@ -74,17 +74,14 @@ library
     FlexibleInstances
     FunctionalDependencies
     GADTs
-    GeneralizedNewtypeDeriving
     Rank2Types
     ScopedTypeVariables
-    StandaloneDeriving
     TypeFamilies
     TypeOperators
-    ViewPatterns
 
   other-extensions:
-    -- Not understood by Cabal: PolyKinds
     OverlappingInstances
+    TemplateHaskell
     UndecidableInstances
 
 test-suite NanoFeldspar
