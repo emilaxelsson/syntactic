@@ -380,3 +380,12 @@ instance Eval     Empty where evaluate   = error "Not implemented: equal for Emp
 instance Render   Empty where renderArgs = error "Not implemented: renderArgs for Empty"
 instance ToTree   Empty
 
+
+
+universe :: ASTF dom a -> [ASTE dom]
+universe a = ASTE a : go a
+  where
+    go :: AST dom a -> [ASTE dom]
+    go (Sym s)  = []
+    go (s :$ a) = go s ++ universe a
+
