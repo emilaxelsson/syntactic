@@ -86,3 +86,32 @@ library
     -- Not understood by Cabal: PolyKinds
     OverlappingInstances
     UndecidableInstances
+
+test-suite NanoFeldspar
+  type: exitcode-stdio-1.0
+
+  hs-source-dirs: tests examples
+
+  main-is: NanoFeldsparTest.hs
+
+  default-language: Haskell2010
+
+  default-extensions:
+    FlexibleContexts
+    FlexibleInstances
+    GADTs
+    ScopedTypeVariables
+    TypeFamilies
+    TypeOperators
+    UndecidableInstances
+
+  other-extensions:
+    TemplateHaskell
+
+  build-depends:
+    syntactic,
+    base,
+    bytestring,
+    containers,
+    test-framework >= 0.6,
+    test-framework-golden >= 1.1
