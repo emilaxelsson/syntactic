@@ -385,8 +385,6 @@ instance Render     Empty where renderSym  = error "Not implemented: renderSym f
                                 renderArgs = error "Not implemented: renderArgs for Empty"
 instance StringTree Empty
 
-
-
 universe :: ASTF dom a -> [ASTE dom]
 universe a = ASTE a : go a
   where
