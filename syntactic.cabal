@@ -15,6 +15,8 @@ Description:    The library provides a generic representation of abstract syntax
                   * Slides:
                     <http://www.cse.chalmers.se/~emax/documents/axelsson2012generic-slides.pdf>
                 .
+                There is also an example EDSL in the @examples@ folder.
+                .
                 \[1\] W. Swierstra. Data Types à la Carte.
                 /Journal of Functional Programming/, 18(4):423-436, 2008,
                 <http://dx.doi.org/10.1017/S0956796808006758>.
