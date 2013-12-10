@@ -1,5 +1,5 @@
-import Test.Framework
-import Test.Golden
+import Test.Tasty
+import Test.Tasty.Golden
 
 import qualified Data.ByteString.Lazy.Char8 as B
 
@@ -15,5 +15,5 @@ tests = testGroup "TreeTests"
     , goldenVsString "matMul" "tests/gold/matMul.txt" $ return $ B.pack $ showAST matMul
     ]
 
-main = defaultMain [tests]
+main = defaultMain tests
 

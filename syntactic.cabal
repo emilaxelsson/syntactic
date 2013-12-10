@@ -119,5 +119,5 @@ test-suite NanoFeldspar
     base,
     bytestring,
     containers,
-    test-framework >= 0.6,
-    test-framework-golden >= 1.1
+    tasty,
+    tasty-golden
