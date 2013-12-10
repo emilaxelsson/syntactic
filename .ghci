@@ -1,6 +1,8 @@
 :set -XConstraintKinds
 :set -XDeriveDataTypeable
 :set -XDeriveFunctor
+:set -XDeriveFoldable
+:set -XDeriveTraversable
 :set -XEmptyDataDecls
 :set -XFlexibleContexts
 :set -XFlexibleInstances

@@ -29,7 +29,9 @@ module Language.Syntactic.Syntax
 
 
 
-import Control.Monad.Instances  -- Not needed in GHC 7.6
+import Control.Monad.Instances  -- TODO Not needed in GHC 7.6
+import Data.Foldable (Foldable)
+import Data.Traversable (Traversable)
 import Data.Typeable
 
 import Data.PolyProxy
@@ -104,7 +106,7 @@ data (dom1 :+: dom2) a
   where
     InjL :: dom1 a -> (dom1 :+: dom2) a
     InjR :: dom2 a -> (dom1 :+: dom2) a
-  deriving (Functor)
+  deriving (Functor, Foldable, Traversable)
 
 infixr :+:
 

@@ -72,6 +72,8 @@ library
     ConstraintKinds
     DeriveDataTypeable
     DeriveFunctor
+    DeriveFoldable
+    DeriveTraversable
     FlexibleContexts
     FlexibleInstances
     FunctionalDependencies
