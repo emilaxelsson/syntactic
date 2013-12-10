@@ -1,8 +1,8 @@
-module Language.Syntactic.Interpretation.Evaluation where
+module Data.Syntactic.Interpretation.Evaluation where
 
 
 
-import Language.Syntactic.Syntax
+import Data.Syntactic.Syntax
 
 
 

@@ -6,12 +6,12 @@
 -- For details, see: Combining Deep and Shallow Embedding for EDSL
 -- (TFP 2013, <http://www.cse.chalmers.se/~emax/documents/svenningsson2013combining.pdf>).
 
-module Language.Syntactic.Sugar where
+module Data.Syntactic.Sugar where
 
 
 
-import Language.Syntactic.Syntax
-import Language.Syntactic.Constraint
+import Data.Syntactic.Syntax
+import Data.Syntactic.Constraint
 
 
 

@@ -8,7 +8,7 @@
 -- For details, see: A Generic Abstract Syntax Model for Embedded Languages
 -- (ICFP 2012, <http://www.cse.chalmers.se/~emax/documents/axelsson2012generic.pdf>).
 
-module Language.Syntactic.Syntax
+module Data.Syntactic.Syntax
     ( -- * Syntax trees
       AST (..)
     , ASTF

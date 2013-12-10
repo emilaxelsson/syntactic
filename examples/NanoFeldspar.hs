@@ -25,8 +25,8 @@ import qualified Prelude
 
 import Data.Tree
 
-import Language.Syntactic hiding (fold, printExpr, showAST, drawAST)
-import qualified Language.Syntactic as Syntactic
+import Data.Syntactic hiding (fold, printExpr, showAST, drawAST)
+import qualified Data.Syntactic as Syntactic
 
 
 

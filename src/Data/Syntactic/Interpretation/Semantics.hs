@@ -2,7 +2,7 @@
 
 -- | Default implementations of some interpretation functions
 
-module Language.Syntactic.Interpretation.Semantics where
+module Data.Syntactic.Interpretation.Semantics where
 
 
 
@@ -11,10 +11,10 @@ import Language.Haskell.TH.Quote
 
 import Data.Hash
 
-import Language.Syntactic.Syntax
-import Language.Syntactic.Interpretation.Equality
-import Language.Syntactic.Interpretation.Render
-import Language.Syntactic.Interpretation.Evaluation
+import Data.Syntactic.Syntax
+import Data.Syntactic.Interpretation.Equality
+import Data.Syntactic.Interpretation.Render
+import Data.Syntactic.Interpretation.Evaluation
 
 
 

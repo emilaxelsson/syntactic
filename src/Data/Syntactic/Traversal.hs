@@ -1,6 +1,6 @@
 -- | Generic traversals of 'AST' terms
 
-module Language.Syntactic.Traversal
+module Data.Syntactic.Traversal
     ( gmapQ
     , gmapT
     , everywhereUp
@@ -27,7 +27,7 @@ module Language.Syntactic.Traversal
 import Control.Applicative
 import Data.Tree
 
-import Language.Syntactic.Syntax
+import Data.Syntactic.Syntax
 
 
 

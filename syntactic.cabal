@@ -42,15 +42,15 @@ source-repository head
 library
   exposed-modules:
     Data.PolyProxy
-    Language.Syntactic
-    Language.Syntactic.Syntax
-    Language.Syntactic.Traversal
-    Language.Syntactic.Constraint
-    Language.Syntactic.Sugar
-    Language.Syntactic.Interpretation.Equality
-    Language.Syntactic.Interpretation.Evaluation
-    Language.Syntactic.Interpretation.Render
-    Language.Syntactic.Interpretation.Semantics
+    Data.Syntactic
+    Data.Syntactic.Syntax
+    Data.Syntactic.Traversal
+    Data.Syntactic.Constraint
+    Data.Syntactic.Sugar
+    Data.Syntactic.Interpretation.Equality
+    Data.Syntactic.Interpretation.Evaluation
+    Data.Syntactic.Interpretation.Render
+    Data.Syntactic.Interpretation.Semantics
 
   build-depends:
     array,

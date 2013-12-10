@@ -1,10 +1,10 @@
-module Language.Syntactic.Interpretation.Equality where
+module Data.Syntactic.Interpretation.Equality where
 
 
 
 import Data.Hash
 
-import Language.Syntactic.Syntax
+import Data.Syntactic.Syntax
 
 
 

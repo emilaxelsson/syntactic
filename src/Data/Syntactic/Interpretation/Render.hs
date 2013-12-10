@@ -1,4 +1,4 @@
-module Language.Syntactic.Interpretation.Render
+module Data.Syntactic.Interpretation.Render
     ( Render (..)
     , render
     , StringTree (..)
@@ -11,7 +11,7 @@ module Language.Syntactic.Interpretation.Render
 
 import Data.Tree
 
-import Language.Syntactic.Syntax
+import Data.Syntactic.Syntax
 
 
 

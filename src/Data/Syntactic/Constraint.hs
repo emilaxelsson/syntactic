@@ -5,7 +5,7 @@
 
 -- | Type-constrained syntax trees
 
-module Language.Syntactic.Constraint where
+module Data.Syntactic.Constraint where
 
 
 
@@ -14,10 +14,10 @@ import Data.Typeable
 import Data.Constraint
 
 import Data.PolyProxy
-import Language.Syntactic.Syntax
-import Language.Syntactic.Interpretation.Equality
-import Language.Syntactic.Interpretation.Render
-import Language.Syntactic.Interpretation.Evaluation
+import Data.Syntactic.Syntax
+import Data.Syntactic.Interpretation.Equality
+import Data.Syntactic.Interpretation.Render
+import Data.Syntactic.Interpretation.Evaluation
 
 
 
