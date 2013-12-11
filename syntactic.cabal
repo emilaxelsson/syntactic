@@ -51,6 +51,7 @@ library
     Data.Syntactic.Interpretation.Evaluation
     Data.Syntactic.Interpretation.Render
     Data.Syntactic.Interpretation.Semantics
+    Data.Syntactic.Decoration
 
   build-depends:
     array,
