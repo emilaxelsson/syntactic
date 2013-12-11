@@ -35,6 +35,7 @@ Tested-with:    GHC==7.6.2, GHC==7.4.2
 extra-source-files:
   CONTRIBUTORS
   tests/gold/*.txt
+  extras/*.hs
 
 source-repository head
   type:     darcs
@@ -46,6 +47,7 @@ library
     Data.Syntactic
     Data.Syntactic.Syntax
     Data.Syntactic.Traversal
+    Data.Syntactic.TypeUniverse
     Data.Syntactic.Constraint
     Data.Syntactic.Sugar
     Data.Syntactic.Interpretation.Equality
@@ -62,6 +64,7 @@ library
     data-hash,
     ghc-prim,
     mtl >= 2 && < 3,
+    tagged,
     template-haskell,
     transformers >= 0.2,
     tuple >= 0.2
