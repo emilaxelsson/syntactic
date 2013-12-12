@@ -1,4 +1,4 @@
--- | Construct for decorating expressions with additional information
+-- | Construct for decorating symbols or expressions with additional information
 
 module Data.Syntactic.Decoration where
 
@@ -16,7 +16,7 @@ import Data.Syntactic.Interpretation.Semantics
 
 
 
--- | Decorating symbols with additional information
+-- | Decorating symbols or expressions with additional information
 --
 -- One usage of ':&:' is to decorate every node of a syntax tree. This is done
 -- simply by changing
@@ -64,9 +64,9 @@ instance Eval expr => Eval (expr :&: info)
 
 
 -- | Get the decoration of the top-level node
-getInfo :: AST (dom :&: info) sig -> info (DenResult sig)
-getInfo (Sym (_ :&: info)) = info
-getInfo (f :$ _)           = getInfo f
+getDecor :: AST (dom :&: info) sig -> info (DenResult sig)
+getDecor (Sym (_ :&: info)) = info
+getDecor (f :$ _)           = getDecor f
 
 -- | Update the decoration of the top-level node
 updateDecor :: forall info dom a .
