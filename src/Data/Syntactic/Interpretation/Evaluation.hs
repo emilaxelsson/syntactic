@@ -2,7 +2,10 @@ module Data.Syntactic.Interpretation.Evaluation where
 
 
 
+import Control.Monad.Identity
+
 import Data.Syntactic.Syntax
+import Data.Syntactic.Traversal
 
 
 
@@ -10,6 +13,11 @@ import Data.Syntactic.Syntax
 type family   Denotation sig
 type instance Denotation (Full a)    = a
 type instance Denotation (a :-> sig) = a -> Denotation sig
+
+-- | Apply a symbol denotation to a list of arguments
+appDen :: Denotation sig -> Args Identity sig -> DenResult sig
+appDen a Nil       = a
+appDen f (a :* as) = appDen (f $ result $ runIdentity a) as
 
 class Eval expr
   where
