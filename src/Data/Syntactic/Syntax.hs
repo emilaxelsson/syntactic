@@ -17,7 +17,7 @@ module Data.Syntactic.Syntax
     , size
     , ApplySym (..)
     , DenResult
-      -- * Symbol domains
+      -- * Open symbol domains
     , (:+:) (..)
     , Project (..)
     , (:<:) (..)
@@ -44,20 +44,20 @@ import Data.PolyProxy
 
 -- | Generic abstract syntax tree, parameterized by a symbol domain
 --
--- @(`AST` dom (a `:->` b))@ represents a partially applied (or unapplied)
--- symbol, missing at least one argument, while @(`AST` dom (`Full` a))@
+-- @(`AST` sym (a `:->` b))@ represents a partially applied (or unapplied)
+-- symbol, missing at least one argument, while @(`AST` sym (`Full` a))@
 -- represents a fully applied symbol, i.e. a complete syntax tree.
-data AST dom sig
+data AST sym sig
   where
-    Sym  :: dom sig -> AST dom sig
-    (:$) :: AST dom (a :-> sig) -> AST dom (Full a) -> AST dom sig
+    Sym  :: sym sig -> AST sym sig
+    (:$) :: AST sym (a :-> sig) -> AST sym (Full a) -> AST sym sig
 
 infixl 1 :$
 
 -- | Fully applied abstract syntax tree
-type ASTF dom a = AST dom (Full a)
+type ASTF sym a = AST sym (Full a)
 
-instance Functor dom => Functor (AST dom)
+instance Functor sym => Functor (AST sym)
   where
     fmap f (Sym s)  = Sym (fmap f s)
     fmap f (s :$ a) = fmap (fmap f) s :$ a
@@ -73,22 +73,22 @@ newtype a :-> sig = Partial (a -> sig)
 infixr :->
 
 -- | Count the number of symbols in an expression
-size :: AST dom sig -> Int
+size :: AST sym sig -> Int
 size (Sym _)  = 1
 size (s :$ a) = size s + size a
 
 -- | Class for the type-level recursion needed by 'appSym'
-class ApplySym sig f dom | sig dom -> f, f -> sig dom
+class ApplySym sig f sym | sig sym -> f, f -> sig sym
   where
-    appSym' :: AST dom sig -> f
+    appSym' :: AST sym sig -> f
 
-instance ApplySym (Full a) (ASTF dom a) dom
+instance ApplySym (Full a) (ASTF sym a) sym
   where
     appSym' = id
 
-instance ApplySym sig f dom => ApplySym (a :-> sig) (ASTF dom a -> f) dom
+instance ApplySym sig f sym => ApplySym (a :-> sig) (ASTF sym a -> f) sym
   where
-    appSym' sym a = appSym' (sym :$ a)
+    appSym' s a = appSym' (s :$ a)
 
 -- | The result type of a symbol with the given signature
 type family   DenResult sig
@@ -98,14 +98,14 @@ type instance DenResult (a :-> sig) = DenResult sig
 
 
 --------------------------------------------------------------------------------
--- * Symbol domains
+-- * Open symbol domains
 --------------------------------------------------------------------------------
 
 -- | Direct sum of two symbol domains
-data (dom1 :+: dom2) a
+data (sym1 :+: sym2) a
   where
-    InjL :: dom1 a -> (dom1 :+: dom2) a
-    InjR :: dom2 a -> (dom1 :+: dom2) a
+    InjL :: sym1 a -> (sym1 :+: sym2) a
+    InjR :: sym2 a -> (sym1 :+: sym2) a
   deriving (Functor, Foldable, Traversable)
 
 infixr :+:
@@ -118,7 +118,7 @@ class Project sub sup
 
 instance Project sub sup => Project sub (AST sup)
   where
-    prj (Sym a) = prj a
+    prj (Sym s) = prj s
     prj _       = Nothing
 
 instance Project expr expr
@@ -165,10 +165,10 @@ instance (expr1 :<: expr3) => (expr1 :<: (expr2 :+: expr3))
 --
 -- 'appSym' has any type of the form:
 --
--- > appSym :: (expr :<: AST dom)
--- >     => expr (a :-> b :-> ... :-> Full x)
--- >     -> (ASTF dom a -> ASTF dom b -> ... -> ASTF dom x)
-appSym :: (ApplySym sig f dom, sym :<: AST dom) => sym sig -> f
+-- > appSym :: (sub :<: AST sup)
+-- >     => sub (a :-> b :-> ... :-> Full x)
+-- >     -> (ASTF sup a -> ASTF sup b -> ... -> ASTF sup x)
+appSym :: (sub :<: AST sup, ApplySym sig f sup) => sub sig -> f
 appSym = appSym' . inj
 
 

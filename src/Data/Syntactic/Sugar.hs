@@ -24,10 +24,10 @@ class Syntactic a
     desugar :: a -> ASTF (Domain a) (Internal a)
     sugar   :: ASTF (Domain a) (Internal a) -> a
 
-instance Syntactic (ASTF dom a)
+instance Syntactic (ASTF sym a)
   where
-    type Domain (ASTF dom a)   = dom
-    type Internal (ASTF dom a) = a
+    type Domain (ASTF sym a)   = sym
+    type Internal (ASTF sym a) = a
     desugar = id
     sugar   = id
 
@@ -44,15 +44,15 @@ resugar = sugar . desugar
 -- >     , Syntactic b
 -- >     , ...
 -- >     , Syntactic x
--- >     , Domain a ~ dom
--- >     , Domain b ~ dom
+-- >     , Domain a ~ sym
+-- >     , Domain b ~ sym
 -- >     , ...
--- >     , Domain x ~ dom
+-- >     , Domain x ~ sym
 -- >     ) => (a -> b -> ... -> x)
--- >       -> (  ASTF dom (Internal a)
--- >          -> ASTF dom (Internal b)
+-- >       -> (  ASTF sym (Internal a)
+-- >          -> ASTF sym (Internal b)
 -- >          -> ...
--- >          -> ASTF dom (Internal x)
+-- >          -> ASTF sym (Internal x)
 -- >          )
 --
 -- ...and vice versa for 'sugarN'.
@@ -61,18 +61,18 @@ class SyntacticN f internal | f -> internal
     desugarN :: f -> internal
     sugarN   :: internal -> f
 
-instance (Syntactic f, Domain f ~ dom, fi ~ AST dom (Full (Internal f))) => SyntacticN f fi
+instance (Syntactic f, Domain f ~ sym, fi ~ AST sym (Full (Internal f))) => SyntacticN f fi
   where
     desugarN = desugar
     sugarN   = sugar
 
 instance
     ( Syntactic a
-    , Domain a ~ dom
+    , Domain a ~ sym
     , ia ~ Internal a
     , SyntacticN f fi
     ) =>
-      SyntacticN (a -> f) (AST dom (Full ia) -> fi)
+      SyntacticN (a -> f) (AST sym (Full ia) -> fi)
   where
     desugarN f = desugarN . f . sugar
     sugarN f   = sugarN . f . desugar
@@ -84,14 +84,15 @@ instance
 -- 'sugarSym' has any type of the form:
 --
 -- > sugarSym ::
--- >     ( expr :<: AST dom
--- >     , Syntactic a dom
--- >     , Syntactic b dom
+-- >     ( sub :<: AST sup
+-- >     , Syntactic a
+-- >     , Syntactic b
 -- >     , ...
--- >     , Syntactic x dom
--- >     ) => expr (Internal a :-> Internal b :-> ... :-> Full (Internal x))
+-- >     , Syntactic x
+-- >     , Domain a ~ Domain b ~ ... ~ Domain x
+-- >     ) => sub (Internal a :-> Internal b :-> ... :-> Full (Internal x))
 -- >       -> (a -> b -> ... -> x)
-sugarSym :: (sym :<: AST dom, ApplySym sig fi dom, SyntacticN f fi) => sym sig -> f
+sugarSym :: (sub :<: AST sup, ApplySym sig fi sup, SyntacticN f fi) => sub sig -> f
 sugarSym = sugarN . appSym
 
 -- | \"Sugared\" symbol application
@@ -99,18 +100,19 @@ sugarSym = sugarN . appSym
 -- 'sugarSymC' has any type of the form:
 --
 -- > sugarSymC ::
--- >     ( InjectC expr (AST dom) (Internal x)
--- >     , Syntactic a dom
--- >     , Syntactic b dom
+-- >     ( InjectC sub (AST sup) (Internal x)
+-- >     , Syntactic a
+-- >     , Syntactic b
 -- >     , ...
--- >     , Syntactic x dom
--- >     ) => expr (Internal a :-> Internal b :-> ... :-> Full (Internal x))
+-- >     , Syntactic x
+-- >     , Domain a ~ Domain b ~ ... ~ Domain x
+-- >     ) => sub (Internal a :-> Internal b :-> ... :-> Full (Internal x))
 -- >       -> (a -> b -> ... -> x)
 sugarSymC
-    :: ( InjectC sym (AST dom) (DenResult sig)
-       , ApplySym sig fi dom
+    :: ( InjectC sub (AST sup) (DenResult sig)
+       , ApplySym sig fi sup
        , SyntacticN f fi
        )
-    => sym sig -> f
+    => sub sig -> f
 sugarSymC = sugarN . appSymC
 

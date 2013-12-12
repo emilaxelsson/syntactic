@@ -33,39 +33,39 @@ import Data.Syntactic.Syntax
 
 -- | Map a function over all immediate sub-terms (corresponds to the function
 -- with the same name in Scrap Your Boilerplate)
-gmapT :: forall dom
-      .  (forall a . ASTF dom a -> ASTF dom a)
-      -> (forall a . ASTF dom a -> ASTF dom a)
+gmapT :: forall sym
+      .  (forall a . ASTF sym a -> ASTF sym a)
+      -> (forall a . ASTF sym a -> ASTF sym a)
 gmapT f a = go a
   where
-    go :: forall a . AST dom a -> AST dom a
+    go :: forall a . AST sym a -> AST sym a
     go (s :$ a) = go s :$ f a
     go s        = s
 
 -- | Map a function over all immediate sub-terms, collecting the results in a
 -- list (corresponds to the function with the same name in Scrap Your
 -- Boilerplate)
-gmapQ :: forall dom b
-      .  (forall a . ASTF dom a -> b)
-      -> (forall a . ASTF dom a -> [b])
+gmapQ :: forall sym b
+      .  (forall a . ASTF sym a -> b)
+      -> (forall a . ASTF sym a -> [b])
 gmapQ f a = go a
   where
-    go :: forall a . AST dom a -> [b]
+    go :: forall a . AST sym a -> [b]
     go (s :$ a) = f a : go s
     go _        = []
 
 -- | Apply a transformation bottom-up over an expression (corresponds to
 -- @everywhere@ in Scrap Your Boilerplate)
 everywhereUp
-    :: (forall a . ASTF dom a -> ASTF dom a)
-    -> (forall a . ASTF dom a -> ASTF dom a)
+    :: (forall a . ASTF sym a -> ASTF sym a)
+    -> (forall a . ASTF sym a -> ASTF sym a)
 everywhereUp f = f . gmapT (everywhereUp f)
 
 -- | Apply a transformation top-down over an expression (corresponds to
 -- @everywhere'@ in Scrap Your Boilerplate)
 everywhereDown
-    :: (forall a . ASTF dom a -> ASTF dom a)
-    -> (forall a . ASTF dom a -> ASTF dom a)
+    :: (forall a . ASTF sym a -> ASTF sym a)
+    -> (forall a . ASTF sym a -> ASTF sym a)
 everywhereDown f = gmapT (everywhereDown f) . f
 
 -- | List of symbol arguments
@@ -111,70 +111,70 @@ foldrArgs f b Nil       = b
 foldrArgs f b (a :* as) = f a (foldrArgs f b as)
 
 -- | Apply a (partially applied) symbol to a list of argument terms
-appArgs :: AST dom sig -> Args (AST dom) sig -> ASTF dom (DenResult sig)
+appArgs :: AST sym sig -> Args (AST sym) sig -> ASTF sym (DenResult sig)
 appArgs a Nil       = a
 appArgs s (a :* as) = appArgs (s :$ a) as
 
 -- | \"Pattern match\" on an 'AST' using a function that gets direct access to
 -- the top-most symbol and its sub-trees
-match :: forall dom a c
+match :: forall sym a c
     .  ( forall sig . (a ~ DenResult sig) =>
-           dom sig -> Args (AST dom) sig -> c (Full a)
+           sym sig -> Args (AST sym) sig -> c (Full a)
        )
-    -> ASTF dom a
+    -> ASTF sym a
     -> c (Full a)
 match f a = go a Nil
   where
-    go :: (a ~ DenResult sig) => AST dom sig -> Args (AST dom) sig -> c (Full a)
+    go :: (a ~ DenResult sig) => AST sym sig -> Args (AST sym) sig -> c (Full a)
     go (Sym a)  as = f a as
     go (s :$ a) as = go s (a :* as)
 
-query :: forall dom a c
+query :: forall sym a c
     .  ( forall sig . (a ~ DenResult sig) =>
-           dom sig -> Args (AST dom) sig -> c (Full a)
+           sym sig -> Args (AST sym) sig -> c (Full a)
        )
-    -> ASTF dom a
+    -> ASTF sym a
     -> c (Full a)
 query = match
 {-# DEPRECATED query "Please use `match` instead." #-}
 
 -- | A version of 'match' with a simpler result type
-simpleMatch :: forall dom a b
-    .  (forall sig . (a ~ DenResult sig) => dom sig -> Args (AST dom) sig -> b)
-    -> ASTF dom a
+simpleMatch :: forall sym a b
+    .  (forall sig . (a ~ DenResult sig) => sym sig -> Args (AST sym) sig -> b)
+    -> ASTF sym a
     -> b
 simpleMatch f = getConst . match (\s -> Const . f s)
 
 -- | Fold an 'AST' using an 'Args' list to hold the results of sub-terms
-fold :: forall dom c
-    .  (forall sig . dom sig -> Args c sig -> c (Full (DenResult sig)))
-    -> (forall a   . ASTF dom a -> c (Full a))
+fold :: forall sym c
+    .  (forall sig . sym sig -> Args c sig -> c (Full (DenResult sig)))
+    -> (forall a   . ASTF sym a -> c (Full a))
 fold f = match (\s -> f s . mapArgs (fold f))
 
 -- | Simplified version of 'fold' for situations where all intermediate results
 -- have the same type
-simpleFold :: forall dom b
-    .  (forall sig . dom sig -> Args (Const b) sig -> b)
-    -> (forall a   . ASTF dom a                    -> b)
+simpleFold :: forall sym b
+    .  (forall sig . sym sig -> Args (Const b) sig -> b)
+    -> (forall a   . ASTF sym a                    -> b)
 simpleFold f = getConst . fold (\s -> Const . f s)
 
 -- | Fold an 'AST' using a list to hold the results of sub-terms
-listFold :: forall dom b
-    .  (forall sig . dom sig -> [b] -> b)
-    -> (forall a   . ASTF dom a     -> b)
+listFold :: forall sym b
+    .  (forall sig . sym sig -> [b] -> b)
+    -> (forall a   . ASTF sym a     -> b)
 listFold f = simpleFold (\s -> f s . listArgs getConst)
 
-newtype WrapAST c dom sig = WrapAST { unWrapAST :: c (AST dom sig) }
+newtype WrapAST c sym sig = WrapAST { unWrapAST :: c (AST sym sig) }
   -- Only used in the definition of 'matchTrans'
 
 -- | A version of 'match' where the result is a transformed syntax tree,
 -- wrapped in a type constructor @c@
-matchTrans :: forall dom dom' c a
+matchTrans :: forall sym sym' c a
     .  ( forall sig . (a ~ DenResult sig) =>
-           dom sig -> Args (AST dom) sig -> c (ASTF dom' a)
+           sym sig -> Args (AST sym) sig -> c (ASTF sym' a)
        )
-    -> ASTF dom a
-    -> c (ASTF dom' a)
+    -> ASTF sym a
+    -> c (ASTF sym' a)
 matchTrans f = unWrapAST . match (\s -> WrapAST . f s)
 
 -- | Can be used to make an arbitrary type constructor indexed by @(`Full` a)@.

@@ -17,62 +17,66 @@ import Data.Syntactic.Syntax
 
 -- | Render a symbol as concrete syntax. A complete instance must define at least the 'renderSym'
 -- method.
-class Render dom
+class Render sym
   where
     -- | Show a symbol as a 'String'
-    renderSym :: dom sig -> String
+    renderSym :: sym sig -> String
 
     -- | Render a symbol given a list of rendered arguments
-    renderArgs :: [String] -> dom sig -> String
-    renderArgs []   a = renderSym a
-    renderArgs args a = "(" ++ unwords (renderSym a : args) ++ ")"
+    renderArgs :: [String] -> sym sig -> String
+    renderArgs []   s = renderSym s
+    renderArgs args s = "(" ++ unwords (renderSym s : args) ++ ")"
 
-instance (Render expr1, Render expr2) => Render (expr1 :+: expr2)
+instance (Render sym1, Render sym2) => Render (sym1 :+: sym2)
   where
-    renderSym (InjL a) = renderSym a
-    renderSym (InjR a) = renderSym a
-    renderArgs args (InjL a) = renderArgs args a
-    renderArgs args (InjR a) = renderArgs args a
+    renderSym (InjL s) = renderSym s
+    renderSym (InjR s) = renderSym s
+    renderArgs args (InjL s) = renderArgs args s
+    renderArgs args (InjR s) = renderArgs args s
 
 -- | Render an expression as concrete syntax
-render :: forall dom a. Render dom => ASTF dom a -> String
+render :: forall sym a. Render sym => ASTF sym a -> String
 render = go []
   where
-    go :: [String] -> AST dom sig -> String
-    go args (Sym a)  = renderArgs args a
+    go :: [String] -> AST sym sig -> String
+    go args (Sym s)  = renderArgs args s
     go args (s :$ a) = go (render a : args) s
 
-instance Render dom => Show (ASTF dom a)
+instance Render sym => Show (ASTF sym a)
   where
     show = render
 
 
 
 -- | Convert a symbol to a 'Tree' of strings
-class Render dom => StringTree dom
+class Render sym => StringTree sym
   where
     -- | Convert a symbol to a 'Tree' given a list of argument trees
-    stringTreeSym :: [Tree String] -> dom a -> Tree String
-    stringTreeSym args a = Node (renderSym a) args
+    stringTreeSym :: [Tree String] -> sym a -> Tree String
+    stringTreeSym args s = Node (renderSym s) args
 
-instance (StringTree dom1, StringTree dom2) => StringTree (dom1 :+: dom2)
+instance (StringTree sym1, StringTree sym2) => StringTree (sym1 :+: sym2)
   where
-    stringTreeSym args (InjL a) = stringTreeSym args a
-    stringTreeSym args (InjR a) = stringTreeSym args a
+    stringTreeSym args (InjL s) = stringTreeSym args s
+    stringTreeSym args (InjR s) = stringTreeSym args s
 
 -- | Convert an expression to a 'Tree' of strings
-stringTree :: forall dom a . StringTree dom => ASTF dom a -> Tree String
+stringTree :: forall sym a . StringTree sym => ASTF sym a -> Tree String
 stringTree = go []
   where
-    go :: [Tree String] -> AST dom sig -> Tree String
-    go args (Sym a)  = stringTreeSym args a
+    go :: [Tree String] -> AST sym sig -> Tree String
+    go args (Sym s)  = stringTreeSym args s
     go args (s :$ a) = go (stringTree a : args) s
 
 -- | Show a syntax tree using ASCII art
-showAST :: StringTree dom => ASTF dom a -> String
-showAST = drawTree . stringTree
+showAST :: StringTree sym => ASTF sym a -> String
+showAST = showTree . stringTree
 
 -- | Print a syntax tree using ASCII art
-drawAST :: StringTree dom => ASTF dom a -> IO ()
+drawAST :: StringTree sym => ASTF sym a -> IO ()
 drawAST = putStrLn . showAST
+
+-- | Write a syntax tree to an HTML file with foldable nodes
+writeHtmlAST :: StringTree sym => FilePath -> ASTF sym a -> IO ()
+writeHtmlAST file = writeHtmlTree file . fmap (\n -> NodeInfo n "") . stringTree
 

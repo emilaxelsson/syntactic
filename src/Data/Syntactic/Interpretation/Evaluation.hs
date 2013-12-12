@@ -24,12 +24,12 @@ class Eval expr
     -- | Evaluation of expressions
     evaluate :: expr a -> Denotation a
 
-instance Eval dom => Eval (AST dom)
+instance Eval sym => Eval (AST sym)
   where
-    evaluate (Sym a)  = evaluate a
+    evaluate (Sym s)  = evaluate s
     evaluate (s :$ a) = evaluate s $ evaluate a
 
-instance (Eval expr1, Eval expr2) => Eval (expr1 :+: expr2)
+instance (Eval sym1, Eval sym2) => Eval (sym1 :+: sym2)
   where
     evaluate (InjL a) = evaluate a
     evaluate (InjR a) = evaluate a

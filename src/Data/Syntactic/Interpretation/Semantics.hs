@@ -30,8 +30,6 @@ data Semantics a
            }
         -> Semantics a
 
-
-
 instance Equality Semantics
   where
     equal (Sem a _) (Sem b _) = a==b

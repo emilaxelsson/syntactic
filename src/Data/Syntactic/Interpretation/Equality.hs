@@ -24,20 +24,20 @@ class Equality expr
     exprHash :: expr a -> Hash
 
 
-instance Equality dom => Equality (AST dom)
+instance Equality sym => Equality (AST sym)
   where
-    equal (Sym a)    (Sym b)    = equal a b
+    equal (Sym s1)   (Sym s2)   = equal s1 s2
     equal (s1 :$ a1) (s2 :$ a2) = equal s1 s2 && equal a1 a2
     equal _ _                   = False
 
-    exprHash (Sym a)  = hashInt 0 `combine` exprHash a
+    exprHash (Sym s)  = hashInt 0 `combine` exprHash s
     exprHash (s :$ a) = hashInt 1 `combine` exprHash s `combine` exprHash a
 
-instance Equality dom => Eq (AST dom a)
+instance Equality sym => Eq (AST sym a)
   where
     (==) = equal
 
-instance (Equality expr1, Equality expr2) => Equality (expr1 :+: expr2)
+instance (Equality sym1, Equality sym2) => Equality (sym1 :+: sym2)
   where
     equal (InjL a) (InjL b) = equal a b
     equal (InjR a) (InjR b) = equal a b

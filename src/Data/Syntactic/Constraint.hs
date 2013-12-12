@@ -88,21 +88,21 @@ instance Project sub sup => Project sub (sup :| pred)
   where
     prj (C s) = prj s
 
-instance Equality dom => Equality (dom :| pred)
+instance Equality sym => Equality (sym :| pred)
   where
     equal (C a) (C b) = equal a b
     exprHash (C a)    = exprHash a
 
-instance Render dom => Render (dom :| pred)
+instance Render sym => Render (sym :| pred)
   where
     renderSym (C a) = renderSym a
     renderArgs args (C a) = renderArgs args a
 
-instance Eval dom => Eval (dom :| pred)
+instance Eval sym => Eval (sym :| pred)
   where
     evaluate (C a) = evaluate a
 
-instance StringTree dom => StringTree (dom :| pred)
+instance ToTree sym => ToTree (sym :| pred)
   where
     stringTreeSym args (C a) = stringTreeSym args a
 
@@ -113,8 +113,8 @@ instance StringTree dom => StringTree (dom :| pred)
 -- The difference between ':||' and ':|' is seen in the instances of the 'Sat'
 -- type:
 --
--- > type Sat (dom :|  pred) = pred :/\: Sat dom
--- > type Sat (dom :|| pred) = pred
+-- > type Sat (sym :|  pred) = pred :/\: Sat sym
+-- > type Sat (sym :|| pred) = pred
 data (:||) :: (* -> *) -> (* -> Constraint) -> (* -> *)
   where
     C' :: pred (DenResult sig) => expr sig -> (expr :|| pred) sig
@@ -125,21 +125,21 @@ instance Project sub sup => Project sub (sup :|| pred)
   where
     prj (C' s) = prj s
 
-instance Equality dom => Equality (dom :|| pred)
+instance Equality sym => Equality (sym :|| pred)
   where
     equal (C' a) (C' b) = equal a b
     exprHash (C' a)     = exprHash a
 
-instance Render dom => Render (dom :|| pred)
+instance Render sym => Render (sym :|| pred)
   where
     renderSym (C' a) = renderSym a
     renderArgs args (C' a) = renderArgs args a
 
-instance Eval dom => Eval (dom :|| pred)
+instance Eval sym => Eval (sym :|| pred)
   where
     evaluate (C' a) = evaluate a
 
-instance StringTree dom => StringTree (dom :|| pred)
+instance ToTree sym => ToTree (sym :|| pred)
   where
     stringTreeSym args (C' a) = stringTreeSym args a
 
@@ -155,40 +155,40 @@ class Constrained expr
     -- | Compute a constraint on the result type of an expression
     exprDict :: expr a -> Dict (Sat expr (DenResult a))
 
-instance Constrained dom => Constrained (AST dom)
+instance Constrained sym => Constrained (AST sym)
   where
-    type Sat (AST dom) = Sat dom
+    type Sat (AST sym) = Sat sym
     exprDict (Sym s)  = exprDict s
     exprDict (s :$ _) = exprDict s
 
-instance Constrained (sub1 :+: sub2)
+instance Constrained (sym1 :+: sym2)
   where
-    -- | An over-approximation of the union of @Sat sub1@ and @Sat sub2@
-    type Sat (sub1 :+: sub2) = Top
+    -- | An over-approximation of the union of @Sat sym1@ and @Sat sym2@
+    type Sat (sym1 :+: sym2) = Top
     exprDict (InjL s) = Dict
     exprDict (InjR s) = Dict
 
-instance Constrained dom => Constrained (dom :| pred)
+instance Constrained sym => Constrained (sym :| pred)
   where
-    type Sat (dom :| pred) = pred :/\: Sat dom
+    type Sat (sym :| pred) = pred :/\: Sat sym
     exprDict (C s) = case exprDict s of Dict -> Dict
 
-instance Constrained (dom :|| pred)
+instance Constrained (sym :|| pred)
   where
-    type Sat (dom :|| pred) = pred
+    type Sat (sym :|| pred) = pred
     exprDict (C' s) = Dict
 
 type ConstrainedBy expr p = (Constrained expr, Sat expr :< p)
 
 -- | A version of 'exprDict' that returns a constraint for a particular
--- predicate @p@ as long as @(p :< Sat dom)@ holds
+-- predicate @p@ as long as @(p :< Sat sym)@ holds
 exprDictSub :: ConstrainedBy expr p => P p -> expr a -> Dict (p (DenResult a))
 exprDictSub _ = sub . exprDict
 
 -- | A version of 'exprDict' that works for domains of the form
--- @(dom1 :+: dom2)@ as long as @(Sat dom1 ~ Sat dom2)@ holds
-exprDictPlus :: (Constrained dom1, Constrained dom2, Sat dom1 ~ Sat dom2) =>
-    AST (dom1 :+: dom2) a -> Dict (Sat dom1 (DenResult a))
+-- @(sym1 :+: sym2)@ as long as @(Sat sym1 ~ Sat sym2)@ holds
+exprDictPlus :: (Constrained sym1, Constrained sym2, Sat sym1 ~ Sat sym2) =>
+    AST (sym1 :+: sym2) a -> Dict (Sat sym1 (DenResult a))
 exprDictPlus (s :$ _)       = exprDictPlus s
 exprDictPlus (Sym (InjL a)) = exprDict a
 exprDictPlus (Sym (InjR a)) = exprDict a
@@ -230,10 +230,10 @@ instance InjectC expr1 expr3 a => InjectC expr1 (expr2 :+: expr3) a
 --
 -- 'appSymC' has any type of the form:
 --
--- > appSymC :: InjectC expr (AST dom) x
--- >     => expr (a :-> b :-> ... :-> Full x)
--- >     -> (ASTF dom a -> ASTF dom b -> ... -> ASTF dom x)
-appSymC :: (ApplySym sig f dom, InjectC sym (AST dom) (DenResult sig)) => sym sig -> f
+-- > appSymC :: InjectC sub (AST sup) x
+-- >     => sub (a :-> b :-> ... :-> Full x)
+-- >     -> (ASTF sup a -> ASTF sup b -> ... -> ASTF sup x)
+appSymC :: (ApplySym sig f sup, InjectC sub (AST sup) (DenResult sig)) => sub sig -> f
 appSymC = appSym' . injC
 
 
@@ -242,32 +242,32 @@ appSymC = appSym' . injC
 -- type of the form @c a@ and constrains the @a@.
 data SubConstr1 :: (* -> *) -> (* -> *) -> (* -> Constraint) -> (* -> *)
   where
-    SubConstr1 :: (p a, DenResult sig ~ c a) => dom sig -> SubConstr1 c dom p sig
+    SubConstr1 :: (p a, DenResult sig ~ c a) => sym sig -> SubConstr1 c sym p sig
 
-instance Constrained dom => Constrained (SubConstr1 c dom p)
+instance Constrained sym => Constrained (SubConstr1 c sym p)
   where
-    type Sat (SubConstr1 c dom p) = Sat dom
+    type Sat (SubConstr1 c sym p) = Sat sym
     exprDict (SubConstr1 s) = exprDict s
 
 instance Project sub sup => Project sub (SubConstr1 c sup p)
   where
     prj (SubConstr1 s) = prj s
 
-instance Equality dom => Equality (SubConstr1 c dom p)
+instance Equality sym => Equality (SubConstr1 c sym p)
   where
     equal (SubConstr1 a) (SubConstr1 b) = equal a b
     exprHash (SubConstr1 s) = exprHash s
 
-instance Render dom => Render (SubConstr1 c dom p)
+instance Render sym => Render (SubConstr1 c sym p)
   where
     renderSym (SubConstr1 s) = renderSym s
     renderArgs args (SubConstr1 s) = renderArgs args s
 
-instance StringTree dom => StringTree (SubConstr1 c dom p)
+instance ToTree sym => ToTree (SubConstr1 c sym p)
   where
     stringTreeSym args (SubConstr1 a) = stringTreeSym args a
 
-instance Eval dom => Eval (SubConstr1 c dom p)
+instance Eval sym => Eval (SubConstr1 c sym p)
   where
     evaluate (SubConstr1 a) = evaluate a
 
@@ -277,32 +277,32 @@ instance Eval dom => Eval (SubConstr1 c dom p)
 -- and @b@.
 data SubConstr2 :: (* -> * -> *) -> (* -> *) -> (* -> Constraint) -> (* -> Constraint) -> (* -> *)
   where
-    SubConstr2 :: (DenResult sig ~ c a b, pa a, pb b) => dom sig -> SubConstr2 c dom pa pb sig
+    SubConstr2 :: (DenResult sig ~ c a b, pa a, pb b) => sym sig -> SubConstr2 c sym pa pb sig
 
-instance Constrained dom => Constrained (SubConstr2 c dom pa pb)
+instance Constrained sym => Constrained (SubConstr2 c sym pa pb)
   where
-    type Sat (SubConstr2 c dom pa pb) = Sat dom
+    type Sat (SubConstr2 c sym pa pb) = Sat sym
     exprDict (SubConstr2 s) = exprDict s
 
 instance Project sub sup => Project sub (SubConstr2 c sup pa pb)
   where
     prj (SubConstr2 s) = prj s
 
-instance Equality dom => Equality (SubConstr2 c dom pa pb)
+instance Equality sym => Equality (SubConstr2 c sym pa pb)
   where
     equal (SubConstr2 a) (SubConstr2 b) = equal a b
     exprHash (SubConstr2 s) = exprHash s
 
-instance Render dom => Render (SubConstr2 c dom pa pb)
+instance Render sym => Render (SubConstr2 c sym pa pb)
   where
     renderSym (SubConstr2 s) = renderSym s
     renderArgs args (SubConstr2 s) = renderArgs args s
 
-instance StringTree dom => StringTree (SubConstr2 c dom pa pb)
+instance ToTree sym => ToTree (SubConstr2 c sym pa pb)
   where
     stringTreeSym args (SubConstr2 a) = stringTreeSym args a
 
-instance Eval dom => Eval (SubConstr2 c dom pa pb)
+instance Eval sym => Eval (SubConstr2 c sym pa pb)
   where
     evaluate (SubConstr2 a) = evaluate a
 
@@ -315,17 +315,17 @@ instance Eval dom => Eval (SubConstr2 c dom pa pb)
 -- | 'AST' with existentially quantified result type
 data ASTE :: (* -> *) -> *
   where
-    ASTE :: ASTF dom a -> ASTE dom
+    ASTE :: ASTF sym a -> ASTE sym
 
 liftASTE
-    :: (forall a . ASTF dom a -> b)
-    -> ASTE dom
+    :: (forall a . ASTF sym a -> b)
+    -> ASTE sym
     -> b
 liftASTE f (ASTE a) = f a
 
 liftASTE2
-    :: (forall a b . ASTF dom a -> ASTF dom b -> c)
-    -> ASTE dom -> ASTE dom -> c
+    :: (forall a b . ASTF sym a -> ASTF sym b -> c)
+    -> ASTE sym -> ASTE sym -> c
 liftASTE2 f (ASTE a) (ASTE b) = f a b
 
 
@@ -333,20 +333,20 @@ liftASTE2 f (ASTE a) (ASTE b) = f a b
 -- | 'AST' with bounded existentially quantified result type
 data ASTB :: (* -> *) -> (* -> Constraint) -> *
   where
-    ASTB :: p a => ASTF dom a -> ASTB dom p
+    ASTB :: p a => ASTF sym a -> ASTB sym p
 
 liftASTB
-    :: (forall a . p a => ASTF dom a -> b)
-    -> ASTB dom p
+    :: (forall a . p a => ASTF sym a -> b)
+    -> ASTB sym p
     -> b
 liftASTB f (ASTB a) = f a
 
 liftASTB2
-    :: (forall a b . (p a, p b) => ASTF dom a -> ASTF dom b -> c)
-    -> ASTB dom p -> ASTB dom p -> c
+    :: (forall a b . (p a, p b) => ASTF sym a -> ASTF sym b -> c)
+    -> ASTB sym p -> ASTB sym p -> c
 liftASTB2 f (ASTB a) (ASTB b) = f a b
 
-type ASTSAT dom = ASTB dom (Sat dom)
+type ASTSAT sym = ASTB sym (Sat sym)
 
 
 
@@ -385,10 +385,10 @@ instance Render     Empty where renderSym  = error "Not implemented: renderSym f
                                 renderArgs = error "Not implemented: renderArgs for Empty"
 instance StringTree Empty
 
-universe :: ASTF dom a -> [ASTE dom]
+universe :: ASTF sym a -> [ASTE sym]
 universe a = ASTE a : go a
   where
-    go :: AST dom a -> [ASTE dom]
+    go :: AST sym a -> [ASTE sym]
     go (Sym s)  = []
     go (s :$ a) = go s ++ universe a
 
