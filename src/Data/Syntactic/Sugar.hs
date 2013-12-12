@@ -56,12 +56,12 @@ resugar = sugar . desugar
 -- >          )
 --
 -- ...and vice versa for 'sugarN'.
-class SyntacticN a internal | a -> internal
+class SyntacticN f internal | f -> internal
   where
-    desugarN :: a -> internal
-    sugarN   :: internal -> a
+    desugarN :: f -> internal
+    sugarN   :: internal -> f
 
-instance (Syntactic a, Domain a ~ dom, ia ~ AST dom (Full (Internal a))) => SyntacticN a ia
+instance (Syntactic f, Domain f ~ dom, fi ~ AST dom (Full (Internal f))) => SyntacticN f fi
   where
     desugarN = desugar
     sugarN   = sugar
@@ -70,9 +70,9 @@ instance
     ( Syntactic a
     , Domain a ~ dom
     , ia ~ Internal a
-    , SyntacticN b ib
+    , SyntacticN f fi
     ) =>
-      SyntacticN (a -> b) (AST dom (Full ia) -> ib)
+      SyntacticN (a -> f) (AST dom (Full ia) -> fi)
   where
     desugarN f = desugarN . f . sugar
     sugarN f   = sugarN . f . desugar
@@ -91,8 +91,7 @@ instance
 -- >     , Syntactic x dom
 -- >     ) => expr (Internal a :-> Internal b :-> ... :-> Full (Internal x))
 -- >       -> (a -> b -> ... -> x)
-sugarSym :: (sym :<: AST dom, ApplySym sig b dom, SyntacticN c b) =>
-    sym sig -> c
+sugarSym :: (sym :<: AST dom, ApplySym sig fi dom, SyntacticN f fi) => sym sig -> f
 sugarSym = sugarN . appSym
 
 -- | \"Sugared\" symbol application
@@ -109,9 +108,9 @@ sugarSym = sugarN . appSym
 -- >       -> (a -> b -> ... -> x)
 sugarSymC
     :: ( InjectC sym (AST dom) (DenResult sig)
-       , ApplySym sig b dom
-       , SyntacticN c b
+       , ApplySym sig fi dom
+       , SyntacticN f fi
        )
-    => sym sig -> c
+    => sym sig -> f
 sugarSymC = sugarN . appSymC
 
