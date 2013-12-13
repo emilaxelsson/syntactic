@@ -67,7 +67,7 @@ instance Equality Variable
 
 instance Render Variable
   where
-    render (Variable v) = showVar v
+    renderSym (Variable v) = showVar v
 
 instance ToTree Variable
   where
@@ -102,6 +102,7 @@ instance Equality Lambda
 
 instance Render Lambda
   where
+    renderSym (Lambda v) = "Lambda " ++ show v
     renderArgs [body] (Lambda v) = "(\\" ++ showVar v ++ " -> "  ++ body ++ ")"
 
 instance ToTree Lambda
@@ -138,6 +139,7 @@ instance Equality Let
 
 instance Render Let
   where
+    renderSym Let = "Let"
     renderArgs []    Let = "Let"
     renderArgs [f,a] Let = "(" ++ unwords ["letBind",f,a] ++ ")"
 

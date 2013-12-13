@@ -39,6 +39,7 @@ instance Equality Semantics
 
 instance Render Semantics
   where
+    renderSym (Sem name _) = name
     renderArgs [] (Sem name _) = name
     renderArgs args (Sem name _)
         | isInfix   = "(" ++ unwords [a,op,b] ++ ")"
@@ -71,6 +72,10 @@ equalDefault a b = equal (semantics a) (semantics b)
 exprHashDefault :: Semantic expr => expr a -> Hash
 exprHashDefault = exprHash . semantics
 
+-- | Default implementation of 'renderSym'
+renderSymDefault :: Semantic expr => expr a -> String
+renderSymDefault = renderSym . semantics
+
 -- | Default implementation of 'renderArgs'
 renderArgsDefault :: Semantic expr => [String] -> expr a -> String
 renderArgsDefault args = renderArgs args . semantics
@@ -79,11 +84,17 @@ renderArgsDefault args = renderArgs args . semantics
 evaluateDefault :: Semantic expr => expr a -> Denotation a
 evaluateDefault = evaluate . semantics
 
+-- | Derive instances for 'Semantic' related classes
+-- ('Equality','Render','ToTree','Eval')
 semanticInstances :: Name -> DecsQ
 semanticInstances n =
     [d|
-        instance Equality $(typ) where equal = equalDefault ; exprHash = exprHashDefault
-        instance Render $(typ) where renderArgs = renderArgsDefault
+        instance Equality $(typ) where
+          equal    = equalDefault
+          exprHash = exprHashDefault
+        instance Render $(typ) where
+          renderSym  = renderSymDefault
+          renderArgs = renderArgsDefault
         instance ToTree $(typ)
         instance Eval $(typ) where evaluate = evaluateDefault
     |]

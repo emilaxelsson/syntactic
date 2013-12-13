@@ -48,8 +48,8 @@ instance Equality expr => Equality (Decor info expr)
 
 instance Render expr => Render (Decor info expr)
   where
+    renderSym = renderSym . decorExpr
     renderArgs args = renderArgs args . decorExpr
-    render = render . decorExpr
 
 instance ToTree expr => ToTree (Decor info expr)
   where
@@ -93,23 +93,23 @@ collectInfo coll (Sym (Decor info _)) = [coll info]
 collectInfo coll (f :$ a) = collectInfo coll f ++ collectInfo coll a
 
 -- | Rendering of decorated syntax trees
-toTreeDecor :: forall info dom a . (Render info, ToTree dom) =>
-    ASTF (Decor info dom) a -> Tree String
-toTreeDecor a = mkTree [] a
+toTreeDecor :: forall info dom a . (ToTree dom) =>
+    (forall a. info a -> String) -> ASTF (Decor info dom) a -> Tree String
+toTreeDecor showInfo a = mkTree [] a
   where
     mkTree :: [Tree String] -> AST (Decor info dom) sig -> Tree String
     mkTree args (Sym (Decor info expr)) = Node infoStr [toTreeArgs args expr]
       where
-        infoStr = "<<" ++ render info ++ ">>"
+        infoStr = "<<" ++ showInfo info ++ ">>"
     mkTree args (f :$ a) = mkTree (mkTree [] a : args) f
 
 -- | Show an decorated syntax tree using ASCII art
-showDecor :: (Render info, ToTree dom) => ASTF (Decor info dom) a -> String
-showDecor = drawTree . toTreeDecor
+showDecorWith :: (ToTree dom) => (forall a. info a -> String) -> ASTF (Decor info dom) a -> String
+showDecorWith showInfo = drawTree . toTreeDecor showInfo
 
 -- | Print an decorated syntax tree using ASCII art
-drawDecor :: (Render info, ToTree dom) => ASTF (Decor info dom) a -> IO ()
-drawDecor = putStrLn . showDecor
+drawDecorWith :: (ToTree dom) => (forall a. info a -> String) -> ASTF (Decor info dom) a -> IO ()
+drawDecorWith showInfo = putStrLn . showDecorWith showInfo
 
 -- | Strip decorations from an 'AST'
 stripDecor :: AST (Decor info dom) sig -> AST dom sig

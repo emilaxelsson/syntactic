@@ -31,7 +31,7 @@ instance Equality Literal
 
 instance Render Literal
   where
-    render (Literal a) = show a
+    renderSym (Literal a) = show a
 
 instance ToTree Literal
 

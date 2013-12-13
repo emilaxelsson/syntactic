@@ -34,7 +34,9 @@ instance Monad m => Semantic (MONAD m)
     semantics When   = Sem "when"   when
 
 instance Monad m => Equality (MONAD m) where equal = equalDefault; exprHash = exprHashDefault
-instance Monad m => Render   (MONAD m) where renderArgs = renderArgsDefault
+instance Monad m => Render   (MONAD m) where
+    renderSym  = renderSymDefault
+    renderArgs = renderArgsDefault
 instance Monad m => Eval     (MONAD m) where evaluate   = evaluateDefault
 instance Monad m => ToTree   (MONAD m)
 

@@ -50,7 +50,7 @@ instance Constrained Node
 
 instance Render Node
   where
-    render (Node a) = showNode a
+    renderSym (Node a) = showNode a
 
 instance ToTree Node
 

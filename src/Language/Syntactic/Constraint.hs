@@ -95,6 +95,7 @@ instance Equality dom => Equality (dom :| pred)
 
 instance Render dom => Render (dom :| pred)
   where
+    renderSym (C a) = renderSym a
     renderArgs args (C a) = renderArgs args a
 
 instance Eval dom => Eval (dom :| pred)
@@ -131,6 +132,7 @@ instance Equality dom => Equality (dom :|| pred)
 
 instance Render dom => Render (dom :|| pred)
   where
+    renderSym (C' a) = renderSym a
     renderArgs args (C' a) = renderArgs args a
 
 instance Eval dom => Eval (dom :|| pred)
@@ -258,6 +260,7 @@ instance Equality dom => Equality (SubConstr1 c dom p)
 
 instance Render dom => Render (SubConstr1 c dom p)
   where
+    renderSym (SubConstr1 s) = renderSym s
     renderArgs args (SubConstr1 s) = renderArgs args s
 
 instance ToTree dom => ToTree (SubConstr1 c dom p)
@@ -292,6 +295,7 @@ instance Equality dom => Equality (SubConstr2 c dom pa pb)
 
 instance Render dom => Render (SubConstr2 c dom pa pb)
   where
+    renderSym (SubConstr2 s) = renderSym s
     renderArgs args (SubConstr2 s) = renderArgs args s
 
 instance ToTree dom => ToTree (SubConstr2 c dom pa pb)
@@ -377,7 +381,9 @@ instance Constrained Empty
 instance Equality Empty where equal      = error "Not implemented: equal for Empty"
                               exprHash   = error "Not implemented: exprHash for Empty"
 instance Eval     Empty where evaluate   = error "Not implemented: equal for Empty"
-instance Render   Empty where renderArgs = error "Not implemented: renderArgs for Empty"
+instance Render   Empty where
+    renderSym  = error "Not implemented: renderSym for Empty"
+    renderArgs = error "Not implemented: renderArgs for Empty"
 instance ToTree   Empty
 
 
