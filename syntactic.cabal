@@ -1,9 +1,7 @@
 Name:           syntactic
-Version:        2.0
-Synopsis:       Generic representation and manipulation of abstract syntax
-Description:    The library provides a generic representation of abstract syntax trees (or data
-                types in general). It also permits the definition of open syntax trees based on the
-                technique in Data Types à la Carte [1].
+Version:        1.8
+Synopsis:       Generic abstract syntax, and utilities for embedded languages
+Description:    This library provides:
                 .
                 For more information, see
                 \"A Generic Abstract Syntax Model for Embedded Languages\"
