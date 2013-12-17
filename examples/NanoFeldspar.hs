@@ -168,8 +168,8 @@ showExpr :: (Syntactic a, Domain a ~ FeldDomain) => a -> String
 showExpr = render . desugar
 
 -- | Print the expression
-printExpr :: (Syntactic a, Domain a ~ FeldDomain) => a -> IO ()
-printExpr = putStrLn . showExpr
+printExpr :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> IO ()
+printExpr = Syntactic.printExpr . reifySmart (const True) canShareDict
 
 -- | Draw the syntax tree using ASCII
 showAST :: (Syntactic a, Domain a ~ FeldDomain) => a -> String
