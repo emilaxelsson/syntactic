@@ -27,7 +27,7 @@ class Render sym
     renderArgs []   s = renderSym s
     renderArgs args s = "(" ++ unwords (renderSym s : args) ++ ")"
 
-instance (Render sym1, Render sym2) => Render (sym1 :+: sym2)
+instance (Render expr1, Render expr2) => Render (expr1 :+: expr2)
   where
     renderSym (InjL s) = renderSym s
     renderSym (InjR s) = renderSym s
