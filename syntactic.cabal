@@ -164,9 +164,9 @@ test-suite NanoFeldsparEval
     base,
     mtl >= 2 && < 3,
     QuickCheck >= 2.4 && < 3,
-    test-framework >= 0.6,
-    test-framework-th >= 0.2,
-    test-framework-quickcheck2 >= 0.2
+    tasty,
+    tasty-th,
+    tasty-quickcheck
 
 test-suite NanoFeldsparTree
   type: exitcode-stdio-1.0
@@ -196,6 +196,7 @@ test-suite NanoFeldsparTree
     base,
     bytestring,
     mtl >= 2 && < 3,
-    test-framework >= 0.6,
-    test-framework-golden >= 1.1
+    tasty,
+    tasty-golden
+
 

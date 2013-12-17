@@ -1,8 +1,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-import Test.Framework
-import Test.Framework.TH
-import Test.Framework.Providers.QuickCheck2
+import Test.Tasty
+import Test.Tasty.TH
+import Test.Tasty.QuickCheck
 
 import NanoFeldspar.Core (eval)
 import NanoFeldspar.Test

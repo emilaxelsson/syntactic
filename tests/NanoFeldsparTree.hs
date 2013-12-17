@@ -1,5 +1,5 @@
-import Test.Framework
-import Test.Golden
+import Test.Tasty
+import Test.Tasty.Golden
 
 import qualified Data.ByteString.Lazy.Char8 as B
 
@@ -32,5 +32,5 @@ tests = testGroup "TreeTests"
     , goldenVsString "prog8"  "tests/gold/prog8.txt"  $ return $ B.pack $ showAST prog8
     ]
 
-main = defaultMain [tests]
+main = defaultMain tests
 
