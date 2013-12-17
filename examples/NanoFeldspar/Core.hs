@@ -169,7 +169,7 @@ showExpr = render . reifySmart (const True) canShareDict
 
 -- | Print the expression
 printExpr :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> IO ()
-printExpr = Syntactic.printExpr . reifySmart (const True) canShareDict
+printExpr = print . reifySmart (const True) canShareDict
 
 -- | Draw the syntax tree using ASCII
 showAST :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> String

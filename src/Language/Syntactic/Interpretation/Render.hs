@@ -1,7 +1,6 @@
 module Language.Syntactic.Interpretation.Render
     ( Render (..)
     , render
-    , printExpr
     , StringTree (..)
     , stringTree
     , showAST
@@ -47,10 +46,6 @@ instance (Render expr1, Render expr2) => Render (expr1 :+: expr2)
     renderSym (InjR a) = renderSym a
     renderArgs args (InjL a) = renderArgs args a
     renderArgs args (InjR a) = renderArgs args a
-
--- | Print an expression
-printExpr :: Render dom => ASTF dom a -> IO ()
-printExpr = putStrLn . render
 
 
 
