@@ -69,9 +69,9 @@ instance Render Variable
   where
     renderSym (Variable v) = showVar v
 
-instance ToTree Variable
+instance StringTree Variable
   where
-    toTreeArgs [] (Variable v) = Node ("var:" ++ show v) []
+    stringTreeSym [] (Variable v) = Node ("var:" ++ show v) []
 
 
 
@@ -105,9 +105,9 @@ instance Render Lambda
     renderSym (Lambda v) = "Lambda " ++ show v
     renderArgs [body] (Lambda v) = "(\\" ++ showVar v ++ " -> "  ++ body ++ ")"
 
-instance ToTree Lambda
+instance StringTree Lambda
   where
-    toTreeArgs [body] (Lambda v) = Node ("Lambda " ++ show v) [body]
+    stringTreeSym [body] (Lambda v) = Node ("Lambda " ++ show v) [body]
 
 -- | Allow an existing binding to be used with a body of a different type
 reuseLambda :: Lambda (b :-> Full (a -> b)) -> Lambda (c :-> Full (a -> c))
@@ -143,9 +143,9 @@ instance Render Let
     renderArgs []    Let = "Let"
     renderArgs [f,a] Let = "(" ++ unwords ["letBind",f,a] ++ ")"
 
-instance ToTree Let
+instance StringTree Let
   where
-    toTreeArgs [a,body] Let = case splitAt 7 node of
+    stringTreeSym [a,body] Let = case splitAt 7 node of
         ("Lambda ", var) -> Node ("Let " ++ var) [a,body']
         _                -> Node "Let" [a,body]
       where

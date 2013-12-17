@@ -19,11 +19,13 @@ module Language.Syntactic.Traversal
     , simpleFold
     , matchTrans
     , WrapFull (..)
+    , toTree
     ) where
 
 
 
 import Control.Applicative
+import Data.Tree
 
 import Language.Syntactic.Syntax
 
@@ -188,4 +190,8 @@ matchTrans f = unWrapAST . match (\s -> WrapAST . f s)
 data WrapFull c a
   where
     WrapFull :: { unwrapFull :: c a } -> WrapFull c (Full a)
+
+-- | Convert an 'AST' to a 'Tree'
+toTree :: forall dom a b . (forall sig . dom sig -> b) -> ASTF dom a -> Tree b
+toTree f = listFold (Node . f)
 

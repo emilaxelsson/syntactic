@@ -52,7 +52,7 @@ instance Render Node
   where
     renderSym (Node a) = showNode a
 
-instance ToTree Node
+instance StringTree Node
 
 
 
@@ -117,7 +117,7 @@ type NodeDomain dom = (Node :+: dom) :|| Sat dom
 
 
 -- | Show syntax graph using ASCII art
-showASG :: ToTree dom => ASG dom a -> String
+showASG :: StringTree dom => ASG dom a -> String
 showASG (ASG top nodes _) =
     unlines ((line "top" ++ showAST top) : map showNode nodes)
   where
@@ -131,7 +131,7 @@ showASG (ASG top nodes _) =
       ]
 
 -- | Print syntax graph using ASCII art
-drawASG :: ToTree dom => ASG dom a -> IO ()
+drawASG :: StringTree dom => ASG dom a -> IO ()
 drawASG = putStrLn . showASG
 
 -- | Update the node identifiers in an 'AST' using the supplied reindexing

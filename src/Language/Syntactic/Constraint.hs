@@ -102,9 +102,9 @@ instance Eval dom => Eval (dom :| pred)
   where
     evaluate (C a) = evaluate a
 
-instance ToTree dom => ToTree (dom :| pred)
+instance StringTree dom => StringTree (dom :| pred)
   where
-    toTreeArgs args (C a) = toTreeArgs args a
+    stringTreeSym args (C a) = stringTreeSym args a
 
 
 
@@ -139,9 +139,9 @@ instance Eval dom => Eval (dom :|| pred)
   where
     evaluate (C' a) = evaluate a
 
-instance ToTree dom => ToTree (dom :|| pred)
+instance StringTree dom => StringTree (dom :|| pred)
   where
-    toTreeArgs args (C' a) = toTreeArgs args a
+    stringTreeSym args (C' a) = stringTreeSym args a
 
 
 
@@ -263,9 +263,9 @@ instance Render dom => Render (SubConstr1 c dom p)
     renderSym (SubConstr1 s) = renderSym s
     renderArgs args (SubConstr1 s) = renderArgs args s
 
-instance ToTree dom => ToTree (SubConstr1 c dom p)
+instance StringTree dom => StringTree (SubConstr1 c dom p)
   where
-    toTreeArgs args (SubConstr1 a) = toTreeArgs args a
+    stringTreeSym args (SubConstr1 a) = stringTreeSym args a
 
 instance Eval dom => Eval (SubConstr1 c dom p)
   where
@@ -298,9 +298,9 @@ instance Render dom => Render (SubConstr2 c dom pa pb)
     renderSym (SubConstr2 s) = renderSym s
     renderArgs args (SubConstr2 s) = renderArgs args s
 
-instance ToTree dom => ToTree (SubConstr2 c dom pa pb)
+instance StringTree dom => StringTree (SubConstr2 c dom pa pb)
   where
-    toTreeArgs args (SubConstr2 a) = toTreeArgs args a
+    stringTreeSym args (SubConstr2 a) = stringTreeSym args a
 
 instance Eval dom => Eval (SubConstr2 c dom pa pb)
   where
@@ -378,13 +378,12 @@ instance Constrained Empty
     type Sat Empty = Top
     exprDict = error "Not implemented: exprDict for Empty"
 
-instance Equality Empty where equal      = error "Not implemented: equal for Empty"
-                              exprHash   = error "Not implemented: exprHash for Empty"
-instance Eval     Empty where evaluate   = error "Not implemented: equal for Empty"
-instance Render   Empty where
-    renderSym  = error "Not implemented: renderSym for Empty"
-    renderArgs = error "Not implemented: renderArgs for Empty"
-instance ToTree   Empty
+instance Equality   Empty where equal      = error "Not implemented: equal for Empty"
+                                exprHash   = error "Not implemented: exprHash for Empty"
+instance Eval       Empty where evaluate   = error "Not implemented: equal for Empty"
+instance Render     Empty where renderSym  = error "Not implemented: renderSym for Empty"
+                                renderArgs = error "Not implemented: renderArgs for Empty"
+instance StringTree Empty
 
 
 

@@ -2,8 +2,8 @@ module Language.Syntactic.Interpretation.Render
     ( Render (..)
     , render
     , printExpr
-    , ToTree (..)
-    , toTree
+    , StringTree (..)
+    , stringTree
     , showAST
     , drawAST
     ) where
@@ -54,32 +54,30 @@ printExpr = putStrLn . render
 
 
 
--- | Convert an expression to a tree
-toTree :: forall dom a b. (forall sig. dom sig -> b) -> ASTF dom a -> Tree b
-toTree f = go []
-  where
-    go :: [Tree b] -> AST dom sig -> Tree b
-    go args (Sym a)  = Node (f a) args
-    go args (s :$ a) = go (toTree f a : args) s
-
-
-class Render expr => ToTree expr
+class Render dom => StringTree dom
   where
     -- | Convert a partially applied expression to a syntax tree given a list of
     -- rendered missing arguments
-    toTreeArgs :: [Tree String] -> expr a -> Tree String
-    toTreeArgs args a = Node (renderSym a) args
+    stringTreeSym :: [Tree String] -> dom a -> Tree String
+    stringTreeSym args a = Node (renderSym a) args
 
-instance (ToTree expr1, ToTree expr2) => ToTree (expr1 :+: expr2)
+instance (StringTree dom1, StringTree dom2) => StringTree (dom1 :+: dom2)
   where
-    toTreeArgs args (InjL a) = toTreeArgs args a
-    toTreeArgs args (InjR a) = toTreeArgs args a
+    stringTreeSym args (InjL a) = stringTreeSym args a
+    stringTreeSym args (InjR a) = stringTreeSym args a
+
+stringTree :: forall dom a . StringTree dom => ASTF dom a -> Tree String
+stringTree = go []
+  where
+    go :: [Tree String] -> AST dom sig -> Tree String
+    go args (Sym a)  = stringTreeSym args a
+    go args (s :$ a) = go (stringTree a : args) s
 
 -- | Show syntax tree using ASCII art
-showAST :: ToTree dom => ASTF dom a -> String
-showAST = drawTree . toTree renderSym
+showAST :: StringTree dom => ASTF dom a -> String
+showAST = drawTree . stringTree
 
 -- | Print syntax tree using ASCII art
-drawAST :: ToTree dom => ASTF dom a -> IO ()
+drawAST :: StringTree dom => ASTF dom a -> IO ()
 drawAST = putStrLn . showAST
 

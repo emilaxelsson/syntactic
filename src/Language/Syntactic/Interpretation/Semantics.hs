@@ -85,7 +85,7 @@ evaluateDefault :: Semantic expr => expr a -> Denotation a
 evaluateDefault = evaluate . semantics
 
 -- | Derive instances for 'Semantic' related classes
--- ('Equality','Render','ToTree','Eval')
+-- ('Equality', 'Render', 'StringTree', 'Eval')
 semanticInstances :: Name -> DecsQ
 semanticInstances n =
     [d|
@@ -95,8 +95,9 @@ semanticInstances n =
         instance Render $(typ) where
           renderSym  = renderSymDefault
           renderArgs = renderArgsDefault
-        instance ToTree $(typ)
+        instance StringTree $(typ)
         instance Eval $(typ) where evaluate = evaluateDefault
     |]
   where
     typ = conT n
+

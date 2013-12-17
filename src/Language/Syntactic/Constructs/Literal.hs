@@ -33,7 +33,7 @@ instance Render Literal
   where
     renderSym (Literal a) = show a
 
-instance ToTree Literal
+instance StringTree Literal
 
 instance Eval Literal
   where
