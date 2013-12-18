@@ -1,0 +1,71 @@
+Lam v6
+|
+`- Lam v5
+   |
+   `- parallel
+      |
+      +- arrLength
+      |  |
+      |  `- v6
+      |
+      `- Lam v4
+         |
+         `- parallel
+            |
+            +- arrLength
+            |  |
+            |  `- getIx
+            |     |
+            |     +- v5
+            |     |
+            |     `- 0
+            |
+            `- Lam v3
+               |
+               `- forLoop
+                  |
+                  +- min
+                  |  |
+                  |  +- arrLength
+                  |  |  |
+                  |  |  `- getIx
+                  |  |     |
+                  |  |     +- v6
+                  |  |     |
+                  |  |     `- v4
+                  |  |
+                  |  `- arrLength
+                  |     |
+                  |     `- v5
+                  |
+                  +- 0.0
+                  |
+                  `- Lam v2
+                     |
+                     `- Lam v1
+                        |
+                        `- (+)
+                           |
+                           +- (*)
+                           |  |
+                           |  +- getIx
+                           |  |  |
+                           |  |  +- getIx
+                           |  |  |  |
+                           |  |  |  +- v6
+                           |  |  |  |
+                           |  |  |  `- v4
+                           |  |  |
+                           |  |  `- v2
+                           |  |
+                           |  `- getIx
+                           |     |
+                           |     +- getIx
+                           |     |  |
+                           |     |  +- v5
+                           |     |  |
+                           |     |  `- v2
+                           |     |
+                           |     `- v3
+                           |
+                           `- v1

@@ -50,12 +50,12 @@ instance Equality expr => Equality (expr :&: info)
 
 instance Render expr => Render (expr :&: info)
   where
+    renderSym       = renderSym . decorExpr
     renderArgs args = renderArgs args . decorExpr
-    render = render . decorExpr
 
-instance ToTree expr => ToTree (expr :&: info)
+instance StringTree expr => StringTree (expr :&: info)
   where
-    toTreeArgs args = toTreeArgs args . decorExpr
+    stringTreeSym args = stringTreeSym args . decorExpr
 
 instance Eval expr => Eval (expr :&: info)
   where
@@ -94,20 +94,21 @@ stripDecor (Sym (a :&: _)) = Sym a
 stripDecor (f :$ a)        = stripDecor f :$ stripDecor a
 
 -- | Rendering of decorated syntax trees
-toTreeDecor :: forall info sym a . (Render info, ToTree sym) => ASTF (sym :&: info) a -> Tree String
-toTreeDecor a = mkTree [] a
+stringTreeDecor :: forall info sym a . StringTree sym =>
+    (forall a . info a -> String) -> ASTF (sym :&: info) a -> Tree String
+stringTreeDecor showInfo a = mkTree [] a
   where
     mkTree :: [Tree String] -> AST (sym :&: info) sig -> Tree String
-    mkTree args (Sym (expr :&: info)) = Node infoStr [toTreeArgs args expr]
+    mkTree args (Sym (expr :&: info)) = Node infoStr [stringTreeSym args expr]
       where
-        infoStr = "<" ++ render info ++ ">"
+        infoStr = "<<" ++ showInfo info ++ ">>"
     mkTree args (f :$ a) = mkTree (mkTree [] a : args) f
 
 -- | Show an decorated syntax tree using ASCII art
-showDecor :: (Render info, ToTree sym) => ASTF (sym :&: info) a -> String
-showDecor = drawTree . toTreeDecor
+showDecorWith :: StringTree sym => (forall a . info a -> String) -> ASTF (sym :&: info) a -> String
+showDecorWith showInfo = drawTree . stringTreeDecor showInfo
 
 -- | Print an decorated syntax tree using ASCII art
-drawDecor :: (Render info, ToTree sym) => ASTF (sym :&: info) a -> IO ()
-drawDecor = putStrLn . showDecor
+drawDecorWith :: StringTree sym => (forall a . info a -> String) -> ASTF (sym :&: info) a -> IO ()
+drawDecorWith showInfo = putStrLn . showDecorWith showInfo
 

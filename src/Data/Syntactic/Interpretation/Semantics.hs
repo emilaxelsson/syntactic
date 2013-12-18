@@ -38,6 +38,7 @@ instance Equality Semantics
 instance Render Semantics
   where
     renderSym (Sem name _) = name
+
     renderArgs [] (Sem name _) = name
     renderArgs args (Sem name _)
         | isInfix   = "(" ++ unwords [a,op,b] ++ ")"

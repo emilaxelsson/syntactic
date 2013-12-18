@@ -74,13 +74,15 @@ data Binding a
 
 instance Render Binding
   where
+    renderSym (Var n) = 'v' : show n
+    renderSym (Lam n) = "Lam v" ++ show n
     renderArgs []     (Var n) = 'v' : show n
     renderArgs [body] (Lam n) = "(\\" ++ ('v':show n) ++ " -> " ++ body ++ ")"
 
-instance ToTree Binding
+instance StringTree Binding
   where
-    toTreeArgs []     (Var n) = Node ('v' : show n) []
-    toTreeArgs [body] (Lam n) = Node ("Lam " ++ 'v' : show n) [body]
+    stringTreeSym []     (Var n) = Node ('v' : show n) []
+    stringTreeSym [body] (Lam n) = Node ("Lam " ++ 'v' : show n) [body]
 
 maxLam :: (Binding :<: s) => AST s a -> Name
 maxLam (Sym lam :$ _) | Just (Lam n) <- prj lam = n
@@ -128,7 +130,7 @@ semanticInstances ''ForLoop
 
 
 
-instance ToTree Semantics
+instance StringTree Semantics
 
 type FeldDomain
     =   Arithmetic
@@ -168,8 +170,8 @@ showExpr :: (Syntactic a, Domain a ~ FeldDomain) => a -> String
 showExpr = render . desugar
 
 -- | Print the expression
-printExpr :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> IO ()
-printExpr = Syntactic.printExpr . reifySmart (const True) canShareDict
+printExpr :: (Syntactic a, Domain a ~ FeldDomain) => a -> IO ()
+printExpr = putStrLn . showExpr
 
 -- | Draw the syntax tree using ASCII
 showAST :: (Syntactic a, Domain a ~ FeldDomain) => a -> String

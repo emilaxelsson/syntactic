@@ -1,7 +1,9 @@
 Name:           syntactic
-Version:        1.8
-Synopsis:       Generic abstract syntax, and utilities for embedded languages
-Description:    This library provides:
+Version:        2.0
+Synopsis:       Generic representation and manipulation of abstract syntax
+Description:    The library provides a generic representation of abstract syntax trees (or data
+                types in general). It also permits the definition of open syntax trees based on the
+                technique in Data Types à la Carte [1].
                 .
                 For more information, see
                 \"A Generic Abstract Syntax Model for Embedded Languages\"
@@ -91,14 +93,12 @@ library
     TemplateHaskell
     UndecidableInstances
 
-test-suite NanoFeldsparEval
+test-suite NanoFeldspar
   type: exitcode-stdio-1.0
 
   hs-source-dirs: tests examples
 
-  main-is: NanoFeldsparEval.hs
-
-  other-modules:
+  main-is: NanoFeldsparTest.hs
 
   default-language: Haskell2010
 
@@ -106,44 +106,10 @@ test-suite NanoFeldsparEval
     FlexibleContexts
     FlexibleInstances
     GADTs
-    MultiParamTypeClasses
     ScopedTypeVariables
     TypeFamilies
     TypeOperators
     UndecidableInstances
-    ViewPatterns
-
-  other-extensions:
-    TemplateHaskell
-
-  build-depends:
-    syntactic,
-    base,
-    mtl >= 2 && < 3,
-    QuickCheck >= 2.4 && < 3,
-    test-framework >= 0.6,
-    test-framework-th >= 0.2,
-    test-framework-quickcheck2 >= 0.2
-
-test-suite NanoFeldsparTree
-  type: exitcode-stdio-1.0
-
-  hs-source-dirs: tests examples
-
-  main-is: NanoFeldsparTree.hs
-
-  default-language: Haskell2010
-
-  default-extensions:
-    FlexibleContexts
-    FlexibleInstances
-    GADTs
-    MultiParamTypeClasses
-    ScopedTypeVariables
-    TypeFamilies
-    TypeOperators
-    UndecidableInstances
-    ViewPatterns
 
   other-extensions:
     TemplateHaskell
@@ -152,7 +118,6 @@ test-suite NanoFeldsparTree
     syntactic,
     base,
     bytestring,
-    mtl >= 2 && < 3,
-    test-framework >= 0.6,
-    test-framework-golden >= 1.1
-
+    containers,
+    tasty,
+    tasty-golden

@@ -102,7 +102,7 @@ instance Eval sym => Eval (sym :| pred)
   where
     evaluate (C a) = evaluate a
 
-instance ToTree dom => ToTree (dom :| pred)
+instance StringTree sym => StringTree (sym :| pred)
   where
     stringTreeSym args (C a) = stringTreeSym args a
 
@@ -139,7 +139,7 @@ instance Eval sym => Eval (sym :|| pred)
   where
     evaluate (C' a) = evaluate a
 
-instance ToTree dom => ToTree (dom :|| pred)
+instance StringTree sym => StringTree (sym :|| pred)
   where
     stringTreeSym args (C' a) = stringTreeSym args a
 
@@ -263,7 +263,7 @@ instance Render sym => Render (SubConstr1 c sym p)
     renderSym (SubConstr1 s) = renderSym s
     renderArgs args (SubConstr1 s) = renderArgs args s
 
-instance ToTree dom => ToTree (SubConstr1 c dom p)
+instance StringTree sym => StringTree (SubConstr1 c sym p)
   where
     stringTreeSym args (SubConstr1 a) = stringTreeSym args a
 
@@ -298,7 +298,7 @@ instance Render sym => Render (SubConstr2 c sym pa pb)
     renderSym (SubConstr2 s) = renderSym s
     renderArgs args (SubConstr2 s) = renderArgs args s
 
-instance ToTree dom => ToTree (SubConstr2 c dom pa pb)
+instance StringTree sym => StringTree (SubConstr2 c sym pa pb)
   where
     stringTreeSym args (SubConstr2 a) = stringTreeSym args a
 
