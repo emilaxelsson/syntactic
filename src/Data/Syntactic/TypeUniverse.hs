@@ -187,12 +187,46 @@ data FloatType a where FloatType :: FloatType (Full Float)
 data ListType  a where ListType  :: ListType   (a :-> Full [a])
 data FunType   a where FunType   :: FunType   (a :-> b :-> Full (a -> b))
 
-instance (BoolType  :<: ts)                               => Typeable ts Bool     where typeRep' = inj BoolType
-instance (CharType  :<: ts)                               => Typeable ts Char     where typeRep' = inj CharType
-instance (IntType   :<: ts)                               => Typeable ts Int      where typeRep' = inj IntType
-instance (FloatType :<: ts)                               => Typeable ts Float    where typeRep' = inj FloatType
-instance (ListType  :<: ts, Typeable ts a)                => Typeable ts [a]      where typeRep' = inj ListType :$ typeRep'
-instance (FunType   :<: ts, Typeable ts a, Typeable ts b) => Typeable ts (a -> b) where typeRep' = inj FunType :$ typeRep' :$ typeRep'
+boolType :: (Syntactic a, BoolType :<: Domain a, Internal a ~ Bool) => a
+boolType = sugarSym BoolType
+
+charType :: (Syntactic a, CharType :<: Domain a, Internal a ~ Char) => a
+charType = sugarSym CharType
+
+intType :: (Syntactic a, IntType :<: Domain a, Internal a ~ Int) => a
+intType = sugarSym IntType
+
+floatType :: (Syntactic a, FloatType :<: Domain a, Internal a ~ Float) => a
+floatType = sugarSym FloatType
+
+listType
+    :: ( Syntactic list
+       , Syntactic elem
+       , Domain list ~ Domain elem
+       , ListType :<: Domain list
+       , Internal list ~ [Internal elem]
+       )
+    => elem -> list
+listType = sugarSym ListType
+
+funType
+    :: ( Syntactic fun
+       , Syntactic a
+       , Syntactic b
+       , Domain fun ~ Domain a
+       , Domain fun ~ Domain b
+       , FunType :<: Domain fun
+       , Internal fun ~ (Internal a -> Internal b)
+       )
+    => a -> b -> fun
+funType = sugarSym FunType
+
+instance (BoolType  :<: ts)                               => Typeable ts Bool     where typeRep' = boolType
+instance (CharType  :<: ts)                               => Typeable ts Char     where typeRep' = charType
+instance (IntType   :<: ts)                               => Typeable ts Int      where typeRep' = intType
+instance (FloatType :<: ts)                               => Typeable ts Float    where typeRep' = floatType
+instance (ListType  :<: ts, Typeable ts a)                => Typeable ts [a]      where typeRep' = listType typeRep'
+instance (FunType   :<: ts, Typeable ts a, Typeable ts b) => Typeable ts (a -> b) where typeRep' = funType typeRep' typeRep'
 
 instance TypeEq BoolType  ts where typeEqSym (BoolType, Nil)  (BoolType, Nil)  = Just Dict
 instance TypeEq CharType  ts where typeEqSym (CharType, Nil)  (CharType, Nil)  = Just Dict
