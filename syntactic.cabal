@@ -56,6 +56,10 @@ library
     Data.Syntactic.Interpretation.Semantics
     Data.Syntactic.Decoration
 
+  other-modules:
+    Data.Syntactic.TypeUniverse.TypeUniverse
+    Data.Syntactic.TypeUniverse.Sub
+
   build-depends:
     array,
     base >= 4 && < 4.8,
