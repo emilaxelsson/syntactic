@@ -14,6 +14,7 @@ import Data.Proxy
 
 import Data.Syntactic.Syntax
 import Data.Syntactic.Traversal
+import Data.Syntactic.Sugar
 
 
 
@@ -32,6 +33,13 @@ class Typeable ts a
 -- 'witTypeable'.
 newtype TypeRep ts a = TypeRep { unTypeRep :: TR ts (Full a) }
   -- The newtype is mainly because 'TR' cannot be partially applied
+
+instance Syntactic (TypeRep ts a)
+  where
+    type Domain (TypeRep ts a)   = ts
+    type Internal (TypeRep ts a) = a
+    desugar = unTypeRep
+    sugar   = TypeRep
 
 -- | Reification of type @a@ in a type universe @ts@
 typeRep :: Typeable ts a => TypeRep ts a
