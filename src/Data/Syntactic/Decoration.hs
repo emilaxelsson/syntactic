@@ -63,6 +63,13 @@ instance Eval expr => Eval (expr :&: info)
 
 
 
+-- | Map over a decoration
+mapDecor
+    :: (sym1 sig -> sym2 sig)
+    -> (info1 (DenResult sig) -> info2 (DenResult sig))
+    -> ((sym1 :&: info1) sig -> (sym2 :&: info2) sig)
+mapDecor fs fi (s :&: i) = fs s :&: fi i
+
 -- | Get the decoration of the top-level node
 getDecor :: AST (sym :&: info) sig -> info (DenResult sig)
 getDecor (Sym (_ :&: info)) = info
