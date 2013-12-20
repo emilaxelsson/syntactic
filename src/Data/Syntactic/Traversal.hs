@@ -18,6 +18,7 @@ module Data.Syntactic.Traversal
     , fold
     , simpleFold
     , matchTrans
+    , mapAST
     , WrapFull (..)
     , toTree
     ) where
@@ -38,7 +39,7 @@ gmapT :: forall sym
       -> (forall a . ASTF sym a -> ASTF sym a)
 gmapT f a = go a
   where
-    go :: forall a . AST sym a -> AST sym a
+    go :: AST sym a -> AST sym a
     go (s :$ a) = go s :$ f a
     go s        = s
 
@@ -50,7 +51,7 @@ gmapQ :: forall sym b
       -> (forall a . ASTF sym a -> [b])
 gmapQ f a = go a
   where
-    go :: forall a . AST sym a -> [b]
+    go :: AST sym a -> [b]
     go (s :$ a) = f a : go s
     go _        = []
 
@@ -176,6 +177,10 @@ matchTrans :: forall sym sym' c a
     -> ASTF sym a
     -> c (ASTF sym' a)
 matchTrans f = unWrapAST . match (\s -> WrapAST . f s)
+
+-- | Update the symbols in an AST
+mapAST :: forall sym1 sym2 a . (forall sig . sym1 sig -> sym2 sig) -> ASTF sym1 a -> ASTF sym2 a
+mapAST f = getConst . matchTrans (\s as -> Const $ appArgs (Sym (f s)) $ mapArgs (mapAST f) as)
 
 -- | Can be used to make an arbitrary type constructor indexed by @(`Full` a)@.
 -- This is useful as the type constructor parameter of 'Args'. That is, use
