@@ -171,13 +171,17 @@ showExpr = render . reifySmart (const True) canShareDict
 printExpr :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> IO ()
 printExpr = print . reifySmart (const True) canShareDict
 
--- | Draw the syntax tree using ASCII
+-- | Show the syntax tree using Unicode art
 showAST :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> String
 showAST = Syntactic.showAST . reifySmart (const True) canShareDict
 
--- | Draw the syntax tree on the terminal using ASCII
+-- | Draw the syntax tree on the terminal using Unicode art
 drawAST :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> IO ()
 drawAST = Syntactic.drawAST . reifySmart (const True) canShareDict
+
+-- | Write the syntax tree to an HTML file with foldable nodes
+writeHtmlAST :: (Syntactic a, Domain a ~ FeldDomain) => a -> IO ()
+writeHtmlAST = Syntactic.writeHtmlAST "tree.html" . desugar
 
 -- | Evaluation
 eval :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> Internal a

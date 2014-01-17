@@ -5,11 +5,14 @@ module Language.Syntactic.Interpretation.Render
     , stringTree
     , showAST
     , drawAST
+    , writeHtmlAST
     ) where
 
 
 
-import Data.Tree
+import Data.Tree (Tree (..))
+
+import Data.Tree.View
 
 import Language.Syntactic.Syntax
 
@@ -70,9 +73,12 @@ stringTree = go []
 
 -- | Show a syntax tree using ASCII art
 showAST :: StringTree dom => ASTF dom a -> String
-showAST = drawTree . stringTree
+showAST = showTree . stringTree
 
 -- | Print a syntax tree using ASCII art
 drawAST :: StringTree dom => ASTF dom a -> IO ()
 drawAST = putStrLn . showAST
+
+writeHtmlAST :: StringTree sym => FilePath -> ASTF sym a -> IO ()
+writeHtmlAST file = writeHtmlTree file . fmap (\n -> NodeInfo n "") . stringTree
 

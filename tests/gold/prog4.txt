@@ -1,21 +1,11 @@
 Lambda 0
-|
-`- Let 2
-   |
-   +- (+)
-   |  |
-   |  +- var:0
-   |  |
-   |  `- var:0
-   |
-   `- parallel
-      |
-      +- var:0
-      |
-      `- Lambda 1
-         |
-         `- (*)
-            |
-            +- var:2
-            |
-            `- var:1
+ └╴Let 2
+    ├╴(+)
+    │  ├╴var:0
+    │  └╴var:0
+    └╴parallel
+       ├╴var:0
+       └╴Lambda 1
+          └╴(*)
+             ├╴var:2
+             └╴var:1

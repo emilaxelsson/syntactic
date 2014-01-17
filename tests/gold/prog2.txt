@@ -1,15 +1,8 @@
 Lambda 0
-|
-`- Let 1
-   |
-   +- min
-   |  |
-   |  +- var:0
-   |  |
-   |  `- var:0
-   |
-   `- max
-      |
-      +- var:1
-      |
-      `- var:1
+ └╴Let 1
+    ├╴min
+    │  ├╴var:0
+    │  └╴var:0
+    └╴max
+       ├╴var:1
+       └╴var:1

@@ -1,87 +1,44 @@
 Lambda 0
-|
-`- Lambda 1
-   |
-   `- Let 6
-      |
-      +- arrLength
-      |  |
-      |  `- getIx
-      |     |
-      |     +- var:1
-      |     |
-      |     `- 0
-      |
-      `- Let 7
-         |
-         +- arrLength
-         |  |
-         |  `- var:1
-         |
-         `- parallel
-            |
-            +- arrLength
-            |  |
-            |  `- var:0
-            |
-            `- Lambda 2
-               |
-               `- Let 8
-                  |
-                  +- min
-                  |  |
-                  |  +- arrLength
-                  |  |  |
-                  |  |  `- getIx
-                  |  |     |
-                  |  |     +- var:0
-                  |  |     |
-                  |  |     `- var:2
-                  |  |
-                  |  `- var:7
-                  |
-                  `- Let 9
-                     |
-                     +- getIx
-                     |  |
-                     |  +- var:0
-                     |  |
-                     |  `- var:2
-                     |
-                     `- parallel
-                        |
-                        +- var:6
-                        |
-                        `- Lambda 3
-                           |
-                           `- forLoop
-                              |
-                              +- var:8
-                              |
-                              +- 0.0
-                              |
-                              `- Lambda 4
-                                 |
-                                 `- Lambda 5
-                                    |
-                                    `- (+)
-                                       |
-                                       +- (*)
-                                       |  |
-                                       |  +- getIx
-                                       |  |  |
-                                       |  |  +- var:9
-                                       |  |  |
-                                       |  |  `- var:4
-                                       |  |
-                                       |  `- getIx
-                                       |     |
-                                       |     +- getIx
-                                       |     |  |
-                                       |     |  +- var:1
-                                       |     |  |
-                                       |     |  `- var:4
-                                       |     |
-                                       |     `- var:3
-                                       |
-                                       `- var:5
+ └╴Lambda 1
+    └╴Let 6
+       ├╴arrLength
+       │  └╴getIx
+       │     ├╴var:1
+       │     └╴0
+       └╴Let 7
+          ├╴arrLength
+          │  └╴var:1
+          └╴parallel
+             ├╴arrLength
+             │  └╴var:0
+             └╴Lambda 2
+                └╴Let 8
+                   ├╴min
+                   │  ├╴arrLength
+                   │  │  └╴getIx
+                   │  │     ├╴var:0
+                   │  │     └╴var:2
+                   │  └╴var:7
+                   └╴Let 9
+                      ├╴getIx
+                      │  ├╴var:0
+                      │  └╴var:2
+                      └╴parallel
+                         ├╴var:6
+                         └╴Lambda 3
+                            └╴forLoop
+                               ├╴var:8
+                               ├╴0.0
+                               └╴Lambda 4
+                                  └╴Lambda 5
+                                     └╴(+)
+                                        ├╴(*)
+                                        │  ├╴getIx
+                                        │  │  ├╴var:9
+                                        │  │  └╴var:4
+                                        │  └╴getIx
+                                        │     ├╴getIx
+                                        │     │  ├╴var:1
+                                        │     │  └╴var:4
+                                        │     └╴var:3
+                                        └╴var:5
