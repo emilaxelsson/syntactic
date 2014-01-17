@@ -4,7 +4,9 @@ module Data.Syntactic.Decoration where
 
 
 
-import Data.Tree
+import Data.Tree (Tree (..))
+
+import Data.Tree.View
 
 import Data.Syntactic.Syntax
 import Data.Syntactic.Traversal
@@ -113,7 +115,7 @@ stringTreeDecor showInfo a = mkTree [] a
 
 -- | Show an decorated syntax tree using ASCII art
 showDecorWith :: StringTree sym => (forall a . info a -> String) -> ASTF (sym :&: info) a -> String
-showDecorWith showInfo = drawTree . stringTreeDecor showInfo
+showDecorWith showInfo = showTree . stringTreeDecor showInfo
 
 -- | Print an decorated syntax tree using ASCII art
 drawDecorWith :: StringTree sym => (forall a . info a -> String) -> ASTF (sym :&: info) a -> IO ()

@@ -1,18 +1,18 @@
 import Test.Tasty
 import Test.Tasty.Golden
 
-import qualified Data.ByteString.Lazy.Char8 as B
+import Data.ByteString.Lazy.UTF8 (fromString)
 
 import NanoFeldspar
 
 
 
-mkGold_scProd = B.writeFile "tests/gold/scProd.txt" $ B.pack $ showAST scProd
-mkGold_matMul = B.writeFile "tests/gold/matMul.txt" $ B.pack $ showAST matMul
+mkGold_scProd = writeFile "tests/gold/scProd.txt" $ showAST scProd
+mkGold_matMul = writeFile "tests/gold/matMul.txt" $ showAST matMul
 
 tests = testGroup "TreeTests"
-    [ goldenVsString "scProd" "tests/gold/scProd.txt" $ return $ B.pack $ showAST scProd
-    , goldenVsString "matMul" "tests/gold/matMul.txt" $ return $ B.pack $ showAST matMul
+    [ goldenVsString "scProd" "tests/gold/scProd.txt" $ return $ fromString $ showAST scProd
+    , goldenVsString "matMul" "tests/gold/matMul.txt" $ return $ fromString $ showAST matMul
     ]
 
 main = defaultMain tests

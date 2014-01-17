@@ -5,11 +5,14 @@ module Data.Syntactic.Interpretation.Render
     , stringTree
     , showAST
     , drawAST
+    , writeHtmlAST
     ) where
 
 
 
-import Data.Tree
+import Data.Tree (Tree (..))
+
+import Data.Tree.View
 
 import Data.Syntactic.Syntax
 

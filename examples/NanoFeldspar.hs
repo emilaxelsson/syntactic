@@ -25,7 +25,7 @@ import qualified Prelude
 
 import Data.Tree
 
-import Data.Syntactic hiding (fold, printExpr, showAST, drawAST)
+import Data.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAST)
 import qualified Data.Syntactic as Syntactic
 
 
@@ -173,13 +173,17 @@ showExpr = render . desugar
 printExpr :: (Syntactic a, Domain a ~ FeldDomain) => a -> IO ()
 printExpr = putStrLn . showExpr
 
--- | Draw the syntax tree using ASCII
+-- | Show the syntax tree using Unicode art
 showAST :: (Syntactic a, Domain a ~ FeldDomain) => a -> String
 showAST = Syntactic.showAST . desugar
 
--- | Draw the syntax tree on the terminal using ASCII
+-- | Draw the syntax tree on the terminal using Unicode art
 drawAST :: (Syntactic a, Domain a ~ FeldDomain) => a -> IO ()
 drawAST = putStrLn . showAST
+
+-- | Write the syntax tree to an HTML file with foldable nodes
+writeHtmlAST :: (Syntactic a, Domain a ~ FeldDomain) => a -> IO ()
+writeHtmlAST = Syntactic.writeHtmlAST "tree.html" . desugar
 
 
 

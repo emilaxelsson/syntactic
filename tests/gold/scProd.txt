@@ -1,39 +1,20 @@
 Lam v4
-|
-`- Lam v3
-   |
-   `- forLoop
-      |
-      +- min
-      |  |
-      |  +- arrLength
-      |  |  |
-      |  |  `- v4
-      |  |
-      |  `- arrLength
-      |     |
-      |     `- v3
-      |
-      +- 0.0
-      |
-      `- Lam v2
-         |
-         `- Lam v1
-            |
-            `- (+)
-               |
-               +- (*)
-               |  |
-               |  +- getIx
-               |  |  |
-               |  |  +- v4
-               |  |  |
-               |  |  `- v2
-               |  |
-               |  `- getIx
-               |     |
-               |     +- v3
-               |     |
-               |     `- v2
-               |
-               `- v1
+ └╴Lam v3
+    └╴forLoop
+       ├╴min
+       │  ├╴arrLength
+       │  │  └╴v4
+       │  └╴arrLength
+       │     └╴v3
+       ├╴0.0
+       └╴Lam v2
+          └╴Lam v1
+             └╴(+)
+                ├╴(*)
+                │  ├╴getIx
+                │  │  ├╴v4
+                │  │  └╴v2
+                │  └╴getIx
+                │     ├╴v3
+                │     └╴v2
+                └╴v1
