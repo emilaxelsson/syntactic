@@ -10,6 +10,7 @@ import Data.Proxy
 import Data.Syntactic.Syntax
 import Data.Syntactic.Traversal
 import Data.Syntactic.Sugar
+import Data.Syntactic.Interpretation.Render
 
 
 
@@ -28,6 +29,10 @@ class Typeable ts a
 -- 'witTypeable'.
 newtype TypeRep ts a = TypeRep { unTypeRep :: TR ts (Full a) }
   -- The newtype is mainly because 'TR' cannot be partially applied
+
+instance Render ts => Show (TypeRep ts a)
+  where
+    show = render . desugar
 
 instance Syntactic (TypeRep ts a)
   where
@@ -181,6 +186,19 @@ data IntType   a where IntType   :: IntType   (Full Int)
 data FloatType a where FloatType :: FloatType (Full Float)
 data ListType  a where ListType  :: ListType   (a :-> Full [a])
 data FunType   a where FunType   :: FunType   (a :-> b :-> Full (a -> b))
+
+instance Render BoolType  where renderSym BoolType  = "Bool"
+instance Render CharType  where renderSym CharType  = "Char"
+instance Render IntType   where renderSym IntType   = "Int"
+instance Render FloatType where renderSym FloatType = "Float"
+
+instance Render ListType
+  where
+    renderArgs [a] ListType = "[" ++ a ++ "]"
+
+instance Render FunType
+  where
+    renderArgs [a,b] FunType = a ++ " -> " ++ b
 
 boolType :: (Syntactic a, BoolType :<: Domain a, Internal a ~ Bool) => a
 boolType = sugarSym BoolType
