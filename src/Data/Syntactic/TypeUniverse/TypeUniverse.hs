@@ -177,6 +177,9 @@ pAny = Proxy
 pEq :: Proxy Eq
 pEq = Proxy
 
+pOrd :: Proxy Ord
+pOrd = Proxy
+
 pShow :: Proxy Show
 pShow = Proxy
 
@@ -314,6 +317,19 @@ instance                      PWitness Eq IntType   ts where pwitSym = pwitSymDe
 instance                      PWitness Eq FloatType ts where pwitSym = pwitSymDefault
 instance PWitness Eq ts ts => PWitness Eq ListType  ts where pwitSym ListType (a :* Nil) = do Dict <- pwit pEq (TypeRep a); return Dict
 instance PWitness Eq FunType ts
+
+instance                      Witness Ord BoolType  ts where witSym BoolType  Nil = Dict
+instance                      Witness Ord CharType  ts where witSym CharType  Nil = Dict
+instance                      Witness Ord IntType   ts where witSym IntType   Nil = Dict
+instance                      Witness Ord FloatType ts where witSym FloatType Nil = Dict
+instance Witness Ord ts ts => Witness Ord ListType  ts where witSym ListType (a :* Nil) | Dict <- wit pOrd (TypeRep a) = Dict
+
+instance                       PWitness Ord BoolType  ts where pwitSym = pwitSymDefault
+instance                       PWitness Ord CharType  ts where pwitSym = pwitSymDefault
+instance                       PWitness Ord IntType   ts where pwitSym = pwitSymDefault
+instance                       PWitness Ord FloatType ts where pwitSym = pwitSymDefault
+instance PWitness Ord ts ts => PWitness Ord ListType  ts where pwitSym ListType (a :* Nil) = do Dict <- pwit pOrd (TypeRep a); return Dict
+instance PWitness Ord FunType ts
 
 instance                       Witness Show BoolType  ts where witSym BoolType  Nil = Dict
 instance                       Witness Show CharType  ts where witSym CharType  Nil = Dict
