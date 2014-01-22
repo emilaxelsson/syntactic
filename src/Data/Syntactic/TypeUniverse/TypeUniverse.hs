@@ -197,10 +197,12 @@ instance Render FloatType where renderSym FloatType = "Float"
 
 instance Render ListType
   where
+    renderSym ListType = "[]"
     renderArgs [a] ListType = "[" ++ a ++ "]"
 
 instance Render FunType
   where
+    renderSym FunType = "(->)"
     renderArgs [a,b] FunType = a ++ " -> " ++ b
 
 boolType :: (Syntactic a, BoolType :<: Domain a, Internal a ~ Bool) => a
