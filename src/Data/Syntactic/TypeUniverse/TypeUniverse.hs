@@ -281,26 +281,26 @@ instance (FunType :<: ts, Witness (Typeable ts) ts ts) => Witness (Typeable ts) 
         , Dict <- witTypeable (TypeRep b)
         = Dict
 
-instance (BoolType  :<: ts)                              => PWitness (Typeable ts) BoolType  ts where pwitSym = pwitSymDefault
-instance (CharType  :<: ts)                              => PWitness (Typeable ts) CharType  ts where pwitSym = pwitSymDefault
-instance (IntType   :<: ts)                              => PWitness (Typeable ts) IntType   ts where pwitSym = pwitSymDefault
-instance (FloatType :<: ts)                              => PWitness (Typeable ts) FloatType ts where pwitSym = pwitSymDefault
-instance (ListType  :<: ts, Witness (Typeable ts) ts ts) => PWitness (Typeable ts) ListType  ts where pwitSym = pwitSymDefault
-instance (FunType   :<: ts, Witness (Typeable ts) ts ts) => PWitness (Typeable ts) FunType   ts where pwitSym = pwitSymDefault
+instance (BoolType  :<: ts)                               => PWitness (Typeable ts) BoolType  ts where pwitSym = pwitSymDefault
+instance (CharType  :<: ts)                               => PWitness (Typeable ts) CharType  ts where pwitSym = pwitSymDefault
+instance (IntType   :<: ts)                               => PWitness (Typeable ts) IntType   ts where pwitSym = pwitSymDefault
+instance (FloatType :<: ts)                               => PWitness (Typeable ts) FloatType ts where pwitSym = pwitSymDefault
+instance (ListType  :<: ts, PWitness (Typeable ts) ts ts) => PWitness (Typeable ts) ListType  ts where pwitSym ListType (a :* Nil) = do Dict <- pwitTypeable (TypeRep a); return Dict
+instance (FunType   :<: ts, PWitness (Typeable ts) ts ts) => PWitness (Typeable ts) FunType   ts where pwitSym FunType (a :* b :* Nil) = do Dict <- pwitTypeable (TypeRep a); Dict <- pwitTypeable (TypeRep b); return Dict
 
-instance                      Witness Any BoolType  ts where witSym BoolType  _ = Dict
-instance                      Witness Any CharType  ts where witSym CharType  _ = Dict
-instance                      Witness Any IntType   ts where witSym IntType   _ = Dict
-instance                      Witness Any FloatType ts where witSym FloatType _ = Dict
-instance Witness Any ts ts => Witness Any ListType  ts where witSym ListType  _ = Dict
-instance Witness Any ts ts => Witness Any FunType   ts where witSym FunType   _ = Dict
+instance Witness Any BoolType  ts where witSym _ _ = Dict
+instance Witness Any CharType  ts where witSym _ _ = Dict
+instance Witness Any IntType   ts where witSym _ _ = Dict
+instance Witness Any FloatType ts where witSym _ _ = Dict
+instance Witness Any ListType  ts where witSym _ _ = Dict
+instance Witness Any FunType   ts where witSym _ _ = Dict
 
-instance (BoolType  :<: ts)                    => PWitness Any BoolType  ts where pwitSym = pwitSymDefault
-instance (CharType  :<: ts)                    => PWitness Any CharType  ts where pwitSym = pwitSymDefault
-instance (IntType   :<: ts)                    => PWitness Any IntType   ts where pwitSym = pwitSymDefault
-instance (FloatType :<: ts)                    => PWitness Any FloatType ts where pwitSym = pwitSymDefault
-instance (ListType  :<: ts, Witness Any ts ts) => PWitness Any ListType  ts where pwitSym = pwitSymDefault
-instance (FunType   :<: ts, Witness Any ts ts) => PWitness Any FunType   ts where pwitSym = pwitSymDefault
+instance PWitness Any BoolType  ts where pwitSym _ _ = Just Dict
+instance PWitness Any CharType  ts where pwitSym _ _ = Just Dict
+instance PWitness Any IntType   ts where pwitSym _ _ = Just Dict
+instance PWitness Any FloatType ts where pwitSym _ _ = Just Dict
+instance PWitness Any ListType  ts where pwitSym _ _ = Just Dict
+instance PWitness Any FunType   ts where pwitSym _ _ = Just Dict
 
 instance                     Witness Eq BoolType  ts where witSym BoolType  Nil = Dict
 instance                     Witness Eq CharType  ts where witSym CharType  Nil = Dict
@@ -308,11 +308,11 @@ instance                     Witness Eq IntType   ts where witSym IntType   Nil 
 instance                     Witness Eq FloatType ts where witSym FloatType Nil = Dict
 instance Witness Eq ts ts => Witness Eq ListType  ts where witSym ListType (a :* Nil) | Dict <- wit pEq (TypeRep a) = Dict
 
-instance (BoolType  :<: ts)                   => PWitness Eq BoolType  ts where pwitSym = pwitSymDefault
-instance (CharType  :<: ts)                   => PWitness Eq CharType  ts where pwitSym = pwitSymDefault
-instance (IntType   :<: ts)                   => PWitness Eq IntType   ts where pwitSym = pwitSymDefault
-instance (FloatType :<: ts)                   => PWitness Eq FloatType ts where pwitSym = pwitSymDefault
-instance (ListType  :<: ts, Witness Eq ts ts) => PWitness Eq ListType  ts where pwitSym = pwitSymDefault
+instance                      PWitness Eq BoolType  ts where pwitSym = pwitSymDefault
+instance                      PWitness Eq CharType  ts where pwitSym = pwitSymDefault
+instance                      PWitness Eq IntType   ts where pwitSym = pwitSymDefault
+instance                      PWitness Eq FloatType ts where pwitSym = pwitSymDefault
+instance PWitness Eq ts ts => PWitness Eq ListType  ts where pwitSym ListType (a :* Nil) = do Dict <- pwit pEq (TypeRep a); return Dict
 instance PWitness Eq FunType ts
 
 instance                       Witness Show BoolType  ts where witSym BoolType  Nil = Dict
@@ -321,11 +321,11 @@ instance                       Witness Show IntType   ts where witSym IntType   
 instance                       Witness Show FloatType ts where witSym FloatType Nil = Dict
 instance Witness Show ts ts => Witness Show ListType  ts where witSym ListType (a :* Nil) | Dict <- wit pShow (TypeRep a) = Dict
 
-instance (BoolType  :<: ts)                     => PWitness Show BoolType  ts where pwitSym = pwitSymDefault
-instance (CharType  :<: ts)                     => PWitness Show CharType  ts where pwitSym = pwitSymDefault
-instance (IntType   :<: ts)                     => PWitness Show IntType   ts where pwitSym = pwitSymDefault
-instance (FloatType :<: ts)                     => PWitness Show FloatType ts where pwitSym = pwitSymDefault
-instance (ListType  :<: ts, Witness Show ts ts) => PWitness Show ListType  ts where pwitSym = pwitSymDefault
+instance                        PWitness Show BoolType  ts where pwitSym = pwitSymDefault
+instance                        PWitness Show CharType  ts where pwitSym = pwitSymDefault
+instance                        PWitness Show IntType   ts where pwitSym = pwitSymDefault
+instance                        PWitness Show FloatType ts where pwitSym = pwitSymDefault
+instance PWitness Show ts ts => PWitness Show ListType  ts where pwitSym ListType (a :* Nil) = do Dict <- pwit pShow (TypeRep a); return Dict
 instance PWitness Show FunType ts
 
 instance Witness Num IntType   ts where witSym IntType   Nil = Dict
