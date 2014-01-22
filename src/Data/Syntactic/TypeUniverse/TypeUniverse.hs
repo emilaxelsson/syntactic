@@ -168,6 +168,9 @@ instance Any a
 witTypeable :: Witness (Typeable ts) ts ts => TypeRep ts a -> Dict (Typeable ts a)
 witTypeable = wit Proxy
 
+pwitTypeable :: PWitness (Typeable ts) ts ts => TypeRep ts a -> Maybe (Dict (Typeable ts a))
+pwitTypeable = pwit Proxy
+
 pAny :: Proxy Any
 pAny = Proxy
 
