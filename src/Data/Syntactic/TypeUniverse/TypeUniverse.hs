@@ -226,6 +226,10 @@ listType
        , Domain list ~ Domain elem
        , ListType :<: Domain list
        , Internal list ~ [Internal elem]
+       , elem ~ c e
+       , list ~ c l
+           -- These last equalities are used to help type inference by forcing the representations
+           -- to use the same type constructor (e.g. 'TR' or 'TypeRep')
        )
     => elem -> list
 listType = sugarSym ListType
@@ -238,6 +242,9 @@ funType
        , Domain fun ~ Domain b
        , FunType :<: Domain fun
        , Internal fun ~ (Internal a -> Internal b)
+       , a   ~ c x
+       , b   ~ c y
+       , fun ~ c z
        )
     => a -> b -> fun
 funType = sugarSym FunType
