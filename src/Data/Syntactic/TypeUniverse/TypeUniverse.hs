@@ -186,6 +186,9 @@ pShow = Proxy
 pNum :: Proxy Num
 pNum = Proxy
 
+pIntegral :: Proxy Integral
+pIntegral = Proxy
+
 data BoolType  a where BoolType  :: BoolType  (Full Bool)
 data CharType  a where CharType  :: CharType  (Full Char)
 data IntType   a where IntType   :: IntType   (Full Int)
@@ -360,4 +363,13 @@ instance PWitness Num IntType   ts where pwitSym = pwitSymDefault
 instance PWitness Num FloatType ts where pwitSym = pwitSymDefault
 instance PWitness Num ListType  ts
 instance PWitness Num FunType   ts
+
+instance Witness Integral IntType ts where witSym IntType Nil = Dict
+
+instance PWitness Integral BoolType  ts
+instance PWitness Integral CharType  ts
+instance PWitness Integral IntType   ts where pwitSym = pwitSymDefault
+instance PWitness Integral FloatType ts
+instance PWitness Integral ListType  ts
+instance PWitness Integral FunType   ts
 
