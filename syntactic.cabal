@@ -46,8 +46,8 @@ License-file:   LICENSE
 Author:         Emil Axelsson
 Maintainer:     emax@chalmers.se
 Copyright:      Copyright (c) 2011-2012, Emil Axelsson
-Homepage:       http://hub.darcs.net/emax/syntactic
-Bug-reports:    http://hub.darcs.net/emax/syntactic/issues
+Homepage:       https://github.com/emilaxelsson/syntactic
+Bug-reports:    https://github.com/emilaxelsson/syntactic/issues
 Category:       Language
 Build-type:     Simple
 Cabal-version:  >=1.10
