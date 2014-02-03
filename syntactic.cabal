@@ -30,7 +30,7 @@ Bug-reports:    https://github.com/emilaxelsson/syntactic/issues
 Category:       Language
 Build-type:     Simple
 Cabal-version:  >=1.10
-Tested-with:    GHC==7.6.2, GHC==7.4.2
+Tested-with:    GHC==7.6.2
 
 extra-source-files:
   CONTRIBUTORS
