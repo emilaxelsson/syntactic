@@ -373,3 +373,8 @@ instance PWitness Integral FloatType ts
 instance PWitness Integral ListType  ts
 instance PWitness Integral FunType   ts
 
+dynToInteger :: PWitness Integral ts ts => Dynamic ts -> Maybe Integer
+dynToInteger (Dyn tr a)
+    | Just Dict <- pwit pIntegral tr = Just (toInteger a)
+dynToInteger _ = Nothing
+
