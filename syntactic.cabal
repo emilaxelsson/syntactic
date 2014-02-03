@@ -59,8 +59,8 @@ extra-source-files:
   tests/gold/*.txt
 
 source-repository head
-  type:     darcs
-  location: http://hub.darcs.net/emax/syntactic
+  type:     git
+  location: https://github.com/emilaxelsson/syntactic
 
 library
   exposed-modules:
