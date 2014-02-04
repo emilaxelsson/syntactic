@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | Monadic constructs
@@ -53,7 +54,11 @@ desugarMonad
     :: ( IsHODomain dom Typeable pVar
        , InjectC (MONAD m) dom (m a)
        , Monad m
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
+       , Typeable m
+#else
        , Typeable1 m
+#endif
        , Typeable a
        )
     => Mon dom m (ASTF dom a) -> ASTF dom (m a)
@@ -63,7 +68,11 @@ desugarMonad = flip runCont (sugarSymC Return) . unMon
 sugarMonad
     :: ( IsHODomain dom Typeable pVar
        , Monad m
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
+       , Typeable m
+#else
        , Typeable1 m
+#endif
        , Typeable a
        , pVar a
        )
@@ -74,7 +83,11 @@ instance ( Syntactic a, Domain a ~ dom
          , IsHODomain dom Typeable pVar
          , InjectC (MONAD m) dom (m (Internal a))
          , Monad m
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
+         , Typeable m
+#else
          , Typeable1 m
+#endif
          , Typeable (Internal a)
          , pVar (Internal a)
          ) =>

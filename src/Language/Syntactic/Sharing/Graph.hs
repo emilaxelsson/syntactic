@@ -85,7 +85,7 @@ instance (AlphaEq dom dom dom env, NodeEqEnv dom env) =>
     alphaEqSym (Node n1) Nil (Node n2) Nil
         | n1 == n2  = return True
         | otherwise = do
-            (hTab,nTab) :: NodeEnv dom p <- asks prjNodeEqEnv
+            (hTab,nTab) :: NodeEnv dom (Sat dom) <- asks prjNodeEqEnv
             if hTab!n1 /= hTab!n2
               then return False
               else case (nTab!n1, nTab!n2) of
@@ -117,7 +117,7 @@ type NodeDomain dom = (Node :+: dom) :|| Sat dom
 
 
 -- | Show syntax graph using ASCII art
-showASG :: StringTree dom => ASG dom a -> String
+showASG :: forall dom a. StringTree dom => ASG dom a -> String
 showASG (ASG top nodes _) =
     unlines ((line "top" ++ showAST top) : map showNode nodes)
   where
@@ -125,6 +125,7 @@ showASG (ASG top nodes _) =
       where
         rest = take (40 - length str) $ repeat '-'
 
+    showNode :: (NodeId, ASTSAT (NodeDomain dom)) -> String
     showNode (n, ASTB expr) = concat
       [ line ("node:" ++ show n)
       , showAST expr
