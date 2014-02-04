@@ -123,7 +123,7 @@ showASG (ASG top nodes _) =
   where
     line str = "---- " ++ str ++ " " ++ rest ++ "\n"
       where
-        rest = take (40 - length str) $ repeat '-'
+        rest = replicate (40 - length str) '-'
 
     showNode :: (NodeId, ASTSAT (NodeDomain dom)) -> String
     showNode (n, ASTB expr) = concat
@@ -242,7 +242,7 @@ inlineAll (ASG top nodes n) = inline top
 nodeChildren :: ASG dom a -> [(NodeId, [NodeId])]
 nodeChildren = map (id *** fromDList) . snd . snd . foldGraph children
   where
-    children :: SyntaxPF dom (DList NodeId) -> DList (NodeId)
+    children :: SyntaxPF dom (DList NodeId) -> DList NodeId
     children (AppPF ns1 ns2) = ns1 . ns2
     children (NodePF n _)    = single n
     children _               = empty
