@@ -1,3 +1,7 @@
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+
 {-# LANGUAGE TemplateHaskell #-}
 
 -- | Identity function

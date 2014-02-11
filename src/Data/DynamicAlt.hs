@@ -1,3 +1,8 @@
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverlappingInstances #-}
+
 -- | An alternative to "Data.Dynamic" with a different constraint on 'toDyn'
 
 module Data.DynamicAlt where
