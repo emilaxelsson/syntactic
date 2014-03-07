@@ -125,7 +125,7 @@ choose :: forall dom a
     -> MkInjDict dom
     -> ASTF dom a
     -> Maybe (Chosen dom a)
-choose hoistOver pd mkId a = chooseEnv initEnv a
+choose hoistOver pd mkId a = chooseEnvSub initEnv a
   where
     initEnv = Env
         { inLambda     = False
