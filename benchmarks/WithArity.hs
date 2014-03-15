@@ -4,6 +4,21 @@ module WithArity (main) where
 import Criterion.Main
 import Data.Syntactic
 
+main :: IO ()           
+main = defaultMain [ bgroup "eval 5"  [ bench "gadt"      $ nf evl (gExpr 5)
+                                      , bench "Syntactic" $ nf evaluate (sExpr 5) ]
+                   , bgroup "eval 6" [ bench "gadt"      $ nf evl (gExpr 6)
+                                     , bench "Syntactic" $ nf evaluate (sExpr 6) ]
+                   , bgroup "eval 7" [ bench "gadt"      $ nf evl (gExpr 7)
+                                     , bench "Syntactic" $ nf evaluate (sExpr 7) ]
+                   , bgroup "size 5"  [ bench "gadt"      $ nf gSize (gExpr 5)
+                                 , bench "Syntactic" $ nf size (sExpr 5) ]
+                   , bgroup "size 6" [ bench "gadt"      $ nf gSize (gExpr 6)
+                                 , bench "Syntactic" $ nf size (sExpr 6) ]
+                   , bgroup "size 7" [ bench "gadt"      $ nf gSize (gExpr 7)
+                                 , bench "Syntactic" $ nf size (sExpr 7) ]]
+
+                  
 -- Expressions
 gExpr :: Int -> E Int
 gExpr 0  = E0 1
@@ -26,22 +41,6 @@ gSize (E5 a b c d e) = gSize a + gSize b + gSize c + gSize d + gSize e
 gSize (E10 a b c d e f g h i j) = gSize a + gSize b + gSize c + gSize d + gSize e +
                                   gSize f + gSize g + gSize h + gSize i + gSize j
 
-
-           
-main = defaultMain [ bgroup "eval 5"  [ bench "gadt"      $ nf evl (gExpr 5)
-                                      , bench "Syntactic" $ nf evaluate (sExpr 5) ]
-                   , bgroup "eval 6" [ bench "gadt"      $ nf evl (gExpr 6)
-                                     , bench "Syntactic" $ nf evaluate (sExpr 6) ]
-                   , bgroup "eval 7" [ bench "gadt"      $ nf evl (gExpr 7)
-                                     , bench "Syntactic" $ nf evaluate (sExpr 7) ]
-                   , bgroup "size 5"  [ bench "gadt"      $ nf gSize (gExpr 5)
-                                 , bench "Syntactic" $ nf size (sExpr 5) ]
-                   , bgroup "size 6" [ bench "gadt"      $ nf gSize (gExpr 6)
-                                 , bench "Syntactic" $ nf size (sExpr 6) ]
-                   , bgroup "size 7" [ bench "gadt"      $ nf gSize (gExpr 7)
-                                 , bench "Syntactic" $ nf size (sExpr 7) ]]
-
-                  
 
 -- Comparing Syntactic with GADTs
 -- GADTs
@@ -103,3 +102,4 @@ instance Semantic T
       semantics T10    = Sem "T10" (\a b c d e f g h i j ->
                                              a + b + c + d + e + f + g + h + i + j)
 semanticInstances ''T
+

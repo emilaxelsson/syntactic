@@ -4,8 +4,7 @@ module JoiningTypes (main) where
 import Criterion.Main
 import Data.Syntactic
 
-
--- Comparing one type vs joined types
+-- Normal DSL, not joined types.
 data Expr1 t where
   EI    :: Int  -> Expr1 (Full Int)
   EB    :: Bool -> Expr1 (Full Bool)
@@ -143,6 +142,7 @@ syntacticExpr4J :: Int -> Expr4J' Int
 syntacticExpr4J 0 = if4 (eq4 (int4 5) (int4 4)) (int4 5) (int4 0) 
 syntacticExpr4J n = (add4 (syntacticExpr4J (n-1)) (syntacticExpr4J (n-1))) 
 
+main :: IO ()
 main = defaultMain [bgroup "eval 10" [ bench "syntactic 0 joins"   $ nf evaluate (syntacticExpr 10)
                                      , bench "syntactic 1 join"  $ nf evaluate (syntacticExprJ 10)
                                      , bench "syntactic 4 joins" $ nf evaluate (syntacticExpr4J 10)]
