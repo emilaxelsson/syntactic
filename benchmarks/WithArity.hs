@@ -2,38 +2,41 @@
 module WithArity (main) where
 
 import Criterion.Main
+import Criterion.Config
+import Data.Monoid
 import Data.Syntactic
 
-main :: IO ()           
-main = defaultMain [ bgroup "eval 5"  [ bench "gadt"      $ nf evl (gExpr 5)
-                                      , bench "Syntactic" $ nf evaluate (sExpr 5) ]
-                   , bgroup "eval 6" [ bench "gadt"      $ nf evl (gExpr 6)
-                                     , bench "Syntactic" $ nf evaluate (sExpr 6) ]
-                   , bgroup "eval 7" [ bench "gadt"      $ nf evl (gExpr 7)
-                                     , bench "Syntactic" $ nf evaluate (sExpr 7) ]
-                   , bgroup "size 5"  [ bench "gadt"      $ nf gSize (gExpr 5)
-                                 , bench "Syntactic" $ nf size (sExpr 5) ]
-                   , bgroup "size 6" [ bench "gadt"      $ nf gSize (gExpr 6)
-                                 , bench "Syntactic" $ nf size (sExpr 6) ]
-                   , bgroup "size 7" [ bench "gadt"      $ nf gSize (gExpr 7)
-                                 , bench "Syntactic" $ nf size (sExpr 7) ]]
+main :: IO ()
+main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-results/withArity.csv"}) (return ())
+         [ bgroup "eval 5"  [ bench "gadt"      $ nf evl (gExpr 5)
+                            , bench "Syntactic" $ nf evaluate (sExpr 5) ]
+         , bgroup "eval 6"  [ bench "gadt"      $ nf evl (gExpr 6)
+                            , bench "Syntactic" $ nf evaluate (sExpr 6) ]
+         , bgroup "eval 7"  [ bench "gadt"      $ nf evl (gExpr 7)
+                            , bench "Syntactic" $ nf evaluate (sExpr 7) ]
+         , bgroup "size 5"  [ bench "gadt"      $ nf gSize (gExpr 5)
+                            , bench "Syntactic" $ nf size (sExpr 5) ]
+         , bgroup "size 6"  [ bench "gadt"      $ nf gSize (gExpr 6)
+                            , bench "Syntactic" $ nf size (sExpr 6) ]
+         , bgroup "size 7"  [ bench "gadt"      $ nf gSize (gExpr 7)
+                            , bench "Syntactic" $ nf size (sExpr 7) ]]
 
-                  
+
 -- Expressions
 gExpr :: Int -> E Int
 gExpr 0  = E0 1
 gExpr 1  = E2 (E2 (E0 1) (E0 1)) (E1 (E0 1))
 gExpr n  = E10 (gExpr (n-1)) (gExpr (n-1)) (gExpr (n-1)) (gExpr (n-1)) (gExpr (n-1))
-           (gExpr (n-1)) (gExpr (n-1)) (gExpr (n-1)) (gExpr (n-1)) (gExpr (n-1)) 
+           (gExpr (n-1)) (gExpr (n-1)) (gExpr (n-1)) (gExpr (n-1)) (gExpr (n-1))
 
 sExpr :: Int -> T' Int
 sExpr 0  = t0 1
 sExpr 1  = t2 (t2 (t0 1) (t0 1)) (t1 (t0 1))
 sExpr n  = t10 (sExpr (n-1)) (sExpr (n-1)) (sExpr (n-1)) (sExpr (n-1)) (sExpr (n-1))
-           (sExpr (n-1)) (sExpr (n-1)) (sExpr (n-1)) (sExpr (n-1)) (sExpr (n-1)) 
+           (sExpr (n-1)) (sExpr (n-1)) (sExpr (n-1)) (sExpr (n-1)) (sExpr (n-1))
 
 gSize :: E a -> Int
-gSize (E0 _) = 1    
+gSize (E0 _) = 1
 gSize (E1 a)   = gSize a
 gSize (E2 a b) = gSize a + gSize b
 gSize (E3 a b c) = gSize a + gSize b + gSize c
@@ -55,7 +58,7 @@ data E a where
 
 evl :: E Int -> Int
 evl (E0 n)         =  n
-evl (E1 a)         =  evl a 
+evl (E1 a)         =  evl a
 evl (E2 a b)       =  evl a + evl b
 evl (E3 a b c)     =  evl a + evl b + evl c
 evl (E5 a b c d e) =  evl a + evl b + evl c + evl d + evl e
@@ -79,16 +82,16 @@ t0 = Sym . T0
 
 t1 :: Num a =>  T' a -> T' a
 t1 a = Sym T1 :$ a
-       
+
 t2    :: Num a =>  T' a -> T' a -> T' a
 t2 a b = Sym T2 :$ a :$ b
-         
+
 t3    :: Num a =>  T' a -> T' a -> T' a -> T' a
 t3 a b c = Sym T3 :$ a :$ b :$ c
-           
+
 t5    :: Num a =>  T' a -> T' a -> T' a -> T' a -> T' a -> T' a
 t5 a b c d e = Sym T5 :$ a :$ b :$ c :$ d :$ e
-               
+
 t10   :: Num a => T' a -> T' a -> T' a -> T' a -> T' a -> T' a -> T' a -> T' a -> T' a -> T' a -> T' a
 t10 a b c d e f g h i j = Sym T10 :$ a :$ b :$ c :$ d :$ e :$ f :$ g :$ h :$ i:$ j
 

@@ -2,6 +2,8 @@
 module JoiningTypes (main) where
 
 import Criterion.Main
+import Criterion.Config
+import Data.Monoid
 import Data.Syntactic
 
 -- Normal DSL, not joined types.
@@ -87,7 +89,7 @@ data Expr4J3 t where
   E4JAdd  :: Expr4J3 (Int :-> Int :-> Full Int)
 data Expr4J4 t where
   E4JEq   :: (Eq t) => Expr4J4 (t   :-> t   :-> Full Bool)
-data Expr4J5 t where  
+data Expr4J5 t where
   E4JIf   :: Expr4J5 (Bool :-> a :-> a :-> Full a)
 
 type Expr4J = Expr4J1 :+: Expr4J2 :+: Expr4J3 :+: Expr4J4 :+: Expr4J5
@@ -113,13 +115,13 @@ instance Semantic Expr4J1 where
 
 instance Semantic Expr4J2 where
   semantics (E4JB b)  = Sem "EB" b
-  
+
 instance Semantic Expr4J3 where
   semantics (E4JAdd)  = Sem "EAdd" (+)
-  
+
 instance Semantic Expr4J4 where
   semantics (E4JEq)   = Sem "EEq"  (==)
-  
+
 instance Semantic Expr4J5 where
   semantics (E4JIf)   = Sem "EIf" (\c a b -> if c then a else b)
 
@@ -131,33 +133,34 @@ semanticInstances ''Expr4J5
 
 -- Expressions
 syntacticExpr :: Int -> Expr1' Int
-syntacticExpr 0 = if' (eq (int 5) (int 4)) (int 5) (int 0) 
-syntacticExpr n = (add (syntacticExpr (n-1)) (syntacticExpr (n-1))) 
+syntacticExpr 0 = if' (eq (int 5) (int 4)) (int 5) (int 0)
+syntacticExpr n = (add (syntacticExpr (n-1)) (syntacticExpr (n-1)))
 
 syntacticExprJ :: Int -> ExprJ' Int
-syntacticExprJ 0 = ifJ (eqJ (intJ 5) (intJ 4)) (intJ 5) (intJ 0) 
-syntacticExprJ n = (addJ (syntacticExprJ (n-1)) (syntacticExprJ (n-1))) 
+syntacticExprJ 0 = ifJ (eqJ (intJ 5) (intJ 4)) (intJ 5) (intJ 0)
+syntacticExprJ n = (addJ (syntacticExprJ (n-1)) (syntacticExprJ (n-1)))
 
 syntacticExpr4J :: Int -> Expr4J' Int
-syntacticExpr4J 0 = if4 (eq4 (int4 5) (int4 4)) (int4 5) (int4 0) 
-syntacticExpr4J n = (add4 (syntacticExpr4J (n-1)) (syntacticExpr4J (n-1))) 
+syntacticExpr4J 0 = if4 (eq4 (int4 5) (int4 4)) (int4 5) (int4 0)
+syntacticExpr4J n = (add4 (syntacticExpr4J (n-1)) (syntacticExpr4J (n-1)))
 
 main :: IO ()
-main = defaultMain [bgroup "eval 10" [ bench "syntactic 0 joins"   $ nf evaluate (syntacticExpr 10)
-                                     , bench "syntactic 1 join"  $ nf evaluate (syntacticExprJ 10)
-                                     , bench "syntactic 4 joins" $ nf evaluate (syntacticExpr4J 10)]
-                   , bgroup "eval 15" [ bench "syntactic 0 joins"      $ nf evaluate (syntacticExpr 15) 
-                                      , bench "syntactic 1 join" $ nf evaluate (syntacticExprJ 15) 
-                                      , bench "syntactic 4 joins" $ nf evaluate (syntacticExpr4J 15)]
-                   , bgroup "eval 20" [ bench "syntactic 0 joins"      $ nf evaluate (syntacticExpr 20)
-                                      , bench "syntactic 1 join" $ nf evaluate (syntacticExprJ 20) 
-                                      , bench "syntactic 4 joins" $ nf evaluate (syntacticExpr4J 20)]
-                   , bgroup "size 10" [ bench "syntactic 0 joins"       $ nf size (syntacticExpr 10)
-                                      , bench "syntactic 1 join"  $ nf size (syntacticExprJ 10)
-                                      , bench "syntactic 4 joins" $ nf evaluate (syntacticExpr4J 10)]
-                   , bgroup "size 15" [ bench "syntactic 0 joins"      $ nf size (syntacticExpr 15) 
-                                      , bench "syntactic 1 join" $ nf size (syntacticExprJ 15)
-                                      , bench "syntactic 4 joins" $ nf evaluate (syntacticExpr4J 15)]
-                   , bgroup "size 20" [ bench "syntactic 0 joins"      $ nf size (syntacticExpr 20)
-                                      , bench "syntactic 1 join" $ nf size (syntacticExprJ 20)
-                                      , bench "syntactic 4 joins" $ nf evaluate (syntacticExpr4J 20)]]
+main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-results/joiningTypes.csv"}) (return ())
+         [ bgroup "eval 10" [ bench "syntactic 0 joins"   $ nf evaluate (syntacticExpr 10)
+                            , bench "syntactic 1 join"  $ nf evaluate (syntacticExprJ 10)
+                            , bench "syntactic 4 joins" $ nf evaluate (syntacticExpr4J 10)]
+         , bgroup "eval 15" [ bench "syntactic 0 joins"      $ nf evaluate (syntacticExpr 15)
+                            , bench "syntactic 1 join" $ nf evaluate (syntacticExprJ 15)
+                            , bench "syntactic 4 joins" $ nf evaluate (syntacticExpr4J 15)]
+         , bgroup "eval 20" [ bench "syntactic 0 joins"      $ nf evaluate (syntacticExpr 20)
+                            , bench "syntactic 1 join" $ nf evaluate (syntacticExprJ 20)
+                            , bench "syntactic 4 joins" $ nf evaluate (syntacticExpr4J 20)]
+         , bgroup "size 10" [ bench "syntactic 0 joins"       $ nf size (syntacticExpr 10)
+                            , bench "syntactic 1 join"  $ nf size (syntacticExprJ 10)
+                            , bench "syntactic 4 joins" $ nf evaluate (syntacticExpr4J 10)]
+         , bgroup "size 15" [ bench "syntactic 0 joins"      $ nf size (syntacticExpr 15)
+                            , bench "syntactic 1 join" $ nf size (syntacticExprJ 15)
+                            , bench "syntactic 4 joins" $ nf evaluate (syntacticExpr4J 15)]
+         , bgroup "size 20" [ bench "syntactic 0 joins"      $ nf size (syntacticExpr 20)
+                            , bench "syntactic 1 join" $ nf size (syntacticExprJ 20)
+                            , bench "syntactic 4 joins" $ nf evaluate (syntacticExpr4J 20)]]

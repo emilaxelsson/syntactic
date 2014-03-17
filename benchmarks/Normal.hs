@@ -2,33 +2,36 @@
 module Normal (main) where
 
 import Criterion.Main
+import Criterion.Config
+import Data.Monoid
 import Data.Syntactic
 
 main :: IO ()
-main = defaultMain [bgroup "Eval Tree 10" [ bench "gadt"       $ nf eval (gadtExpr 10)
-                                     , bench "syntactic"  $ nf evaluate (syntacticExpr 10)]
-                   , bgroup "Eval Tree 15" [ bench "gadt"      $ nf eval (gadtExpr 15) 
-                                      , bench "syntactic" $ nf evaluate (syntacticExpr 15)]
-                   , bgroup "Eval Tree 20" [ bench "gadt"      $ nf eval (gadtExpr 20)
-                                      , bench "syntactic" $ nf evaluate (syntacticExpr 20) ]
-                   , bgroup "Size Tree 10" [ bench "gadt"       $ nf gSize (gadtExpr 10)
-                                      , bench "syntactic"  $ nf size (syntacticExpr 10)]
-                   , bgroup "Size Tree 15" [ bench "gadt"      $ nf gSize (gadtExpr 15) 
-                                      , bench "syntactic" $ nf size (syntacticExpr 15)]
-                   , bgroup "Size Tree 20" [ bench "gadt"      $ nf gSize (gadtExpr 20)
-                                      , bench "syntactic" $ nf size (syntacticExpr 20)] 
-                   , bgroup "Eval IFTree 10" [ bench "if gadt"       $ nf eval (gadtExpr 10)
-                                        , bench "syntactic"  $ nf evaluate (syntacticExpr 10)]
-                   , bgroup "Eval IFTree 15" [ bench "gadt"      $ nf eval (gadtExpr 15) 
-                                        , bench "syntactic" $ nf evaluate (syntacticExpr 15)]
-                   , bgroup "Eval IFTree 20" [ bench "gadt"      $ nf eval (gadtExpr 20)
-                                        , bench "syntactic" $ nf evaluate (syntacticExpr 20) ]
-                   , bgroup "Size IFTree 10" [ bench "gadt"       $ nf gSize (gadtExpr 10)
-                                        , bench "syntactic"  $ nf evaluate (syntacticExpr 10)]
-                   , bgroup "Size IFTree 15" [ bench "gadt"      $ nf gSize (gadtExpr 15) 
-                                        , bench "syntactic" $ nf evaluate (syntacticExpr 15)]
-                   , bgroup "Size IFTree 20" [ bench "gadt"      $ nf gSize (gadtExpr 20)
-                                        , bench "syntactic" $ nf evaluate (syntacticExpr 20) ]]
+main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-results/normal.csv"}) (return ())
+         [ bgroup "Eval Tree 10"   [ bench "gadt"       $ nf eval (gadtExpr 10)
+                                   , bench "syntactic"  $ nf evaluate (syntacticExpr 10)]
+         , bgroup "Eval Tree 15"   [ bench "gadt"      $ nf eval (gadtExpr 15)
+                                   , bench "syntactic" $ nf evaluate (syntacticExpr 15)]
+         , bgroup "Eval Tree 20"   [ bench "gadt"      $ nf eval (gadtExpr 20)
+                                   , bench "syntactic" $ nf evaluate (syntacticExpr 20) ]
+         , bgroup "Size Tree 10"   [ bench "gadt"       $ nf gSize (gadtExpr 10)
+                                   , bench "syntactic"  $ nf size (syntacticExpr 10)]
+         , bgroup "Size Tree 15"   [ bench "gadt"      $ nf gSize (gadtExpr 15)
+                                   , bench "syntactic" $ nf size (syntacticExpr 15)]
+         , bgroup "Size Tree 20"   [ bench "gadt"      $ nf gSize (gadtExpr 20)
+                                   , bench "syntactic" $ nf size (syntacticExpr 20)]
+         , bgroup "Eval IFTree 10" [ bench "if gadt"       $ nf eval (gadtExpr 10)
+                                   , bench "syntactic"  $ nf evaluate (syntacticExpr 10)]
+         , bgroup "Eval IFTree 15" [ bench "gadt"      $ nf eval (gadtExpr 15)
+                                   , bench "syntactic" $ nf evaluate (syntacticExpr 15)]
+         , bgroup "Eval IFTree 20" [ bench "gadt"      $ nf eval (gadtExpr 20)
+                                   , bench "syntactic" $ nf evaluate (syntacticExpr 20) ]
+         , bgroup "Size IFTree 10" [ bench "gadt"       $ nf gSize (gadtExpr 10)
+                                   , bench "syntactic"  $ nf evaluate (syntacticExpr 10)]
+         , bgroup "Size IFTree 15" [ bench "gadt"      $ nf gSize (gadtExpr 15)
+                                   , bench "syntactic" $ nf evaluate (syntacticExpr 15)]
+         , bgroup "Size IFTree 20" [ bench "gadt"      $ nf gSize (gadtExpr 20)
+                                   , bench "syntactic" $ nf evaluate (syntacticExpr 20) ]]
 
 -- Expressions
 gadtExpr :: Int -> Expr Int
@@ -40,13 +43,13 @@ gadtExprIf 0 = (If ((LitI 5) :== (LitI 4)) (LitI 5) (LitI 0))
 gadtExprIf n = (If (gadtExprIf (n-1) :== (LitI 0)) (gadtExprIf (n-1)) (gadtExprIf (n-1)))
 
 syntacticExpr :: Int -> ExprS' Int
-syntacticExpr 0 = if' (eq (int 5) (int 4)) (int 5) (int 0) 
-syntacticExpr n = (add (syntacticExpr (n-1)) (syntacticExpr (n-1))) 
+syntacticExpr 0 = if' (eq (int 5) (int 4)) (int 5) (int 0)
+syntacticExpr n = (add (syntacticExpr (n-1)) (syntacticExpr (n-1)))
 
 -- We also test an expression with several ifs so the tree has higher width.
 syntacticExprIf :: Int -> ExprS' Int
-syntacticExprIf 0 = if' (eq (int 5) (int 4)) (int 5) (int 0) 
-syntacticExprIf n = if' (eq (syntacticExprIf(n-1)) (int 0)) (syntacticExprIf (n-1)) (syntacticExprIf (n-1))  
+syntacticExprIf 0 = if' (eq (int 5) (int 4)) (int 5) (int 0)
+syntacticExprIf n = if' (eq (syntacticExprIf(n-1)) (int 0)) (syntacticExprIf (n-1)) (syntacticExprIf (n-1))
 
 
 -- Comparing Syntactic with GADTs
