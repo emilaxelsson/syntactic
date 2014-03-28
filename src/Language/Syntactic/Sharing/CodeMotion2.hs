@@ -7,7 +7,7 @@ module Language.Syntactic.Sharing.CodeMotion2
 import Control.Monad.State
 import Control.Monad.Reader
 import qualified Data.Set as Set
-import qualified Data.Map.Strict as Map
+import qualified Data.Map as Map
 import Data.Array
 import Data.List
 import Data.Maybe (fromJust,fromMaybe)
