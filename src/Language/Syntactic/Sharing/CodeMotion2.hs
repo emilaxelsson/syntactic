@@ -60,18 +60,6 @@ data Node a
 
 type NodeDomain dom = (Node :+: dom) :|| Sat dom
 
--- | Like MkInjDict, but doesn't take the expressions to share in. The reason
--- is that it was difficult to get both of the expressions at the same time in
--- `rebuild`.
-type MkInjDict2 dom = forall a . ASTF dom a -> Maybe (InjDict2 dom a)
-
--- | Interface for injecting binding constructs, with the result type of the
--- let and lambda expressions is existentially qualified.
-data InjDict2 dom a = InjDict2
-    { injVariable2 :: VarId -> dom (Full a)
-    , injLambda2   :: forall b . VarId -> dom (b :-> Full (a -> b))
-    , injLet2      :: forall b . dom (a :-> (a -> b) :-> Full b)
-    }
 
 -- | A gathered sub-expression along with information used to decide where and
 -- if it should be shared.
@@ -97,11 +85,6 @@ data GatherInfo = GatherInfo
 -- | A set of expressions used to keep track of gathered expression in `gather`
 newtype GatherSet dom = GatherSet {unGatherSet :: Map.Map Hash [Gathered dom]}
         
--- | Represents an expression that should be shared along with an injection
--- dictionary and a variable id that can be used to share it.
---data Share dom
---  where
---    Share :: VarId -> InjDict2 dom b -> ASTF dom b -> Share dom
 
 lookupGS :: forall dom a 
     .  ( AlphaEq dom dom (NodeDomain dom) [(VarId,VarId)]
