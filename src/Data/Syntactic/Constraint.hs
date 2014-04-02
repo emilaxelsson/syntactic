@@ -312,41 +312,31 @@ instance Eval sym => Eval (SubConstr2 c sym pa pb)
 -- * Existential quantification
 --------------------------------------------------------------------------------
 
--- | 'AST' with existentially quantified result type
-data ASTE :: (* -> *) -> *
+-- | Existential quantification of 'Full'-indexed data
+data E e
   where
-    ASTE :: ASTF sym a -> ASTE sym
+    E :: e (Full a) -> E e
 
-liftASTE
-    :: (forall a . ASTF sym a -> b)
-    -> ASTE sym
-    -> b
-liftASTE f (ASTE a) = f a
+liftE :: (forall a . e (Full a) -> b) -> E e -> b
+liftE f (E a) = f a
 
-liftASTE2
-    :: (forall a b . ASTF sym a -> ASTF sym b -> c)
-    -> ASTE sym -> ASTE sym -> c
-liftASTE2 f (ASTE a) (ASTE b) = f a b
+liftE2 :: (forall a b . e (Full a) -> e (Full b) -> c) -> E e -> E e -> c
+liftE2 f (E a) (E b) = f a b
 
 
 
--- | 'AST' with bounded existentially quantified result type
-data ASTB :: (* -> *) -> (* -> Constraint) -> *
+-- | Constrained existential quantification of 'Full'-indexed data
+data B :: (* -> *) -> (* -> Constraint) -> *
   where
-    ASTB :: p a => ASTF sym a -> ASTB sym p
+    B :: p a => e (Full a) -> B e p
 
-liftASTB
-    :: (forall a . p a => ASTF sym a -> b)
-    -> ASTB sym p
-    -> b
-liftASTB f (ASTB a) = f a
+liftB :: (forall a . p a => e (Full a) -> b) -> B e p -> b
+liftB f (B a) = f a
 
-liftASTB2
-    :: (forall a b . (p a, p b) => ASTF sym a -> ASTF sym b -> c)
-    -> ASTB sym p -> ASTB sym p -> c
-liftASTB2 f (ASTB a) (ASTB b) = f a b
+liftB2 :: (forall a b . (p a, p b) => e (Full a) -> e (Full b) -> c) -> B e p -> B e p -> c
+liftB2 f (B a) (B b) = f a b
 
-type ASTSAT sym = ASTB sym (Sat sym)
+type ASTSAT sym = B sym (Sat sym)
 
 
 
@@ -385,10 +375,10 @@ instance Render     Empty where renderSym  = error "Not implemented: renderSym f
                                 renderArgs = error "Not implemented: renderArgs for Empty"
 instance StringTree Empty
 
-universe :: ASTF sym a -> [ASTE sym]
-universe a = ASTE a : go a
+universe :: ASTF sym a -> [E (AST sym)]
+universe a = E a : go a
   where
-    go :: AST sym a -> [ASTE sym]
+    go :: AST sym a -> [E (AST sym)]
     go (Sym s)  = []
     go (s :$ a) = go s ++ universe a
 
