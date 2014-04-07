@@ -28,11 +28,14 @@
 -- "Data.Dynamic" could only do this monomorphically, for one 'Num' type at a time.
 
 module Data.Syntactic.TypeUniverse
-    ( module Data.Syntactic.TypeUniverse.TypeUniverse
+    ( module Data.Constraint
+    , module Data.Syntactic.TypeUniverse.TypeUniverse
     , module Data.Syntactic.TypeUniverse.Sub
     ) where
 
 
+
+import Data.Constraint (Dict (..))
 
 import Data.Syntactic.TypeUniverse.TypeUniverse
 import Data.Syntactic.TypeUniverse.Sub
