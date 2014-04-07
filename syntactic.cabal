@@ -89,6 +89,7 @@ library
     Language.Syntactic.Frontend.Tuple
     Language.Syntactic.Frontend.TupleConstrained
     Language.Syntactic.Sharing.SimpleCodeMotion
+    Language.Syntactic.Sharing.CodeMotion2
     Language.Syntactic.Sharing.Utils
     Language.Syntactic.Sharing.Graph
     Language.Syntactic.Sharing.StableName
@@ -141,6 +142,40 @@ test-suite NanoFeldsparEval
   hs-source-dirs: tests examples
 
   main-is: NanoFeldsparEval.hs
+
+  other-modules:
+
+  default-language: Haskell2010
+
+  default-extensions:
+    FlexibleContexts
+    FlexibleInstances
+    GADTs
+    MultiParamTypeClasses
+    ScopedTypeVariables
+    TypeFamilies
+    TypeOperators
+    UndecidableInstances
+    ViewPatterns
+
+  other-extensions:
+    TemplateHaskell
+
+  build-depends:
+    syntactic,
+    base,
+    mtl >= 2 && < 3,
+    QuickCheck >= 2.4 && < 3,
+    tasty,
+    tasty-th,
+    tasty-quickcheck
+
+test-suite NanoFeldsparEval2
+  type: exitcode-stdio-1.0
+
+  hs-source-dirs: tests examples
+
+  main-is: NanoFeldsparEval2.hs
 
   other-modules:
 

@@ -34,6 +34,7 @@ import Language.Syntactic.Constructs.Literal
 import Language.Syntactic.Constructs.Tuple
 import Language.Syntactic.Frontend.Tuple
 import Language.Syntactic.Sharing.SimpleCodeMotion
+import Language.Syntactic.Sharing.CodeMotion2
 
 
 
@@ -157,6 +158,9 @@ canShareIn _ = True
 canShareDict :: MkInjDict (FODomain FeldSyms Typeable Top)
 canShareDict = mkInjDictFO canShare canShareIn
 
+canShareDict2 :: MkInjDict (FODomain FeldSyms Typeable Top)
+canShareDict2 = mkInjDictFO canShare (const True)
+
 
 
 --------------------------------------------------------------------------------
@@ -175,6 +179,9 @@ printExpr = print . reifySmart (const True) canShareDict
 showAST :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> String
 showAST = Syntactic.showAST . reifySmart (const True) canShareDict
 
+showAST2 :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> String
+showAST2 = Syntactic.showAST . reifySmart2 (const True) canShareDict
+
 -- | Draw the syntax tree on the terminal using Unicode art
 drawAST :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> IO ()
 drawAST = Syntactic.drawAST . reifySmart (const True) canShareDict
@@ -186,6 +193,9 @@ writeHtmlAST = Syntactic.writeHtmlAST "tree.html" . desugar
 -- | Evaluation
 eval :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> Internal a
 eval = evalBind . reifySmart (const True) canShareDict
+
+eval2 :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> Internal a
+eval2 = evalBind . reifySmart2 (const True) canShareDict2
 
 
 
