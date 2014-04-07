@@ -1,3 +1,7 @@
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+
 {-# LANGUAGE TemplateHaskell #-}
 
 -- | Construction and elimination of tuples in the object language

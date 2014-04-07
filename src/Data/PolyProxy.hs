@@ -1,3 +1,4 @@
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE PolyKinds #-}
 
 -- TODO PolyKinds can be enabled globally in GHC 7.6. In 7.4, additional annotations are needed.

@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeOperators #-}
+
 module Language.Syntactic.Interpretation.Equality where
 
 

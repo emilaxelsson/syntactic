@@ -1,3 +1,6 @@
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeFamilies #-}
+
 {-# LANGUAGE TemplateHaskell #-}
 
 -- | Provides a simple way to make syntactic constructs for prototyping. Note
