@@ -412,7 +412,7 @@ gather hoistOver pd a | Dict <- exprDict a
     gather' :: Bool -> ASTF dom b -> GatherMonad dom (ASTF (NodeDomain dom) b)
     gather' h a | Dict <- exprDict a = do
         (a',n) <-
-          mfix (\(~(a',n)) -> addInnerLimitIf h n $ do
+          mfix (\(~(a',n)) -> addInnerLimitIf (not h) n $ do
             a' <- gatherRec (hoistOver a) a 
             n <- recordExpr a'
             return (a',n)
