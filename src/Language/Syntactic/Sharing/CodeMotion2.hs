@@ -407,19 +407,20 @@ gather :: forall dom a
     -> (GatherSet dom, ASTF (NodeDomain dom) a)
 gather hoistOver pd a@(Sym s) | Dict <- exprDict a = (emptyGS, Sym (C' (InjR s)))
 gather hoistOver pd a | Dict <- exprDict a
-                           = runGather emptyGS (gatherRec (hoistOver a) a)
+                      = runGather emptyGS (gatherRec (hoistOver a) a)
   where
     gather' :: Bool -> ASTF dom b -> GatherMonad dom (ASTF (NodeDomain dom) b)
     gather' h a | Dict <- exprDict a = do
         (a',n) <-
-          mfix (\(~(a',n)) -> do
-            a' <- if h
-                then gatherRec (hoistOver a) a 
-                else addInnerLimit n $ gatherRec (hoistOver a) a
+          mfix (\(~(a',n)) -> addInnerLimitIf h n $ do
+            a' <- gatherRec (hoistOver a) a 
             n <- recordExpr a'
             return (a',n)
           )
         return $ Sym $ C' $ InjL $ Node n
+
+    addInnerLimitIf True n m = addInnerLimit n m
+    addInnerLimitIf _    n m = m
 
     gatherRec 
         :: (Sat dom (DenResult b))
