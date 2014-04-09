@@ -10,6 +10,7 @@ module Data.Syntactic.Traversal
     , mapArgs
     , mapArgsA
     , mapArgsM
+    , foldrArgs
     , appArgs
     , listFold
     , match
