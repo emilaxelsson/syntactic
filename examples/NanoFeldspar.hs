@@ -173,11 +173,11 @@ showExpr = render . desugar
 printExpr :: (Syntactic a, Domain a ~ FeldDomain) => a -> IO ()
 printExpr = putStrLn . showExpr
 
--- | Show the syntax tree using Unicode art
+-- | Show the syntax tree using unicode art
 showAST :: (Syntactic a, Domain a ~ FeldDomain) => a -> String
 showAST = Syntactic.showAST . desugar
 
--- | Draw the syntax tree on the terminal using Unicode art
+-- | Draw the syntax tree on the terminal using unicode art
 drawAST :: (Syntactic a, Domain a ~ FeldDomain) => a -> IO ()
 drawAST = putStrLn . showAST
 

@@ -323,9 +323,7 @@ liftE f (E a) = f a
 liftE2 :: (forall a b . e a -> e b -> c) -> E e -> E e -> c
 liftE2 f (E a) (E b) = f a b
 
-
-
--- | Existential quantification of 'Full'-indexed data
+-- | Existential quantification of 'Full'-indexed type
 data EF e
   where
     EF :: e (Full a) -> EF e
@@ -336,9 +334,7 @@ liftEF f (EF a) = f a
 liftEF2 :: (forall a b . e (Full a) -> e (Full b) -> c) -> EF e -> EF e -> c
 liftEF2 f (EF a) (EF b) = f a b
 
-
-
--- | Constrained existential quantification of 'Full'-indexed data
+-- | Constrained existential quantification of 'Full'-indexed type
 data B :: (* -> *) -> (* -> Constraint) -> *
   where
     B :: p a => e (Full a) -> B e p
