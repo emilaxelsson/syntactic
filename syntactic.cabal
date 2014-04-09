@@ -47,13 +47,13 @@ library
     Data.Syntactic
     Data.Syntactic.Syntax
     Data.Syntactic.Traversal
-    Data.Syntactic.TypeUniverse
     Data.Syntactic.Constraint
     Data.Syntactic.Sugar
     Data.Syntactic.Interpretation.Equality
     Data.Syntactic.Interpretation.Evaluation
     Data.Syntactic.Interpretation.Render
     Data.Syntactic.Interpretation.Semantics
+    Data.Syntactic.TypeUniverse
     Data.Syntactic.Decoration
 
   other-modules:
@@ -130,16 +130,16 @@ test-suite NanoFeldspar
 
 benchmark syntactic-bench
   type: exitcode-stdio-1.0
-  
+
   hs-source-dirs: benchmarks
-  
+
   main-is: MainBenchmark.hs
-  
+
   build-depends:
     base,
     criterion,
     syntactic
-    
+
   default-language: Haskell2010
 
   default-extensions:

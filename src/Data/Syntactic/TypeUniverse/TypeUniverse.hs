@@ -9,6 +9,7 @@ import Data.Proxy
 
 import Data.Syntactic.Syntax
 import Data.Syntactic.Traversal
+import Data.Syntactic.Constraint
 import Data.Syntactic.Sugar
 import Data.Syntactic.Interpretation.Render
 
@@ -67,6 +68,32 @@ instance TypeEq ts ts => TypeEq (AST ts) ts
 -- | Equality on type representations
 typeEq :: forall ts a b . TypeEq ts ts => TypeRep ts a -> TypeRep ts b -> Maybe (Dict (a ~ b))
 typeEq (TypeRep s1) (TypeRep s2) = typeEqSym (s1, Nil :: Args (AST ts) (Full a)) (s2, Nil)
+
+-- | Type constructor matching. This function makes it possible to match on type representations
+-- without dealing with the underlying 'AST' representation.
+--
+-- For example, to check that a 'TypeRep' represents the type @a -> Int@ for some @a@:
+--
+-- > is_atoa :: (TypeEq t t, IntType :<: t) => TypeRep t a -> Bool
+-- > is_atoa t
+-- >     | [E ta, E tb] <- matchCon t
+-- >     , Just _       <- typeEq ta intType = True
+-- >     | otherwise                         = False
+matchCon :: TypeRep t c -> [E (TypeRep t)]
+matchCon = simpleMatch (\_ -> foldrArgs (\t -> (E (TypeRep t) :)) []) . unTypeRep
+
+-- | Monadic version of 'matchCon'
+--
+-- > matchConM = return . matchCon
+--
+-- 'matchConM' is convenient when matching types in a monad, e.g.:
+--
+-- > do ...
+-- >    [E ta, E tb] <- matchConM t
+-- >    Dict         <- typeEq ta tb
+-- >    ...
+matchConM :: Monad m => TypeRep t c -> m [E (TypeRep t)]
+matchConM = return . matchCon
 
 -- | Witness a type constraint for a reified type
 class Witness p t ts
