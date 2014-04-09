@@ -251,19 +251,19 @@ rebuild pd mkId gs a = runRebuild $ rebuild' 0 a
         .  NodeId
         -> ASTF (NodeDomain dom) b
         -> RebuildMonad dom (ASTF dom b)
-    rebuild' _ (Sym (C' (InjR lam)) :$ ns@(Sym (C' (InjL (Node n)))))
+    rebuild' n (Sym (C' (InjR lam)) :$ ns@(Sym (C' (InjL (Node nb)))))
         | Just v <- prjLambda pd lam
-        = case geExpr (nodes ! n) of
+        = case geExpr (nodes ! nb) of
             ASTB a
               | Dict <- exprDictSub pTypeable ns
               , Dict <- exprDictSub pTypeable a
               -> case gcast a of
                 Nothing -> error "rebuild: type mistmatch"
                 Just a -> do
-                    a' <- addBoundVar v $ rebuild' n a
+                    a' <- addBoundVar v $ addSeenNode n $ rebuild' nb a
                     return (Sym lam :$ a')
     rebuild' n (Sym (C' (InjR s))) = return $ Sym s
-    rebuild' n a = shareExprsIn n a
+    rebuild' n a = addSeenNode n $ shareExprsIn n a
     
     shareExprsIn :: forall b
         .  NodeId
