@@ -312,16 +312,29 @@ instance Eval sym => Eval (SubConstr2 c sym pa pb)
 -- * Existential quantification
 --------------------------------------------------------------------------------
 
--- | Existential quantification of 'Full'-indexed data
+-- | Existential quantification
 data E e
   where
-    E :: e (Full a) -> E e
+    E :: e a -> E e
 
-liftE :: (forall a . e (Full a) -> b) -> E e -> b
+liftE :: (forall a . e a -> b) -> E e -> b
 liftE f (E a) = f a
 
-liftE2 :: (forall a b . e (Full a) -> e (Full b) -> c) -> E e -> E e -> c
+liftE2 :: (forall a b . e a -> e b -> c) -> E e -> E e -> c
 liftE2 f (E a) (E b) = f a b
+
+
+
+-- | Existential quantification of 'Full'-indexed data
+data EF e
+  where
+    EF :: e (Full a) -> EF e
+
+liftEF :: (forall a . e (Full a) -> b) -> EF e -> b
+liftEF f (EF a) = f a
+
+liftEF2 :: (forall a b . e (Full a) -> e (Full b) -> c) -> EF e -> EF e -> c
+liftEF2 f (EF a) (EF b) = f a b
 
 
 
@@ -375,10 +388,10 @@ instance Render     Empty where renderSym  = error "Not implemented: renderSym f
                                 renderArgs = error "Not implemented: renderArgs for Empty"
 instance StringTree Empty
 
-universe :: ASTF sym a -> [E (AST sym)]
-universe a = E a : go a
+universe :: ASTF sym a -> [EF (AST sym)]
+universe a = EF a : go a
   where
-    go :: AST sym a -> [E (AST sym)]
+    go :: AST sym a -> [EF (AST sym)]
     go (Sym s)  = []
     go (s :$ a) = go s ++ universe a
 
