@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fcontext-stack=100 #-}
+
 module Dynamic where
 
 import Criterion.Main
