@@ -4,7 +4,7 @@ module WithArity (main) where
 import Criterion.Main
 import Criterion.Config
 import Data.Monoid
-import Data.Syntactic
+import Data.Syntactic hiding (E)
 
 main :: IO ()
 main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-results/withArity.csv"}) (return ())
