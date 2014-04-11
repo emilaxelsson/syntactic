@@ -29,7 +29,7 @@ Homepage:       https://github.com/emilaxelsson/syntactic
 Bug-reports:    https://github.com/emilaxelsson/syntactic/issues
 Category:       Language
 Build-type:     Simple
-Cabal-version:  >=1.10
+Cabal-version:  >=1.16
 Tested-with:    GHC==7.6.2
 
 extra-source-files:
