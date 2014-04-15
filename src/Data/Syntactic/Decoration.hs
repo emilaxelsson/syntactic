@@ -14,7 +14,7 @@ import Data.Syntactic.Constraint
 import Data.Syntactic.Interpretation.Equality
 import Data.Syntactic.Interpretation.Render
 import Data.Syntactic.Interpretation.Evaluation
-import Data.Syntactic.Interpretation.Semantics
+import Data.Syntactic.Interpretation.Default
 
 
 

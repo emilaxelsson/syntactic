@@ -2,7 +2,7 @@
 
 -- | Default implementations of some interpretation functions
 
-module Data.Syntactic.Interpretation.Semantics where
+module Data.Syntactic.Interpretation.Default where
 
 
 
@@ -21,26 +21,26 @@ import Data.Syntactic.Interpretation.Evaluation
 -- | A representation of a syntactic construct as a 'String' and an evaluation
 -- function. It is not meant to be used as a syntactic symbol in an 'AST'. Its
 -- only purpose is to provide the default implementations of functions like
--- `equal` via the `Semantic` class.
-data Semantics a
+-- `equal` via the `Default` class.
+data Def a
   where
-    Sem
-        :: { semanticName :: String
-           , semanticEval :: Denotation a
+    Def
+        :: { defaultName :: String
+           , defaultEval :: Denotation a
            }
-        -> Semantics a
+        -> Def a
 
-instance Equality Semantics
+instance Equality Def
   where
-    equal (Sem a _) (Sem b _) = a==b
-    exprHash (Sem name _)     = hash name
+    equal (Def a _) (Def b _) = a==b
+    exprHash (Def name _)     = hash name
 
-instance Render Semantics
+instance Render Def
   where
-    renderSym (Sem name _) = name
+    renderSym (Def name _) = name
 
-    renderArgs [] (Sem name _) = name
-    renderArgs args (Sem name _)
+    renderArgs [] (Def name _) = name
+    renderArgs args (Def name _)
         | isInfix   = "(" ++ unwords [a,op,b] ++ ")"
         | otherwise = "(" ++ unwords (name : args) ++ ")"
       where
@@ -52,41 +52,40 @@ instance Render Semantics
           && last name == ')'
           && length args == 2
 
-instance Eval Semantics
+instance Eval Def
   where
-    evaluate (Sem _ a) = a
+    evaluate (Def _ a) = a
 
 
 
 -- | Class of expressions that can be treated as constructs
-class Semantic expr
+class Default expr
   where
-    semantics :: expr a -> Semantics a
+    defaultSym :: expr a -> Def a
 
 -- | Default implementation of 'equal'
-equalDefault :: Semantic expr => expr a -> expr b -> Bool
-equalDefault a b = equal (semantics a) (semantics b)
+equalDefault :: Default expr => expr a -> expr b -> Bool
+equalDefault a b = equal (defaultSym a) (defaultSym b)
 
 -- | Default implementation of 'exprHash'
-exprHashDefault :: Semantic expr => expr a -> Hash
-exprHashDefault = exprHash . semantics
+exprHashDefault :: Default expr => expr a -> Hash
+exprHashDefault = exprHash . defaultSym
 
 -- | Default implementation of 'renderSym'
-renderSymDefault :: Semantic expr => expr a -> String
-renderSymDefault = renderSym . semantics
+renderSymDefault :: Default expr => expr a -> String
+renderSymDefault = renderSym . defaultSym
 
 -- | Default implementation of 'renderArgs'
-renderArgsDefault :: Semantic expr => [String] -> expr a -> String
-renderArgsDefault args = renderArgs args . semantics
+renderArgsDefault :: Default expr => [String] -> expr a -> String
+renderArgsDefault args = renderArgs args . defaultSym
 
 -- | Default implementation of 'evaluate'
-evaluateDefault :: Semantic expr => expr a -> Denotation a
-evaluateDefault = evaluate . semantics
+evaluateDefault :: Default expr => expr a -> Denotation a
+evaluateDefault = evaluate . defaultSym
 
--- | Derive instances for 'Semantic' related classes
--- ('Equality', 'Render', 'StringTree', 'Eval')
-semanticInstances :: Name -> DecsQ
-semanticInstances n =
+-- | Derive instances for interpretation classes ('Equality', 'Render', 'StringTree', 'Eval')
+interpretationInstances :: Name -> DecsQ
+interpretationInstances n =
     [d|
         instance Equality $(typ) where
           equal    = equalDefault

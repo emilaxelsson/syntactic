@@ -54,14 +54,14 @@ data Arithmetic a
     Sub     :: (Type a, Num a) => Arithmetic (a :-> a :-> Full a)
     Mul     :: (Type a, Num a) => Arithmetic (a :-> a :-> Full a)
 
-instance Semantic Arithmetic
+instance Default Arithmetic
   where
-    semantics (Literal a) = Sem (show a) a
-    semantics Add         = Sem "(+)" (+)
-    semantics Sub         = Sem "(-)" (-)
-    semantics Mul         = Sem "(*)" (*)
+    defaultSym (Literal a) = Def (show a) a
+    defaultSym Add         = Def "(+)" (+)
+    defaultSym Sub         = Def "(-)" (-)
+    defaultSym Mul         = Def "(*)" (*)
 
-semanticInstances ''Arithmetic
+interpretationInstances ''Arithmetic
 
 
 
@@ -103,14 +103,14 @@ data Parallel a
   where
     Parallel :: Type a => Parallel (Length :-> (Index -> a) :-> Full [a])
 
-instance Semantic Parallel
+instance Default Parallel
   where
-    semantics Parallel = Sem
-        { semanticName = "parallel"
-        , semanticEval = \len ixf -> Prelude.map ixf [0 .. len-1]
+    defaultSym Parallel = Def
+        { defaultName = "parallel"
+        , defaultEval = \len ixf -> Prelude.map ixf [0 .. len-1]
         }
 
-semanticInstances ''Parallel
+interpretationInstances ''Parallel
 
 
 
@@ -119,27 +119,27 @@ data ForLoop a
     ForLoop :: Type st =>
         ForLoop (Length :-> st :-> (Index -> st -> st) :-> Full st)
 
-instance Semantic ForLoop
+instance Default ForLoop
   where
-    semantics ForLoop = Sem
-        { semanticName = "forLoop"
-        , semanticEval = \len init body -> foldl (flip body) init [0 .. len-1]
+    defaultSym ForLoop = Def
+        { defaultName = "forLoop"
+        , defaultEval = \len init body -> foldl (flip body) init [0 .. len-1]
         }
 
-semanticInstances ''ForLoop
+interpretationInstances ''ForLoop
 
 
 
-instance StringTree Semantics
+instance StringTree Def
 
 type FeldDomain
     =   Arithmetic
     :+: Binding
     :+: Parallel
     :+: ForLoop
-    :+: Semantics
-  -- We're cheating a bit by using `Semantics` as a symbol to represent literals and primitive
-  -- functions. The proper way would be to define new symbol types similarly to `Arithmetic`.
+    :+: Def
+  -- We're cheating a bit by using `Def` as a symbol to represent literals and primitive functions.
+  -- The proper way would be to define new symbol types similarly to `Arithmetic`.
 
 newtype Data a = Data { unData :: ASTF FeldDomain a }
 
@@ -193,7 +193,7 @@ writeHtmlAST = Syntactic.writeHtmlAST "tree.html" . desugar
 
 -- | Literal
 value :: Syntax a => Internal a -> a
-value a = sugar $ appSym $ Sem (show a) a
+value a = sugar $ appSym $ Def (show a) a
 
 false :: Data Bool
 false = value False
@@ -236,15 +236,15 @@ forLoop = sugarSymC ForLoop
 (?) :: forall a . Syntax a => Data Bool -> (a,a) -> a
 c ? (t,f) = sugarSym sym c t f
   where
-    sym :: Semantics (Bool :-> Internal a :-> Internal a :-> Full (Internal a))
-    sym = Sem "cond" (\c t f -> if c then t else f)
+    sym :: Def (Bool :-> Internal a :-> Internal a :-> Full (Internal a))
+    sym = Def "cond" (\c t f -> if c then t else f)
 
 arrLength :: Type a => Data [a] -> Data Length
-arrLength = sugarSym $ Sem "arrLength" Prelude.length
+arrLength = sugarSym $ Def "arrLength" Prelude.length
 
 -- | Array indexing
 getIx :: Type a => Data [a] -> Data Index -> Data a
-getIx = sugarSym $ Sem "getIx" eval
+getIx = sugarSym $ Def "getIx" eval
   where
     eval as i
         | i >= len || i < 0 = error "getIx: index out of bounds"
@@ -253,16 +253,16 @@ getIx = sugarSym $ Sem "getIx" eval
         len = Prelude.length as
 
 not :: Data Bool -> Data Bool
-not = sugarSym $ Sem "not" Prelude.not
+not = sugarSym $ Def "not" Prelude.not
 
 (==) :: Type a => Data a -> Data a -> Data Bool
-(==) = sugarSym $ Sem "(==)" (Prelude.==)
+(==) = sugarSym $ Def "(==)" (Prelude.==)
 
 max :: Type a => Data a -> Data a -> Data a
-max = sugarSym $ Sem "max" Prelude.max
+max = sugarSym $ Def "max" Prelude.max
 
 min :: Type a => Data a -> Data a -> Data a
-min = sugarSym $ Sem "min" Prelude.min
+min = sugarSym $ Def "min" Prelude.min
 
 
 

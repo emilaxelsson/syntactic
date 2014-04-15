@@ -102,12 +102,12 @@ eq a b = Sym EEq :$ a :$ b
 if'  :: ExprS' Bool -> ExprS' a -> ExprS' a -> ExprS' a
 if' c a b = Sym EIf :$ c :$ a :$ b
 
-instance Semantic ExprS where
-  semantics (EI n)  = Sem "EI" n
-  semantics (EB b)  = Sem "EB" b
-  semantics (EAdd)  = Sem "EAdd" (+)
-  semantics (EEq)   = Sem "EEq"  (==)
-  semantics (EIf)   = Sem "EIf" (\c a b -> if c then a else b)
+instance Default ExprS where
+  defaultSym (EI n) = Def "EI" n
+  defaultSym (EB b) = Def "EB" b
+  defaultSym (EAdd) = Def "EAdd" (+)
+  defaultSym (EEq)  = Def "EEq"  (==)
+  defaultSym (EIf)  = Def "EIf" (\c a b -> if c then a else b)
 
-semanticInstances ''ExprS
+interpretationInstances ''ExprS
 

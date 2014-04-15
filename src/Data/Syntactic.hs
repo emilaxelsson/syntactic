@@ -8,7 +8,7 @@ module Data.Syntactic
     , module Data.Syntactic.Interpretation.Equality
     , module Data.Syntactic.Interpretation.Render
     , module Data.Syntactic.Interpretation.Evaluation
-    , module Data.Syntactic.Interpretation.Semantics
+    , module Data.Syntactic.Interpretation.Default
     , module Data.Syntactic.Decoration
     , module Data.Constraint
     ) where
@@ -22,7 +22,7 @@ import Data.Syntactic.Sugar
 import Data.Syntactic.Interpretation.Equality
 import Data.Syntactic.Interpretation.Render
 import Data.Syntactic.Interpretation.Evaluation
-import Data.Syntactic.Interpretation.Semantics
+import Data.Syntactic.Interpretation.Default
 import Data.Syntactic.Decoration
 
 import Data.Constraint (Constraint, Dict (..))

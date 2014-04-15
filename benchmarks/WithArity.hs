@@ -95,14 +95,15 @@ t5 a b c d e = Sym T5 :$ a :$ b :$ c :$ d :$ e
 t10   :: Num a => T' a -> T' a -> T' a -> T' a -> T' a -> T' a -> T' a -> T' a -> T' a -> T' a -> T' a
 t10 a b c d e f g h i j = Sym T10 :$ a :$ b :$ c :$ d :$ e :$ f :$ g :$ h :$ i:$ j
 
-instance Semantic T
+instance Default T
     where
-      semantics (T0 a) = Sem "T0"  a
-      semantics T1     = Sem "T1"  id
-      semantics T2     = Sem "T2"  (+)
-      semantics T3     = Sem "T3"  (\a b c -> a + b + c)
-      semantics T5     = Sem "T5"  (\a b c d e -> a + b + c + d + e)
-      semantics T10    = Sem "T10" (\a b c d e f g h i j ->
-                                             a + b + c + d + e + f + g + h + i + j)
-semanticInstances ''T
+      defaultSym (T0 a) = Def "T0"  a
+      defaultSym T1     = Def "T1"  id
+      defaultSym T2     = Def "T2"  (+)
+      defaultSym T3     = Def "T3"  (\a b c -> a + b + c)
+      defaultSym T5     = Def "T5"  (\a b c d e -> a + b + c + d + e)
+      defaultSym T10    = Def "T10" (\a b c d e f g h i j ->
+                                        a + b + c + d + e + f + g + h + i + j)
+
+interpretationInstances ''T
 
