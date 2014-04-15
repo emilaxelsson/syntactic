@@ -16,7 +16,7 @@ data TypeRep a
     BoolType  :: TypeRep Bool
     IntType   :: TypeRep Int
     FloatType :: TypeRep Float
-    ListType  :: Typeable a => TypeRep a -> TypeRep [a]
+    ListType  :: TypeRep a -> TypeRep [a]
 
 -- | Type reification
 class Typeable a
