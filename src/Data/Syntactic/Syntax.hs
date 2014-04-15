@@ -34,7 +34,7 @@ import Data.Foldable (Foldable)
 import Data.Traversable (Traversable)
 import Data.Typeable
 
-import Data.PolyProxy
+import Data.Proxy
 
 
 
@@ -178,10 +178,10 @@ appSym = appSym' . inj
 --------------------------------------------------------------------------------
 
 -- | Constrain a symbol to a specific type
-symType :: P sym -> sym sig -> sym sig
+symType :: Proxy sym -> sym sig -> sym sig
 symType _ = id
 
 -- | Projection to a specific symbol type
-prjP :: Project sub sup => P sub -> sup sig -> Maybe (sub sig)
+prjP :: Project sub sup => Proxy sub -> sup sig -> Maybe (sub sig)
 prjP _ = prj
 

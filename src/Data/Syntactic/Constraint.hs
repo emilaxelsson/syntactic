@@ -12,8 +12,8 @@ module Data.Syntactic.Constraint where
 import Data.Typeable
 
 import Data.Constraint
+import Data.Proxy
 
-import Data.PolyProxy
 import Data.Syntactic.Syntax
 import Data.Syntactic.Interpretation.Equality
 import Data.Syntactic.Interpretation.Render
@@ -35,11 +35,11 @@ infixr 5 :/\:
 class    Top a
 instance Top a
 
-pTop :: P Top
-pTop = P
+pTop :: Proxy Top
+pTop = Proxy
 
-pTypeable :: P Typeable
-pTypeable = P
+pTypeable :: Proxy Typeable
+pTypeable = Proxy
 
 -- | Evidence that the predicate @sub@ is a subset of @sup@
 type Sub sub sup = forall a . Dict (sub a) -> Dict (sup a)
@@ -182,7 +182,7 @@ type ConstrainedBy expr p = (Constrained expr, Sat expr :< p)
 
 -- | A version of 'exprDict' that returns a constraint for a particular
 -- predicate @p@ as long as @(p :< Sat sym)@ holds
-exprDictSub :: ConstrainedBy expr p => P p -> expr a -> Dict (p (DenResult a))
+exprDictSub :: ConstrainedBy expr p => Proxy p -> expr a -> Dict (p (DenResult a))
 exprDictSub _ = sub . exprDict
 
 -- | A version of 'exprDict' that works for domains of the form

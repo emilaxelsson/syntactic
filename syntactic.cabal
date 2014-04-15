@@ -43,7 +43,6 @@ source-repository head
 
 library
   exposed-modules:
-    Data.PolyProxy
     Data.Syntactic
     Data.Syntactic.Syntax
     Data.Syntactic.Traversal

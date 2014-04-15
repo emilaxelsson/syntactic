@@ -1,8 +1,7 @@
 -- | The basic parts of the syntactic library
 
 module Data.Syntactic
-    ( module Data.PolyProxy
-    , module Data.Syntactic.Syntax
+    ( module Data.Syntactic.Syntax
     , module Data.Syntactic.Traversal
     , module Data.Syntactic.Constraint
     , module Data.Syntactic.Sugar
@@ -16,7 +15,6 @@ module Data.Syntactic
 
 
 
-import Data.PolyProxy
 import Data.Syntactic.Syntax
 import Data.Syntactic.Traversal
 import Data.Syntactic.Constraint
