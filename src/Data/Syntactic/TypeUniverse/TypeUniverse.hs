@@ -11,7 +11,7 @@ import Data.Syntactic.Syntax
 import Data.Syntactic.Traversal
 import Data.Syntactic.Constraint
 import Data.Syntactic.Sugar
-import Data.Syntactic.Interpretation.Render
+import Data.Syntactic.Interpretation
 
 
 

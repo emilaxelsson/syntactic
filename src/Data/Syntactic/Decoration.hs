@@ -11,10 +11,8 @@ import Data.Tree.View
 import Data.Syntactic.Syntax
 import Data.Syntactic.Traversal
 import Data.Syntactic.Constraint
-import Data.Syntactic.Interpretation.Equality
-import Data.Syntactic.Interpretation.Render
-import Data.Syntactic.Interpretation.Evaluation
-import Data.Syntactic.Interpretation.Default
+import Data.Syntactic.Interpretation
+import Data.Syntactic.Evaluation
 
 
 

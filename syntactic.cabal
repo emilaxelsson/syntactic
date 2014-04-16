@@ -48,10 +48,8 @@ library
     Data.Syntactic.Traversal
     Data.Syntactic.Constraint
     Data.Syntactic.Sugar
-    Data.Syntactic.Interpretation.Equality
-    Data.Syntactic.Interpretation.Evaluation
-    Data.Syntactic.Interpretation.Render
-    Data.Syntactic.Interpretation.Default
+    Data.Syntactic.Interpretation
+    Data.Syntactic.Evaluation
     Data.Syntactic.TypeUniverse
     Data.Syntactic.Decoration
 

@@ -1,4 +1,4 @@
-module Data.Syntactic.Interpretation.Evaluation where
+module Data.Syntactic.Evaluation where
 
 
 
