@@ -16,7 +16,6 @@ import Data.Proxy
 
 import Data.Syntactic.Syntax
 import Data.Syntactic.Interpretation
-import Data.Syntactic.Evaluation
 
 
 
@@ -97,10 +96,6 @@ instance Render sym => Render (sym :| pred)
     renderSym (C a) = renderSym a
     renderArgs args (C a) = renderArgs args a
 
-instance Eval sym => Eval (sym :| pred)
-  where
-    evaluate (C a) = evaluate a
-
 instance StringTree sym => StringTree (sym :| pred)
   where
     stringTreeSym args (C a) = stringTreeSym args a
@@ -133,10 +128,6 @@ instance Render sym => Render (sym :|| pred)
   where
     renderSym (C' a) = renderSym a
     renderArgs args (C' a) = renderArgs args a
-
-instance Eval sym => Eval (sym :|| pred)
-  where
-    evaluate (C' a) = evaluate a
 
 instance StringTree sym => StringTree (sym :|| pred)
   where
@@ -266,10 +257,6 @@ instance StringTree sym => StringTree (SubConstr1 c sym p)
   where
     stringTreeSym args (SubConstr1 a) = stringTreeSym args a
 
-instance Eval sym => Eval (SubConstr1 c sym p)
-  where
-    evaluate (SubConstr1 a) = evaluate a
-
 
 
 -- | Similar to 'SubConstr1', but assumes a result type of the form @c a b@ and constrains both @a@
@@ -300,10 +287,6 @@ instance Render sym => Render (SubConstr2 c sym pa pb)
 instance StringTree sym => StringTree (SubConstr2 c sym pa pb)
   where
     stringTreeSym args (SubConstr2 a) = stringTreeSym args a
-
-instance Eval sym => Eval (SubConstr2 c sym pa pb)
-  where
-    evaluate (SubConstr2 a) = evaluate a
 
 
 
@@ -378,7 +361,6 @@ instance Constrained Empty
 
 instance Equality   Empty where equal      = error "Not implemented: equal for Empty"
                                 exprHash   = error "Not implemented: exprHash for Empty"
-instance Eval       Empty where evaluate   = error "Not implemented: equal for Empty"
 instance Render     Empty where renderSym  = error "Not implemented: renderSym for Empty"
                                 renderArgs = error "Not implemented: renderArgs for Empty"
 instance StringTree Empty

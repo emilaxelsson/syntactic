@@ -12,7 +12,6 @@ import Data.Syntactic.Syntax
 import Data.Syntactic.Traversal
 import Data.Syntactic.Constraint
 import Data.Syntactic.Interpretation
-import Data.Syntactic.Evaluation
 
 
 
@@ -56,10 +55,6 @@ instance Render expr => Render (expr :&: info)
 instance StringTree expr => StringTree (expr :&: info)
   where
     stringTreeSym args = stringTreeSym args . decorExpr
-
-instance Eval expr => Eval (expr :&: info)
-  where
-    evaluate = evaluate . decorExpr
 
 
 
