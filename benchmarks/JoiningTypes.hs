@@ -5,6 +5,7 @@ import Criterion.Main
 import Criterion.Config
 import Data.Monoid
 import Data.Syntactic
+import Data.Syntactic.Evaluation
 
 -- Normal DSL, not joined types.
 data Expr1 t where
@@ -31,14 +32,21 @@ eq a b = Sym EEq :$ a :$ b
 if'  :: Expr1' Bool -> Expr1' a -> Expr1' a -> Expr1' a
 if' c a b = Sym EIf :$ c :$ a :$ b
 
-instance Default Expr1 where
-  defaultSym (EI n)  = Def "EI" n
-  defaultSym (EB b)  = Def "EB" b
-  defaultSym (EAdd)  = Def "EAdd" (+)
-  defaultSym (EEq)   = Def "EEq"  (==)
-  defaultSym (EIf)   = Def "EIf" (\c a b -> if c then a else b)
+instance Render Expr1 where
+  renderSym (EI n)  = "EI"
+  renderSym (EB b)  = "EB"
+  renderSym (EAdd)  = "EAdd"
+  renderSym (EEq)   = "EEq"
+  renderSym (EIf)   = "EIf"
 
 interpretationInstances ''Expr1
+
+instance Eval Expr1 where
+  evaluate (EI n)  = n
+  evaluate (EB b)  = b
+  evaluate (EAdd)  = (+)
+  evaluate (EEq)   = (==)
+  evaluate (EIf)   = \c a b -> if c then a else b
 
 -- Joined types
 data ExprI t where
@@ -68,16 +76,24 @@ eqJ a b = Sym (inj EEqJ) :$ a :$ b
 ifJ  :: ExprJ' Bool -> ExprJ' a -> ExprJ' a -> ExprJ' a
 ifJ c a b = Sym (inj EIfJ) :$ c :$ a :$ b
 
-instance Default ExprI where
-  defaultSym (EIJ n)  = Def "EI" n
-  defaultSym (EAddJ)  = Def "EAdd" (+)
-instance Default ExprB where
-  defaultSym (EBJ b)  = Def "EB" b
-  defaultSym (EEqJ)   = Def "EEq"  (==)
-  defaultSym (EIfJ)   = Def "EIf" (\c a b -> if c then a else b)
+instance Render ExprI where
+  renderSym (EIJ n)  = "EI"
+  renderSym (EAddJ)  = "EAdd"
+instance Render ExprB where
+  renderSym (EBJ b)  = "EB"
+  renderSym (EEqJ)   = "EEq"
+  renderSym (EIfJ)   = "EIf"
 
 interpretationInstances ''ExprI
 interpretationInstances ''ExprB
+
+instance Eval ExprI where
+  evaluate (EIJ n) = n
+  evaluate (EAddJ) = (+)
+instance Eval ExprB where
+  evaluate (EBJ b) = b
+  evaluate (EEqJ)  = (==)
+  evaluate (EIfJ)  = \c a b -> if c then a else b
 
 -- Joined types (4 joins)
 
@@ -110,26 +126,41 @@ eq4 a b = Sym (inj E4JEq) :$ a :$ b
 if4  :: Expr4J' Bool -> Expr4J' a -> Expr4J' a -> Expr4J' a
 if4 c a b = Sym (inj E4JIf) :$ c :$ a :$ b
 
-instance Default Expr4J1 where
-  defaultSym (E4JI n)  = Def "EI" n
+instance Render Expr4J1 where
+  renderSym (E4JI n)  = "EI"
 
-instance Default Expr4J2 where
-  defaultSym (E4JB b)  = Def "EB" b
+instance Render Expr4J2 where
+  renderSym (E4JB b)  = "EB"
 
-instance Default Expr4J3 where
-  defaultSym (E4JAdd)  = Def "EAdd" (+)
+instance Render Expr4J3 where
+  renderSym (E4JAdd)  = "EAdd"
 
-instance Default Expr4J4 where
-  defaultSym (E4JEq)   = Def "EEq"  (==)
+instance Render Expr4J4 where
+  renderSym (E4JEq)   = "EEq"
 
-instance Default Expr4J5 where
-  defaultSym (E4JIf)   = Def "EIf" (\c a b -> if c then a else b)
+instance Render Expr4J5 where
+  renderSym (E4JIf)   = "EIf"
 
 interpretationInstances ''Expr4J1
 interpretationInstances ''Expr4J2
 interpretationInstances ''Expr4J3
 interpretationInstances ''Expr4J4
 interpretationInstances ''Expr4J5
+
+instance Eval Expr4J1 where
+  evaluate (E4JI n)  = n
+
+instance Eval Expr4J2 where
+  evaluate (E4JB b)  = b
+
+instance Eval Expr4J3 where
+  evaluate (E4JAdd)  = (+)
+
+instance Eval Expr4J4 where
+  evaluate (E4JEq)   = (==)
+
+instance Eval Expr4J5 where
+  evaluate (E4JIf)   = \c a b -> if c then a else b
 
 -- Expressions
 syntacticExpr :: Int -> Expr1' Int

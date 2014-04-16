@@ -27,6 +27,7 @@ import Data.Tree
 
 import Data.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAST)
 import qualified Data.Syntactic as Syntactic
+import Data.Syntactic.Evaluation
 
 
 
@@ -54,14 +55,22 @@ data Arithmetic a
     Sub     :: (Type a, Num a) => Arithmetic (a :-> a :-> Full a)
     Mul     :: (Type a, Num a) => Arithmetic (a :-> a :-> Full a)
 
-instance Default Arithmetic
+instance Render Arithmetic
   where
-    defaultSym (Literal a) = Def (show a) a
-    defaultSym Add         = Def "(+)" (+)
-    defaultSym Sub         = Def "(-)" (-)
-    defaultSym Mul         = Def "(*)" (*)
+    renderSym (Literal a) = show a
+    renderSym Add         = "(+)"
+    renderSym Sub         = "(-)"
+    renderSym Mul         = "(*)"
+    renderArgs = renderArgsSmart
 
 interpretationInstances ''Arithmetic
+
+instance Eval Arithmetic
+  where
+    evaluate (Literal a) = a
+    evaluate Add         = (+)
+    evaluate Sub         = (-)
+    evaluate Mul         = (*)
 
 
 
@@ -103,14 +112,15 @@ data Parallel a
   where
     Parallel :: Type a => Parallel (Length :-> (Index -> a) :-> Full [a])
 
-instance Default Parallel
+instance Render Parallel
   where
-    defaultSym Parallel = Def
-        { defaultName = "parallel"
-        , defaultEval = \len ixf -> Prelude.map ixf [0 .. len-1]
-        }
+    renderSym Parallel = "parallel"
 
 interpretationInstances ''Parallel
+
+instance Eval Parallel
+  where
+    evaluate Parallel = \len ixf -> Prelude.map ixf [0 .. len-1]
 
 
 
@@ -119,27 +129,42 @@ data ForLoop a
     ForLoop :: Type st =>
         ForLoop (Length :-> st :-> (Index -> st -> st) :-> Full st)
 
-instance Default ForLoop
+instance Render ForLoop
   where
-    defaultSym ForLoop = Def
-        { defaultName = "forLoop"
-        , defaultEval = \len init body -> foldl (flip body) init [0 .. len-1]
-        }
+    renderSym ForLoop = "forLoop"
 
 interpretationInstances ''ForLoop
 
+instance Eval ForLoop
+  where
+    evaluate ForLoop = \len init body -> foldl (flip body) init [0 .. len-1]
 
 
-instance StringTree Def
+
+-- | Generic N-ary syntactic construct
+data Construct a
+  where
+    Construct :: String -> Denotation sig -> Construct sig
+
+instance Render Construct
+  where
+    renderSym (Construct name _) = name
+    renderArgs = renderArgsSmart
+
+interpretationInstances ''Construct
+
+instance Eval Construct
+  where
+    evaluate (Construct _ sem) = sem
+
+
 
 type FeldDomain
     =   Arithmetic
     :+: Binding
     :+: Parallel
     :+: ForLoop
-    :+: Def
-  -- We're cheating a bit by using `Def` as a symbol to represent literals and primitive functions.
-  -- The proper way would be to define new symbol types similarly to `Arithmetic`.
+    :+: Construct
 
 newtype Data a = Data { unData :: ASTF FeldDomain a }
 
@@ -193,7 +218,7 @@ writeHtmlAST = Syntactic.writeHtmlAST "tree.html" . desugar
 
 -- | Literal
 value :: Syntax a => Internal a -> a
-value a = sugar $ appSym $ Def (show a) a
+value a = sugar $ appSym $ Construct (show a) a
 
 false :: Data Bool
 false = value False
@@ -236,15 +261,15 @@ forLoop = sugarSymC ForLoop
 (?) :: forall a . Syntax a => Data Bool -> (a,a) -> a
 c ? (t,f) = sugarSym sym c t f
   where
-    sym :: Def (Bool :-> Internal a :-> Internal a :-> Full (Internal a))
-    sym = Def "cond" (\c t f -> if c then t else f)
+    sym :: Construct (Bool :-> Internal a :-> Internal a :-> Full (Internal a))
+    sym = Construct "cond" (\c t f -> if c then t else f)
 
 arrLength :: Type a => Data [a] -> Data Length
-arrLength = sugarSym $ Def "arrLength" Prelude.length
+arrLength = sugarSym $ Construct "arrLength" Prelude.length
 
 -- | Array indexing
 getIx :: Type a => Data [a] -> Data Index -> Data a
-getIx = sugarSym $ Def "getIx" eval
+getIx = sugarSym $ Construct "getIx" eval
   where
     eval as i
         | i >= len || i < 0 = error "getIx: index out of bounds"
@@ -253,16 +278,16 @@ getIx = sugarSym $ Def "getIx" eval
         len = Prelude.length as
 
 not :: Data Bool -> Data Bool
-not = sugarSym $ Def "not" Prelude.not
+not = sugarSym $ Construct "not" Prelude.not
 
 (==) :: Type a => Data a -> Data a -> Data Bool
-(==) = sugarSym $ Def "(==)" (Prelude.==)
+(==) = sugarSym $ Construct "(==)" (Prelude.==)
 
 max :: Type a => Data a -> Data a -> Data a
-max = sugarSym $ Def "max" Prelude.max
+max = sugarSym $ Construct "max" Prelude.max
 
 min :: Type a => Data a -> Data a -> Data a
-min = sugarSym $ Def "min" Prelude.min
+min = sugarSym $ Construct "min" Prelude.min
 
 
 

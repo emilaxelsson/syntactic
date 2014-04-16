@@ -5,6 +5,7 @@ import Criterion.Main
 import Criterion.Config
 import Data.Monoid
 import Data.Syntactic hiding (E)
+import Data.Syntactic.Evaluation
 
 main :: IO ()
 main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-results/withArity.csv"}) (return ())
@@ -95,15 +96,23 @@ t5 a b c d e = Sym T5 :$ a :$ b :$ c :$ d :$ e
 t10   :: Num a => T' a -> T' a -> T' a -> T' a -> T' a -> T' a -> T' a -> T' a -> T' a -> T' a -> T' a
 t10 a b c d e f g h i j = Sym T10 :$ a :$ b :$ c :$ d :$ e :$ f :$ g :$ h :$ i:$ j
 
-instance Default T
-    where
-      defaultSym (T0 a) = Def "T0"  a
-      defaultSym T1     = Def "T1"  id
-      defaultSym T2     = Def "T2"  (+)
-      defaultSym T3     = Def "T3"  (\a b c -> a + b + c)
-      defaultSym T5     = Def "T5"  (\a b c d e -> a + b + c + d + e)
-      defaultSym T10    = Def "T10" (\a b c d e f g h i j ->
-                                        a + b + c + d + e + f + g + h + i + j)
+instance Render T
+  where
+    renderSym (T0 a) = "T0"
+    renderSym T1     = "T1"
+    renderSym T2     = "T2"
+    renderSym T3     = "T3"
+    renderSym T5     = "T5"
+    renderSym T10    = "T10"
 
 interpretationInstances ''T
+
+instance Eval T
+  where
+    evaluate (T0 a) = a
+    evaluate T1     = id
+    evaluate T2     = (+)
+    evaluate T3     = \a b c -> a + b + c
+    evaluate T5     = \a b c d e -> a + b + c + d + e
+    evaluate T10    = \a b c d e f g h i j -> a + b + c + d + e + f + g + h + i + j
 

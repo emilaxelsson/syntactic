@@ -6,7 +6,6 @@ module Data.Syntactic
     , module Data.Syntactic.Constraint
     , module Data.Syntactic.Sugar
     , module Data.Syntactic.Interpretation
-    , module Data.Syntactic.Evaluation
     , module Data.Syntactic.Decoration
     , module Data.Constraint
     ) where
@@ -18,7 +17,6 @@ import Data.Syntactic.Traversal
 import Data.Syntactic.Constraint
 import Data.Syntactic.Sugar
 import Data.Syntactic.Interpretation
-import Data.Syntactic.Evaluation
 import Data.Syntactic.Decoration
 
 import Data.Constraint (Constraint, Dict (..))

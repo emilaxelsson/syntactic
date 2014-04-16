@@ -49,9 +49,9 @@ library
     Data.Syntactic.Constraint
     Data.Syntactic.Sugar
     Data.Syntactic.Interpretation
+    Data.Syntactic.Decoration
     Data.Syntactic.Evaluation
     Data.Syntactic.TypeUniverse
-    Data.Syntactic.Decoration
 
   other-modules:
     Data.Syntactic.TypeUniverse.TypeUniverse

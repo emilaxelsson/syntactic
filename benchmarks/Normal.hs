@@ -5,6 +5,7 @@ import Criterion.Main
 import Criterion.Config
 import Data.Monoid
 import Data.Syntactic
+import Data.Syntactic.Evaluation
 
 main :: IO ()
 main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-results/normal.csv"}) (return ())
@@ -102,12 +103,19 @@ eq a b = Sym EEq :$ a :$ b
 if'  :: ExprS' Bool -> ExprS' a -> ExprS' a -> ExprS' a
 if' c a b = Sym EIf :$ c :$ a :$ b
 
-instance Default ExprS where
-  defaultSym (EI n) = Def "EI" n
-  defaultSym (EB b) = Def "EB" b
-  defaultSym (EAdd) = Def "EAdd" (+)
-  defaultSym (EEq)  = Def "EEq"  (==)
-  defaultSym (EIf)  = Def "EIf" (\c a b -> if c then a else b)
+instance Render ExprS where
+  renderSym (EI n) = "EI"
+  renderSym (EB b) = "EB"
+  renderSym (EAdd) = "EAdd"
+  renderSym (EEq)  = "EEq"
+  renderSym (EIf)  = "EIf"
 
 interpretationInstances ''ExprS
+
+instance Eval ExprS where
+  evaluate (EI n) = n
+  evaluate (EB b) = b
+  evaluate (EAdd) = (+)
+  evaluate (EEq)  = (==)
+  evaluate (EIf)  = \c a b -> if c then a else b
 
