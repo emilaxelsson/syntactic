@@ -14,7 +14,7 @@ module Data.Syntactic.Interpretation
     , writeHtmlAST
       -- * Default interpretation
     , equalDefault
-    , exprHashDefault
+    , hashDefault
     , interpretationInstances
     ) where
 
@@ -23,7 +23,8 @@ module Data.Syntactic.Interpretation
 import Data.Tree (Tree (..))
 import Language.Haskell.TH
 
-import Data.Hash
+import Data.Hash (Hash, combine, hashInt)
+import qualified Data.Hash as Hash
 import Data.Tree.View
 
 import Data.Syntactic.Syntax
@@ -46,8 +47,8 @@ class Equality expr
     -- | Computes a 'Hash' for an expression. Expressions that are equal
     -- according to 'equal' must result in the same hash:
     --
-    -- @equal a b  ==>  exprHash a == exprHash b@
-    exprHash :: expr a -> Hash
+    -- @equal a b  ==>  hash a == hash b@
+    hash :: expr a -> Hash
 
 
 instance Equality sym => Equality (AST sym)
@@ -56,8 +57,8 @@ instance Equality sym => Equality (AST sym)
     equal (s1 :$ a1) (s2 :$ a2) = equal s1 s2 && equal a1 a2
     equal _ _                   = False
 
-    exprHash (Sym s)  = hashInt 0 `combine` exprHash s
-    exprHash (s :$ a) = hashInt 1 `combine` exprHash s `combine` exprHash a
+    hash (Sym s)  = hashInt 0 `combine` hash s
+    hash (s :$ a) = hashInt 1 `combine` hash s `combine` hash a
 
 instance Equality sym => Eq (AST sym a)
   where
@@ -69,8 +70,8 @@ instance (Equality sym1, Equality sym2) => Equality (sym1 :+: sym2)
     equal (InjR a) (InjR b) = equal a b
     equal _ _               = False
 
-    exprHash (InjL a) = hashInt 0 `combine` exprHash a
-    exprHash (InjR a) = hashInt 1 `combine` exprHash a
+    hash (InjL a) = hashInt 0 `combine` hash a
+    hash (InjR a) = hashInt 1 `combine` hash a
 
 instance (Equality expr1, Equality expr2) => Eq ((expr1 :+: expr2) a)
   where
@@ -78,8 +79,8 @@ instance (Equality expr1, Equality expr2) => Eq ((expr1 :+: expr2) a)
 
 instance Equality Empty
   where
-    equal    = error "equal: Empty"
-    exprHash = error "exprHash: Empty"
+    equal = error "equal: Empty"
+    hash  = error "hash: Empty"
 
 
 
@@ -185,17 +186,17 @@ writeHtmlAST file = writeHtmlTree file . fmap (\n -> NodeInfo n "") . stringTree
 equalDefault :: Render sym => sym a -> sym b -> Bool
 equalDefault a b = renderSym a == renderSym b
 
--- | Default implementation of 'exprHash'
-exprHashDefault :: Render sym => sym a -> Hash
-exprHashDefault = hash . renderSym
+-- | Default implementation of 'hash'
+hashDefault :: Render sym => sym a -> Hash
+hashDefault = Hash.hash . renderSym
 
 -- | Derive instances for 'Equality' and 'StringTree'
 interpretationInstances :: Name -> DecsQ
 interpretationInstances n =
     [d|
         instance Equality $(typ) where
-          equal    = equalDefault
-          exprHash = exprHashDefault
+          equal = equalDefault
+          hash  = hashDefault
         instance StringTree $(typ)
     |]
   where

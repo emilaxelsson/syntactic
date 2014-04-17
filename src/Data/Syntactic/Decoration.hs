@@ -39,7 +39,7 @@ instance Project sub sup => Project sub (sup :&: info)
 instance Equality expr => Equality (expr :&: info)
   where
     equal a b = decorExpr a `equal` decorExpr b
-    exprHash  = exprHash . decorExpr
+    hash      = hash . decorExpr
 
 instance Render expr => Render (expr :&: info)
   where
