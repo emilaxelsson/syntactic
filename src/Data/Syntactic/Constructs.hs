@@ -8,6 +8,9 @@ module Data.Syntactic.Constructs
     , Binding (..)
     , maxLam
     , lam
+    , BindingT (..)
+    , maxLamT
+    , lamT
     ) where
 
 
@@ -15,9 +18,14 @@ module Data.Syntactic.Constructs
 import Data.Tree
 
 import Data.Syntactic
+import Data.Syntactic.TypeUniverse
 import Data.Syntactic.Evaluation
 
 
+
+----------------------------------------------------------------------------------------------------
+-- * Generic syntactic constructs
+----------------------------------------------------------------------------------------------------
 
 -- | Generic N-ary syntactic construct
 data Construct a
@@ -35,6 +43,12 @@ instance Eval Construct t
   where
     toSemSym (Construct _ d) = Sem d
 
+
+
+----------------------------------------------------------------------------------------------------
+-- * Variable binding
+----------------------------------------------------------------------------------------------------
+
 -- | Variables and binding
 data Binding a
   where
@@ -43,28 +57,74 @@ data Binding a
 
 instance Render Binding
   where
-    renderSym (Var n) = 'v' : show n
-    renderSym (Lam n) = "Lam v" ++ show n
-    renderArgs []     (Var n) = 'v' : show n
-    renderArgs [body] (Lam n) = "(\\" ++ ('v':show n) ++ " -> " ++ body ++ ")"
+    renderSym (Var v) = 'v' : show v
+    renderSym (Lam v) = "Lam v" ++ show v
+    renderArgs []     (Var v) = 'v' : show v
+    renderArgs [body] (Lam v) = "(\\" ++ ('v':show v) ++ " -> " ++ body ++ ")"
 
 instance StringTree Binding
   where
-    stringTreeSym []     (Var n) = Node ('v' : show n) []
-    stringTreeSym [body] (Lam n) = Node ("Lam " ++ 'v' : show n) [body]
+    stringTreeSym []     (Var v) = Node ('v' : show v) []
+    stringTreeSym [body] (Lam v) = Node ("Lam " ++ 'v' : show v) [body]
 
 -- | Get the highest variable name of the closest 'Lam' binders
 maxLam :: (Binding :<: s) => AST s a -> Name
-maxLam (Sym lam :$ _) | Just (Lam n) <- prj lam = n
+maxLam (Sym lam :$ _) | Just (Lam v) <- prj lam = v
 maxLam (s :$ a) = maxLam s `Prelude.max` maxLam a
 maxLam _ = 0
 
 -- | Higher-order interface for variable binding
 lam :: (Binding :<: s) => (ASTF s a -> ASTF s b) -> ASTF s (a -> b)
-lam f = appSym (Lam n) body
+lam f = appSym (Lam v) body
   where
-    body = f (appSym (Var n))
-    n    = maxLam body + 1
+    body = f (appSym (Var v))
+    v    = maxLam body + 1
+  -- Based on "Using Circular Programs for Higher-Order Syntax"
+  -- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>)
+
+
+
+----------------------------------------------------------------------------------------------------
+-- * Typed variable binding
+----------------------------------------------------------------------------------------------------
+
+-- | Typed variables and binding
+data BindingT t a
+  where
+    VarT :: TypeRep t a -> Name -> BindingT t (Full a)
+    LamT :: TypeRep t a -> Name -> BindingT t (b :-> Full (a -> b))
+
+instance Render (BindingT t)
+  where
+    renderSym (VarT _ v) = renderSym (Var v)
+    renderSym (LamT _ v) = renderSym (Lam v)
+    renderArgs args (VarT _ v) = renderArgs args (Var v)
+    renderArgs args (LamT _ v) = renderArgs args (Lam v)
+
+instance StringTree (BindingT t)
+  where
+    stringTreeSym args (VarT _ v) = stringTreeSym args (Var v)
+    stringTreeSym args (LamT _ v) = stringTreeSym args (Lam v)
+
+instance Eval (BindingT t) t
+  where
+    toSemSym (VarT t v) = SemVar t v
+    toSemSym (LamT t v) = SemLam t v
+
+-- | Get the highest variable name of the closest 'LamT' binders
+maxLamT :: forall t s a . (BindingT t :<: s) => Proxy t -> AST s a -> Name
+maxLamT _ (Sym lam :$ _) | Just (LamT _ n :: BindingT t (b :-> a)) <- prj lam = n
+maxLamT p (s :$ a) = maxLamT p s `Prelude.max` maxLamT p a
+maxLamT _ _ = 0
+
+-- | Higher-order interface for typed variable binding
+lamT :: forall t s a b . (BindingT t :<: s, Typeable t a) =>
+    Proxy t -> (ASTF s a -> ASTF s b) -> ASTF s (a -> b)
+lamT p f = appSym (LamT t v :: BindingT t (b :-> Full (a -> b))) body
+  where
+    t    = typeRep :: TypeRep t a
+    body = f (appSym (VarT t v))
+    v    = maxLamT p body + 1
   -- Based on "Using Circular Programs for Higher-Order Syntax"
   -- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>)
 
