@@ -42,6 +42,8 @@ type FeldTypes = BoolType :+: IntType :+: FloatType :+: ListType
 -- | Convenient class alias
 class    (Typeable FeldTypes a, Show a, Eq a, Ord a) => Type a
 instance (Typeable FeldTypes a, Show a, Eq a, Ord a) => Type a
+  -- It would be possible to derive the `Show`, `Eq` and `Ord` instances from `Typeable` (using
+  -- `wit`), but this would just make the code more complicated.
 
 type Length = Int
 type Index  = Int
@@ -54,27 +56,24 @@ type Index  = Int
 
 data Arithmetic a
   where
-    Literal :: (Type a, Num a) => a -> Arithmetic (Full a)
-    Add     :: (Type a, Num a) => Arithmetic (a :-> a :-> Full a)
-    Sub     :: (Type a, Num a) => Arithmetic (a :-> a :-> Full a)
-    Mul     :: (Type a, Num a) => Arithmetic (a :-> a :-> Full a)
+    Add :: (Type a, Num a) => Arithmetic (a :-> a :-> Full a)
+    Sub :: (Type a, Num a) => Arithmetic (a :-> a :-> Full a)
+    Mul :: (Type a, Num a) => Arithmetic (a :-> a :-> Full a)
 
 instance Render Arithmetic
   where
-    renderSym (Literal a) = show a
-    renderSym Add         = "(+)"
-    renderSym Sub         = "(-)"
-    renderSym Mul         = "(*)"
+    renderSym Add = "(+)"
+    renderSym Sub = "(-)"
+    renderSym Mul = "(*)"
     renderArgs = renderArgsSmart
 
 interpretationInstances ''Arithmetic
 
 instance Eval Arithmetic t
   where
-    toSemSym (Literal a) = Sem a
-    toSemSym Add         = Sem (+)
-    toSemSym Sub         = Sem (-)
-    toSemSym Mul         = Sem (*)
+    toSemSym Add = Sem (+)
+    toSemSym Sub = Sem (-)
+    toSemSym Mul = Sem (*)
 
 type instance VarUniverse Arithmetic = Empty
 type instance VarUniverse (Arithmetic :+: dom) = VarUniverse dom
@@ -176,7 +175,7 @@ eval = evalClosed (Proxy :: Proxy FeldTypes) . desugar
 
 -- | Literal
 value :: Syntax a => Internal a -> a
-value a = sugar $ appSym $ Construct (show a) a
+value a = sugar $ inj $ Construct (show a) a
 
 false :: Data Bool
 false = value False
@@ -191,7 +190,7 @@ force = resugar
 
 instance (Type a, Num a) => Num (Data a)
   where
-    fromInteger = sugarSym . Literal . fromInteger
+    fromInteger = value . fromInteger
     (+)         = sugarSym Add
     (-)         = sugarSym Sub
     (*)         = sugarSym Mul
