@@ -50,8 +50,9 @@ library
     Data.Syntactic.Sugar
     Data.Syntactic.Interpretation
     Data.Syntactic.Decoration
-    Data.Syntactic.Evaluation
     Data.Syntactic.TypeUniverse
+    Data.Syntactic.Evaluation
+    Data.Syntactic.Constructs
 
   other-modules:
     Data.Syntactic.TypeUniverse.TypeUniverse
@@ -65,6 +66,7 @@ library
     data-hash,
     ghc-prim,
     mtl >= 2 && < 3,
+    safe,
     tagged,
     template-haskell,
     transformers >= 0.2,
@@ -85,6 +87,7 @@ library
     FlexibleInstances
     FunctionalDependencies
     GADTs
+    GeneralizedNewtypeDeriving
     Rank2Types
     ScopedTypeVariables
     TypeFamilies

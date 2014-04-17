@@ -7,6 +7,7 @@
 :set -XFlexibleInstances
 :set -XFunctionalDependencies
 :set -XGADTs
+:set -XGeneralizedNewtypeDeriving
 :set -XRank2Types
 :set -XScopedTypeVariables
 :set -XTypeFamilies
