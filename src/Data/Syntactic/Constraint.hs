@@ -45,17 +45,6 @@ liftEF f (EF a) = f a
 liftEF2 :: (forall a b . e (Full a) -> e (Full b) -> c) -> EF e -> EF e -> c
 liftEF2 f (EF a) (EF b) = f a b
 
--- | Constrained existential quantification of 'Full'-indexed type
-data B :: (* -> *) -> (* -> Constraint) -> *
-  where
-    B :: p a => e (Full a) -> B e p
-
-liftB :: (forall a . p a => e (Full a) -> b) -> B e p -> b
-liftB f (B a) = f a
-
-liftB2 :: (forall a b . (p a, p b) => e (Full a) -> e (Full b) -> c) -> B e p -> B e p -> c
-liftB2 f (B a) (B b) = f a b
-
 
 
 --------------------------------------------------------------------------------
