@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -28,6 +29,7 @@ import Data.Tree
 import Data.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAST)
 import qualified Data.Syntactic as Syntactic
 import Data.Syntactic.Evaluation
+import Data.Syntactic.Constructs
 
 
 
@@ -65,48 +67,12 @@ instance Render Arithmetic
 
 interpretationInstances ''Arithmetic
 
-instance Eval Arithmetic
+instance Eval Arithmetic t
   where
-    evaluate (Literal a) = a
-    evaluate Add         = (+)
-    evaluate Sub         = (-)
-    evaluate Mul         = (*)
-
-
-
-type Name = Integer
-
-data Binding a
-  where
-    Var :: Name -> Binding (Full a)
-    Lam :: Name -> Binding (b :-> Full (a -> b))
-
-instance Render Binding
-  where
-    renderSym (Var n) = 'v' : show n
-    renderSym (Lam n) = "Lam v" ++ show n
-    renderArgs []     (Var n) = 'v' : show n
-    renderArgs [body] (Lam n) = "(\\" ++ ('v':show n) ++ " -> " ++ body ++ ")"
-
-instance StringTree Binding
-  where
-    stringTreeSym []     (Var n) = Node ('v' : show n) []
-    stringTreeSym [body] (Lam n) = Node ("Lam " ++ 'v' : show n) [body]
-
-maxLam :: (Binding :<: s) => AST s a -> Name
-maxLam (Sym lam :$ _) | Just (Lam n) <- prj lam = n
-maxLam (s :$ a) = maxLam s `Prelude.max` maxLam a
-maxLam _ = 0
-
-lam :: (Binding :<: s) => (ASTF s a -> ASTF s b) -> ASTF s (a -> b)
-lam f = appSym (Lam n) body
-  where
-    body = f (appSym (Var n))
-    n    = succ (maxLam body)
-  -- Based on "Using Circular Programs for Higher-Order Syntax"
-  -- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>)
-
-
+    toSemSym (Literal a) = Sem a
+    toSemSym Add         = Sem (+)
+    toSemSym Sub         = Sem (-)
+    toSemSym Mul         = Sem (*)
 
 data Parallel a
   where
@@ -118,11 +84,9 @@ instance Render Parallel
 
 interpretationInstances ''Parallel
 
-instance Eval Parallel
+instance Eval Parallel t
   where
-    evaluate Parallel = \len ixf -> Prelude.map ixf [0 .. len-1]
-
-
+    toSemSym Parallel = Sem $ \len ixf -> Prelude.map ixf [0 .. len-1]
 
 data ForLoop a
   where
@@ -135,29 +99,9 @@ instance Render ForLoop
 
 interpretationInstances ''ForLoop
 
-instance Eval ForLoop
+instance Eval ForLoop t
   where
-    evaluate ForLoop = \len init body -> foldl (flip body) init [0 .. len-1]
-
-
-
--- | Generic N-ary syntactic construct
-data Construct a
-  where
-    Construct :: String -> Denotation sig -> Construct sig
-
-instance Render Construct
-  where
-    renderSym (Construct name _) = name
-    renderArgs = renderArgsSmart
-
-interpretationInstances ''Construct
-
-instance Eval Construct
-  where
-    evaluate (Construct _ sem) = sem
-
-
+    toSemSym ForLoop = Sem $ \len init body -> foldl (flip body) init [0 .. len-1]
 
 type FeldDomain
     =   Arithmetic
