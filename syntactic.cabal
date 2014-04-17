@@ -121,8 +121,10 @@ test-suite NanoFeldspar
     syntactic,
     base,
     containers,
+    QuickCheck,
     tasty,
     tasty-golden,
+    tasty-quickcheck,
     utf8-string
 
 benchmark syntactic-bench
