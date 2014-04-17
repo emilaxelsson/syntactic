@@ -206,6 +206,9 @@ rebuild pd mkId gs a = runRebuild $ rebuild' 0 a
         (1, maximum (0:(Prelude.map geNodeId gs)))
         (zip (Prelude.map geNodeId gs) gs)
 
+    nodeExpr :: NodeId -> ASTSAT (NodeDomain dom)
+    nodeExpr n = geExpr (nodes ! n)
+
     freeVars :: Array NodeId (Set.Set VarId)
     freeVars = nodesFreeVars pd nodes
 
@@ -248,67 +251,48 @@ rebuild pd mkId gs a = runRebuild $ rebuild' 0 a
         .  NodeId
         -> ASTF (NodeDomain dom) b
         -> RebuildMonad dom (ASTF dom b)
-    rebuild' n (a@(Sym (C' (InjR lam)) :$ _))
-        | Just v <- prjLambda pd lam 
-        = do
-            a' <- addBoundVar v $ shareExprsIn n (addBoundVar v (fixNodeExprSub a))
-            return a'
+    rebuild' n (Sym (C' (InjR lam)) :$ ns@(Sym (C' (InjL (Node nb)))))
+        | Just v <- prjLambda pd lam
+        = case geExpr (nodes ! nb) of
+            ASTB a
+              | Dict <- exprDictSub pTypeable ns
+              , Dict <- exprDictSub pTypeable a
+              -> case gcast a of
+                Nothing -> error "rebuild: type mistmatch"
+                Just a -> do
+                    a' <- addBoundVar v $ addSeenNode n $ rebuild' nb a
+                    return (Sym lam :$ a')
     rebuild' n (Sym (C' (InjR s))) = return $ Sym s
-    rebuild' n a = shareExprsIn n (fixNodeExprSub a)
+    rebuild' n a = addSeenNode n $ shareExprsIn n a
     
     shareExprsIn :: forall b
         .  NodeId
+        -> ASTF (NodeDomain dom) b
         -> RebuildMonad dom (ASTF dom b)
-        -> RebuildMonad dom (ASTF dom b)
-    shareExprsIn n ma = do
+    shareExprsIn n a = do
         bv <- getBoundVars
         seenNodes <- getSeenNodes
         nodeMap <- getNodeExprMap
         let considered = nodesToConsider (\n' -> n' /= n && not (Map.member n' nodeMap) && Set.member n' (nodeDeps ! n)) bv seenNodes
-        let (share,notShare) = partition (\(_,(ASTB a),gi) -> heuristic bv gi a) considered
-        let sortedShare = sortBy (compare `on` (\(n,_,_) -> n)) share
-        (ms, a') <- addSeenNode n $ unShareNodes notShare (mfix (shareEm [] sortedShare ma))
-        return (letBindMaybeShares ms a')
-
-    letBindMaybeShares :: [ShareMaybe dom b] -> ASTF dom b -> ASTF dom b
-    letBindMaybeShares ms a = foldl letBindMaybeShare a ms
-      where
-        letBindMaybeShare a (Share v id b) = Sym (injLet id) :$ b :$ (Sym (injLambda id v) :$ a)
-        letBindMaybeShare a (Not b) = a
-
-    unShareNodes :: [ShareInfo dom] -> RebuildMonad dom b -> RebuildMonad dom b
-    unShareNodes sis m = foldr unShareNode m sis
-      where
-        unShareNode (n,(ASTB b),_) m = do
-            b' <- rebuild' n b
-            addNodeExpr n (ASTB b') m
+        let sorted = sortBy (compare `on` (\(n,_,_) -> n)) considered
+        shareEm sorted a
     
     shareEm
-        :: [(NodeId,ShareMaybe dom b)]
-        -> [ShareInfo dom] 
+        :: [ShareInfo dom]
+        -> ASTF (NodeDomain dom) b
         -> RebuildMonad dom (ASTF dom b)
-        -> ([ShareMaybe dom b], ASTF dom b)
-        -> RebuildMonad dom ([ShareMaybe dom b], ASTF dom b)
-    shareEm env [] ma _ = do
-        a <- addMaybeShares env ma
-        return $ (map snd env, a)
-    shareEm env ((n, ASTB b, gi) : sis) ma ~(shs,a) = do
-        b' <- addMaybeShares env $ rebuild' n b
-        v <- get; put (v+1)
-        shareEm ((n, mkShareMaybe v a b') : env) sis ma (shs,a)
-
-    addMaybeShares :: [(NodeId, ShareMaybe dom b)] -> RebuildMonad dom c -> RebuildMonad dom c
-    addMaybeShares [] m = m
-    addMaybeShares ((n,ms):xs) m = addNodeExpr n (exprFromMaybeShare ms) $ addMaybeShares xs m
-
-    exprFromMaybeShare :: ShareMaybe dom b -> ASTSAT dom
-    exprFromMaybeShare (Share v id b) = ASTB $ Sym $ injVariable id v
-    exprFromMaybeShare (Not b)        = ASTB b
-
-    mkShareMaybe :: Sat dom c => VarId -> ASTF dom b -> ASTF dom c -> ShareMaybe dom b
-    mkShareMaybe v a b | Just id <- mkId b a = Share v id b
-    mkShareMaybe _ _ b = Not b
-    
+    shareEm [] a = fixNodeExprSub a
+    shareEm ((n, be@(ASTB b), gi) : sis) a = do
+        b' <- rebuild' n b
+        bv <- getBoundVars
+        case mkId b' (inlineAll nodeExpr a) of
+            Just id | heuristic bv gi a -> do
+                v <- get; put (v+1)
+                a' <- addNodeExpr n (ASTB (Sym (injVariable id v))) $ shareEm sis a
+                return $ Sym (injLet id) :$ b' :$ (Sym (injLambda id v) :$ a')
+            _ -> do
+                a' <- addNodeExpr n (ASTB b') $ shareEm sis a
+                return a'
 
     fixNodeExprSub :: forall b
         .  ( ConstrainedBy dom Typeable
@@ -338,7 +322,6 @@ rebuild pd mkId gs a = runRebuild $ rebuild' 0 a
                     Just a -> a
             Nothing -> error "rebuild: lost node"
 
-
     heuristic :: Set.Set VarId -> GatherInfo -> ASTF (NodeDomain dom) b -> Bool
     heuristic bv gi b = not (isVariable pd b) && (giCount gi > 1 || not (Set.null (giScopes gi `Set.difference` bv)))
 
@@ -361,6 +344,24 @@ nodesFreeVars pd nodes = freeVars
     freeVarsExp (Sym (C' (InjR _))) = Set.empty
     freeVarsExp (Sym (C' (InjL (Node n)))) = freeVars ! n
     freeVarsExp (s :$ b) = Set.union (freeVarsExp s) (freeVarsExp b)
+
+inlineAll :: forall dom a
+    .  ConstrainedBy dom Typeable
+    => (NodeId -> ASTSAT (NodeDomain dom))
+    -> ASTF (NodeDomain dom) a
+    -> ASTF dom a
+inlineAll nodes a = go a
+  where
+    go :: AST (NodeDomain dom) sig -> AST dom sig
+    go (s :$ a) = go s :$ go a
+    go (Sym (C' (InjR s))) = Sym s
+    go s@(Sym (C' (InjL (Node n)))) = case nodes n of
+        ASTB a
+          | Dict <- exprDictSub pTypeable s
+          , Dict <- exprDictSub pTypeable a
+          -> case gcast a of
+              Nothing -> error "inlineAll: type mismatch"
+              Just a  -> go a
 
 
 type GatherEnv = 
@@ -412,8 +413,8 @@ gather hoistOver pd a | Dict <- exprDict a
     gather' :: Bool -> ASTF dom b -> GatherMonad dom (ASTF (NodeDomain dom) b)
     gather' h a | Dict <- exprDict a = do
         (a',n) <-
-          mfix (\(~(a',n)) -> addInnerLimitIf (not h) n $ do
-            a' <- gatherRec (hoistOver a) a 
+          mfix (\(~(a',n)) -> do
+            a' <- addInnerLimitIf (not h) n $ gatherRec (hoistOver a) a 
             n <- recordExpr a'
             return (a',n)
           )
