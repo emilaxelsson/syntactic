@@ -87,8 +87,16 @@ evalOpen :: (Eval sym t, TypeEq t t) => EvalEnv t -> AST sym sig -> Denotation s
 evalOpen env = evalSem env . toSem
 
 -- | Evaluation of closed terms
-eval :: forall sym t sig . (Eval sym t, TypeEq t t) => Proxy t -> AST sym sig -> Denotation sig
-eval _ = evalSem ([] :: EvalEnv t) . toSem
+evalClosed :: forall sym t sig . (Eval sym t, TypeEq t t) =>
+    Proxy t -> AST sym sig -> Denotation sig
+evalClosed _ = evalSem ([] :: EvalEnv t) . toSem
+
+-- | Evaluation of terms without variables
+eval :: Eval sym Empty => AST sym sig -> Denotation sig
+eval = evalSem ([] :: EvalEnv Empty) . toSem
+  -- No guarantee that the expression does not contain variables. This could be made safer by having
+  -- a version of `Sem` with only the `Sem` constructor and another class for constructing such
+  -- semantic trees.
 
 -- | Apply a semantic function to a list of arguments
 appDen :: Denotation sig -> Args Identity sig -> DenResult sig
