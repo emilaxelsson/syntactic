@@ -180,8 +180,9 @@ matchTrans :: forall sym sym' c a
 matchTrans f = unWrapAST . match (\s -> WrapAST . f s)
 
 -- | Update the symbols in an AST
-mapAST :: forall sym1 sym2 a . (forall sig . sym1 sig -> sym2 sig) -> ASTF sym1 a -> ASTF sym2 a
-mapAST f = getConst . matchTrans (\s as -> Const $ appArgs (Sym (f s)) $ mapArgs (mapAST f) as)
+mapAST :: (forall sig' . sym1 sig' -> sym2 sig') -> AST sym1 sig -> AST sym2 sig
+mapAST f (Sym s)  = Sym (f s)
+mapAST f (s :$ a) = mapAST f s :$ mapAST f a
 
 -- | Can be used to make an arbitrary type constructor indexed by @(`Full` a)@.
 -- This is useful as the type constructor parameter of 'Args'. That is, use
