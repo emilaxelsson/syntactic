@@ -128,11 +128,11 @@ toListGS (GatherSet m) = concatMap snd (Map.toList m)
 
 type RebuildEnv dom = 
     ( Map.Map NodeId (ASTSAT dom)
-        -- ^ associates node ids with the AST they should be substituted by
+        -- associates node ids with the AST they should be substituted by
     , Set.Set VarId
-        -- ^ bound variables
+        -- bound variables
     , [NodeId]
-        -- ^ nodes that have been encountered
+        -- nodes that have been encountered
     )
   
 type RebuildMonad dom a = ReaderT (RebuildEnv dom) (State VarId) a
@@ -366,13 +366,13 @@ inlineAll nodes a = go a
 
 type GatherEnv = 
     ( [NodeId]    
-        -- ^ List of nodes upwards in the syntax tree that cannot be hoisted over
+        -- List of nodes upwards in the syntax tree that cannot be hoisted over
     , Set.Set VarId
-        -- ^ Varibles in scope
+        -- Varibles in scope
     )
 type GatherState dom = 
-    ( GatherSet dom -- ^ Set of expressions that have been recorded
-    , NodeId -- ^ Node counter.
+    ( GatherSet dom -- Set of expressions that have been recorded
+    , NodeId -- Node counter.
     )
 
 type GatherMonad dom a = ReaderT GatherEnv (State (GatherState dom)) a
