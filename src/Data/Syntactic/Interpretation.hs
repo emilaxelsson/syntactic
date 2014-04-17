@@ -76,6 +76,11 @@ instance (Equality expr1, Equality expr2) => Eq ((expr1 :+: expr2) a)
   where
     (==) = equal
 
+instance Equality Empty
+  where
+    equal    = error "equal: Empty"
+    exprHash = error "exprHash: Empty"
+
 
 
 ----------------------------------------------------------------------------------------------------
@@ -124,6 +129,13 @@ render = go []
     go :: [String] -> AST sym sig -> String
     go args (Sym s)  = renderArgs args s
     go args (s :$ a) = go (render a : args) s
+
+instance Render Empty
+  where
+    renderSym  = error "renderSym: Empty"
+    renderArgs = error "renderArgs: Empty"
+
+instance StringTree Empty
 
 instance Render sym => Show (ASTF sym a)
   where

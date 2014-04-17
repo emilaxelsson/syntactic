@@ -62,36 +62,6 @@ liftB2 f (B a) (B b) = f a b
 -- * Misc.
 --------------------------------------------------------------------------------
 
--- | Empty symbol type
---
--- Use-case:
---
--- > data A a
--- > data B a
--- >
--- > test :: AST (A :+: (B:||Eq) :+: Empty) a
--- > test = injC (undefined :: (B :|| Eq) a)
---
--- Without 'Empty', this would lead to an overlapping instance error due to the instances
---
--- > InjectC (B :|| Eq) (B :|| Eq) (DenResult a)
---
--- and
---
--- > InjectC sub sup a, pred a) => InjectC sub (sup :|| pred) a
-data Empty :: * -> *
-
-instance Constrained Empty
-  where
-    type Sat Empty = Top
-    exprDict = error "Not implemented: exprDict for Empty"
-
-instance Equality   Empty where equal      = error "Not implemented: equal for Empty"
-                                exprHash   = error "Not implemented: exprHash for Empty"
-instance Render     Empty where renderSym  = error "Not implemented: renderSym for Empty"
-                                renderArgs = error "Not implemented: renderArgs for Empty"
-instance StringTree Empty
-
 universe :: ASTF sym a -> [EF (AST sym)]
 universe a = EF a : go a
   where

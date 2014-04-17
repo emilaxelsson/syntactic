@@ -20,6 +20,7 @@ module Data.Syntactic.Syntax
     , Project (..)
     , (:<:) (..)
     , appSym
+    , Empty
       -- * Type inference
     , symType
     , prjP
@@ -167,6 +168,14 @@ instance (expr1 :<: expr3) => (expr1 :<: (expr2 :+: expr3))
 -- >     -> (ASTF sup a -> ASTF sup b -> ... -> ASTF sup x)
 appSym :: (sub :<: AST sup, ApplySym sig f sup) => sub sig -> f
 appSym = appSym' . inj
+
+-- | Empty symbol type
+--
+-- Can be used to make uninhabited 'AST' types. It can also be used as a terminator in co-product
+-- lists (e.g. to avoid overlapping instances):
+--
+-- > (A :+: B :+: Empty)
+data Empty :: * -> *
 
 
 
