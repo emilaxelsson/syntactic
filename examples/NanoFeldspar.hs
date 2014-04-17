@@ -75,7 +75,6 @@ instance Eval Arithmetic t
     toSemSym Sub = Sem (-)
     toSemSym Mul = Sem (*)
 
-type instance VarUniverse Arithmetic = Empty
 type instance VarUniverse (Arithmetic :+: dom) = VarUniverse dom
 
 data Parallel a
@@ -92,13 +91,11 @@ instance Eval Parallel t
   where
     toSemSym Parallel = Sem $ \len ixf -> Prelude.map ixf [0 .. len-1]
 
-type instance VarUniverse Parallel = Empty
 type instance VarUniverse (Parallel :+: dom) = VarUniverse dom
 
 data ForLoop a
   where
-    ForLoop :: Type st =>
-        ForLoop (Length :-> st :-> (Index -> st -> st) :-> Full st)
+    ForLoop :: Type st => ForLoop (Length :-> st :-> (Index -> st -> st) :-> Full st)
 
 instance Render ForLoop
   where
@@ -110,7 +107,6 @@ instance Eval ForLoop t
   where
     toSemSym ForLoop = Sem $ \len init body -> foldl (flip body) init [0 .. len-1]
 
-type instance VarUniverse ForLoop = Empty
 type instance VarUniverse (ForLoop :+: dom) = VarUniverse dom
 
 type FeldDomain
@@ -141,7 +137,7 @@ instance Type a => Show (Data a)
 
 
 --------------------------------------------------------------------------------
--- * Rendering
+-- * "Backends"
 --------------------------------------------------------------------------------
 
 -- | Show the expression
