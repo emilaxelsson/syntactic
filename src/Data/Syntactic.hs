@@ -3,7 +3,6 @@
 module Data.Syntactic
     ( module Data.Syntactic.Syntax
     , module Data.Syntactic.Traversal
-    , module Data.Syntactic.Constraint
     , module Data.Syntactic.Sugar
     , module Data.Syntactic.Interpretation
     , module Data.Syntactic.Decoration
@@ -13,7 +12,6 @@ module Data.Syntactic
 
 import Data.Syntactic.Syntax
 import Data.Syntactic.Traversal
-import Data.Syntactic.Constraint
 import Data.Syntactic.Sugar
 import Data.Syntactic.Interpretation
 import Data.Syntactic.Decoration

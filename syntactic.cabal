@@ -46,7 +46,6 @@ library
     Data.Syntactic
     Data.Syntactic.Syntax
     Data.Syntactic.Traversal
-    Data.Syntactic.Constraint
     Data.Syntactic.Sugar
     Data.Syntactic.Interpretation
     Data.Syntactic.Decoration
