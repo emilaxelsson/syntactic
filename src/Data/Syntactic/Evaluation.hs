@@ -223,11 +223,19 @@ evalOpenM env
     . (id :: ASTF (SemM m t) a -> ASTF (SemM m t) a)
     . toSemM
 
--- | Evaluation of closed terms
-evalM :: forall sym m t a . (EvalM sym m t, TypeEq t t, Monad m) =>
+-- | Monadic evaluation of closed terms
+evalClosedM :: forall sym m t a . (EvalM sym m t, TypeEq t t, Monad m) =>
     Proxy t -> ASTF sym a -> Monadic m a
-evalM _
+evalClosedM _
     = evalSemM ([] :: EvalEnv t)
     . (id :: ASTF (SemM m t) a -> ASTF (SemM m t) a)
     . toSemM
+
+-- | Monadic evaluation of terms without variables
+evalM :: forall sym m a . (EvalM sym m Empty, Monad m) => ASTF sym a -> Monadic m a
+evalM
+    = evalSemM ([] :: EvalEnv Empty)
+    . (id :: ASTF (SemM m Empty) a -> ASTF (SemM m Empty) a)
+    . toSemM
+  -- See comment to `eval`
 
