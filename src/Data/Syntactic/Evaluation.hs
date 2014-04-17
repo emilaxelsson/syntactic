@@ -258,23 +258,24 @@ toSemM = mapAST toSemSymM
 
 -- | Monadic evaluation of open terms
 evalOpenM :: forall sym m t a . (EvalM sym m t, TypeEq t t, Monad m) =>
-    EvalEnv t -> ASTF sym a -> Monadic m a
-evalOpenM env
+    Proxy m -> EvalEnv t -> ASTF sym a -> Monadic m a
+evalOpenM _ env
     = evalSemM env
     . (id :: ASTF (SemM m t) a -> ASTF (SemM m t) a)
     . toSemM
 
 -- | Monadic evaluation of closed terms
 evalClosedM :: forall sym m t a . (EvalM sym m t, TypeEq t t, Monad m) =>
-    Proxy t -> ASTF sym a -> Monadic m a
-evalClosedM _
+    Proxy m -> Proxy t -> ASTF sym a -> Monadic m a
+evalClosedM _ _
     = evalSemM ([] :: EvalEnv t)
     . (id :: ASTF (SemM m t) a -> ASTF (SemM m t) a)
     . toSemM
 
 -- | Monadic evaluation of terms without variables
-evalM :: forall sym m a . (EvalM sym m Empty, Monad m) => ASTF sym a -> Monadic m a
-evalM
+evalM :: forall sym m a . (EvalM sym m Empty, Monad m) =>
+    Proxy m -> ASTF sym a -> Monadic m a
+evalM _
     = evalSemM ([] :: EvalEnv Empty)
     . (id :: ASTF (SemM m Empty) a -> ASTF (SemM m Empty) a)
     . toSemM
