@@ -15,7 +15,6 @@ module Data.Syntactic.Traversal
     , appArgs
     , listFold
     , match
-    , query
     , simpleMatch
     , fold
     , simpleFold
@@ -139,15 +138,6 @@ match f a = go a Nil
     go :: (a ~ DenResult sig) => AST sym sig -> Args (AST sym) sig -> c (Full a)
     go (Sym a)  as = f a as
     go (s :$ a) as = go s (a :* as)
-
-query :: forall sym a c
-    .  ( forall sig . (a ~ DenResult sig) =>
-           sym sig -> Args (AST sym) sig -> c (Full a)
-       )
-    -> ASTF sym a
-    -> c (Full a)
-query = match
-{-# DEPRECATED query "Please use `match` instead." #-}
 
 -- | A version of 'match' with a simpler result type
 simpleMatch :: forall sym a b
