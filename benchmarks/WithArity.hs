@@ -10,18 +10,17 @@ import Data.Syntactic.Evaluation
 main :: IO ()
 main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-results/withArity.csv"}) (return ())
          [ bgroup "eval 5"  [ bench "gadt"      $ nf evl (gExpr 5)
-                            , bench "Syntactic" $ nf evaluate (sExpr 5) ]
+                            , bench "Syntactic" $ nf eval (sExpr 5) ]
          , bgroup "eval 6"  [ bench "gadt"      $ nf evl (gExpr 6)
-                            , bench "Syntactic" $ nf evaluate (sExpr 6) ]
+                            , bench "Syntactic" $ nf eval (sExpr 6) ]
          , bgroup "eval 7"  [ bench "gadt"      $ nf evl (gExpr 7)
-                            , bench "Syntactic" $ nf evaluate (sExpr 7) ]
+                            , bench "Syntactic" $ nf eval (sExpr 7) ]
          , bgroup "size 5"  [ bench "gadt"      $ nf gSize (gExpr 5)
                             , bench "Syntactic" $ nf size (sExpr 5) ]
          , bgroup "size 6"  [ bench "gadt"      $ nf gSize (gExpr 6)
                             , bench "Syntactic" $ nf size (sExpr 6) ]
          , bgroup "size 7"  [ bench "gadt"      $ nf gSize (gExpr 7)
                             , bench "Syntactic" $ nf size (sExpr 7) ]]
-
 
 -- Expressions
 gExpr :: Int -> E Int
@@ -107,12 +106,12 @@ instance Render T
 
 interpretationInstances ''T
 
-instance Eval T
+instance Eval T t
   where
-    evaluate (T0 a) = a
-    evaluate T1     = id
-    evaluate T2     = (+)
-    evaluate T3     = \a b c -> a + b + c
-    evaluate T5     = \a b c d e -> a + b + c + d + e
-    evaluate T10    = \a b c d e f g h i j -> a + b + c + d + e + f + g + h + i + j
+    toSemSym (T0 a) = Sem a
+    toSemSym T1     = Sem id
+    toSemSym T2     = Sem (+)
+    toSemSym T3     = Sem $ \a b c -> a + b + c
+    toSemSym T5     = Sem $ \a b c d e -> a + b + c + d + e
+    toSemSym T10    = Sem $ \a b c d e f g h i j -> a + b + c + d + e + f + g + h + i + j
 

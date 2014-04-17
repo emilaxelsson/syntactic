@@ -9,30 +9,30 @@ import Data.Syntactic.Evaluation
 
 main :: IO ()
 main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-results/normal.csv"}) (return ())
-         [ bgroup "Eval Tree 10"   [ bench "gadt"      $ nf eval (gadtExpr 10)
-                                   , bench "syntactic" $ nf evaluate (syntacticExpr 10)]
-         , bgroup "Eval Tree 15"   [ bench "gadt"      $ nf eval (gadtExpr 15)
-                                   , bench "syntactic" $ nf evaluate (syntacticExpr 15)]
-         , bgroup "Eval Tree 20"   [ bench "gadt"      $ nf eval (gadtExpr 20)
-                                   , bench "syntactic" $ nf evaluate (syntacticExpr 20) ]
+         [ bgroup "Eval Tree 10"   [ bench "gadt"      $ nf evl (gadtExpr 10)
+                                   , bench "syntactic" $ nf eval (syntacticExpr 10)]
+         , bgroup "Eval Tree 15"   [ bench "gadt"      $ nf evl (gadtExpr 15)
+                                   , bench "syntactic" $ nf eval (syntacticExpr 15)]
+         , bgroup "Eval Tree 20"   [ bench "gadt"      $ nf evl (gadtExpr 20)
+                                   , bench "syntactic" $ nf eval (syntacticExpr 20) ]
          , bgroup "Size Tree 10"   [ bench "gadt"      $ nf gSize (gadtExpr 10)
                                    , bench "syntactic" $ nf size (syntacticExpr 10)]
          , bgroup "Size Tree 15"   [ bench "gadt"      $ nf gSize (gadtExpr 15)
                                    , bench "syntactic" $ nf size (syntacticExpr 15)]
          , bgroup "Size Tree 20"   [ bench "gadt"      $ nf gSize (gadtExpr 20)
                                    , bench "syntactic" $ nf size (syntacticExpr 20)]
-         , bgroup "Eval IFTree 10" [ bench "if gadt"   $ nf eval (gadtExpr 10)
-                                   , bench "syntactic" $ nf evaluate (syntacticExpr 10)]
-         , bgroup "Eval IFTree 15" [ bench "gadt"      $ nf eval (gadtExpr 15)
-                                   , bench "syntactic" $ nf evaluate (syntacticExpr 15)]
-         , bgroup "Eval IFTree 20" [ bench "gadt"      $ nf eval (gadtExpr 20)
-                                   , bench "syntactic" $ nf evaluate (syntacticExpr 20) ]
+         , bgroup "Eval IFTree 10" [ bench "if gadt"   $ nf evl (gadtExpr 10)
+                                   , bench "syntactic" $ nf eval (syntacticExpr 10)]
+         , bgroup "Eval IFTree 15" [ bench "gadt"      $ nf evl (gadtExpr 15)
+                                   , bench "syntactic" $ nf eval (syntacticExpr 15)]
+         , bgroup "Eval IFTree 20" [ bench "gadt"      $ nf evl (gadtExpr 20)
+                                   , bench "syntactic" $ nf eval (syntacticExpr 20) ]
          , bgroup "Size IFTree 10" [ bench "gadt"      $ nf gSize (gadtExpr 10)
-                                   , bench "syntactic" $ nf evaluate (syntacticExpr 10)]
+                                   , bench "syntactic" $ nf eval (syntacticExpr 10)]
          , bgroup "Size IFTree 15" [ bench "gadt"      $ nf gSize (gadtExpr 15)
-                                   , bench "syntactic" $ nf evaluate (syntacticExpr 15)]
+                                   , bench "syntactic" $ nf eval (syntacticExpr 15)]
          , bgroup "Size IFTree 20" [ bench "gadt"      $ nf gSize (gadtExpr 20)
-                                   , bench "syntactic" $ nf evaluate (syntacticExpr 20) ]]
+                                   , bench "syntactic" $ nf eval (syntacticExpr 20) ]]
 
 -- Expressions
 gadtExpr :: Int -> Expr Int
@@ -62,12 +62,12 @@ data Expr t where
   (:==) :: Eq t => Expr t   -> Expr t    -> Expr Bool
   If    :: Expr Bool -> Expr t -> Expr t -> Expr t
 
-eval :: Expr t -> t
-eval (LitI n)     =  n
-eval (LitB b)     =  b
-eval (e1 :+ e2)   =  eval e1 +  eval e2
-eval (e1 :== e2)  =  eval e1 == eval e2
-eval (If b t e)   =  if eval b then eval t else eval e
+evl :: Expr t -> t
+evl (LitI n)     =  n
+evl (LitB b)     =  b
+evl (e1 :+ e2)   =  evl e1 +  evl e2
+evl (e1 :== e2)  =  evl e1 == evl e2
+evl (If b t e)   =  if evl b then evl t else evl e
 
 gSize :: Expr t ->  Int
 gSize (LitI n)     =  1
@@ -112,10 +112,10 @@ instance Render ExprS where
 
 interpretationInstances ''ExprS
 
-instance Eval ExprS where
-  evaluate (EI n) = n
-  evaluate (EB b) = b
-  evaluate (EAdd) = (+)
-  evaluate (EEq)  = (==)
-  evaluate (EIf)  = \c a b -> if c then a else b
+instance Eval ExprS t where
+  toSemSym (EI n) = Sem n
+  toSemSym (EB b) = Sem b
+  toSemSym (EAdd) = Sem (+)
+  toSemSym (EEq)  = Sem (==)
+  toSemSym (EIf)  = Sem $ \c a b -> if c then a else b
 
