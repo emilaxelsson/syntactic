@@ -1,5 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
+-- | Equality and rendering of 'AST's
+
 module Data.Syntactic.Interpretation
     ( -- * Equality
       Equality (..)
@@ -35,21 +37,20 @@ import Data.Syntactic.Syntax
 -- * Equality
 ----------------------------------------------------------------------------------------------------
 
--- | Equality for expressions
-class Equality expr
+-- | Higher-kinded equality
+class Equality e
   where
-    -- | Equality for expressions
+    -- | Higher-kinded equality
     --
-    -- Comparing expressions of different types is often needed when dealing
-    -- with expressions with existentially quantified sub-terms.
-    equal :: expr a -> expr b -> Bool
+    -- Comparing elements of different types is often needed when dealing with expressions with
+    -- existentially quantified sub-terms.
+    equal :: e a -> e b -> Bool
 
-    -- | Computes a 'Hash' for an expression. Expressions that are equal
-    -- according to 'equal' must result in the same hash:
+    -- | Higher-kinded hashing. Elements that are equal according to 'equal' must result in the same
+    -- hash:
     --
     -- @equal a b  ==>  hash a == hash b@
-    hash :: expr a -> Hash
-
+    hash :: e a -> Hash
 
 instance Equality sym => Equality (AST sym)
   where
@@ -73,7 +74,7 @@ instance (Equality sym1, Equality sym2) => Equality (sym1 :+: sym2)
     hash (InjL a) = hashInt 0 `combine` hash a
     hash (InjR a) = hashInt 1 `combine` hash a
 
-instance (Equality expr1, Equality expr2) => Eq ((expr1 :+: expr2) a)
+instance (Equality sym1, Equality sym2) => Eq ((sym1 :+: sym2) a)
   where
     (==) = equal
 
@@ -123,7 +124,7 @@ renderArgsSmart args sym
       && last name == ')'
       && length args == 2
 
--- | Render an expression as concrete syntax
+-- | Render an 'AST' as concrete syntax
 render :: forall sym a. Render sym => ASTF sym a -> String
 render = go []
   where
@@ -156,7 +157,7 @@ instance (StringTree sym1, StringTree sym2) => StringTree (sym1 :+: sym2)
     stringTreeSym args (InjL s) = stringTreeSym args s
     stringTreeSym args (InjR s) = stringTreeSym args s
 
--- | Convert an expression to a 'Tree' of strings
+-- | Convert an 'AST' to a 'Tree' of strings
 stringTree :: forall sym a . StringTree sym => ASTF sym a -> Tree String
 stringTree = go []
   where

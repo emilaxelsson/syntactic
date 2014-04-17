@@ -1,6 +1,46 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Syntactic.Evaluation where
+-- | Evaluation using semantic trees
+--
+-- For details, see: Generic Almost-Tagless Evaluation
+-- (presentation at TFP 2014,
+-- <http://www.cse.chalmers.se/~emax/documents/axelsson2014generic.pdf>).
+
+-- TODO Update reference when published.
+
+module Data.Syntactic.Evaluation
+  ( -- * Variable names
+    Name (..)
+    -- * Simple evaluation
+  , Denotation
+  , EvalEnv
+  , Sem (..)
+  , evalSem
+  , Eval (..)
+  , toSem
+  , evalOpen
+  , evalClosed
+  , eval
+  , appDen
+    -- * Monadic evaluation
+  , NonFun (..)
+  , FunWit (..)
+  , Monadic
+  , Monadic1
+  , DenotationM
+  , DenotationMM
+  , MonadicRes
+  , getResult
+  , appDenM
+  , appDenMM
+  , SemM (..)
+  , evalSemM
+  , EvalM (..)
+  , toSemM
+  , evalOpenM
+  , evalClosedM
+  , evalM
+  ) where
 
 
 
@@ -36,16 +76,16 @@ type family   Denotation sig
 type instance Denotation (Full a)    = a
 type instance Denotation (a :-> sig) = a -> Denotation sig
 
+-- | Variable environment used for evaluation
+type EvalEnv t = [(Name, Dynamic t)]
+  -- TODO Use a more efficient data structure
+
 -- | Symbols in a semantic tree
 data Sem t a
   where
     SemVar :: TypeRep t a -> Name -> Sem t (Full a)
     SemLam :: TypeRep t a -> Name -> Sem t (b :-> Full (a -> b))
     Sem    :: Denotation sig -> Sem t sig
-
--- | Variable environment used for evaluation
-type EvalEnv t = [(Name, Dynamic t)]
-  -- TODO Use a more efficient data structure
 
 -- | Evaluation of a semantic tree
 evalSem :: TypeEq t t => EvalEnv t -> AST (Sem t) sig -> Denotation sig
@@ -128,13 +168,13 @@ type instance Monadic m (a -> b)   = a -> Monadic m b
 -- | Wrap result of a [1..]-ary function in a monad
 --
 -- The reason for not wrapping nullary functions is that the effects of nullary monadic values can
--- be threaded outside of the semantic functions. (This is done by 'appArgsM'.)
+-- be threaded outside of the semantic functions. (This is done by 'appDenM'.)
 type family   Monadic1 (m :: * -> *) a
 type instance Monadic1 m (NonFun a) = a
 type instance Monadic1 m (a -> b)   = Monadic m (a -> b)
 
 -- | Monadic semantic function. Like 'Denotation', but wraps the result in a monad, and applies
--- `Monadic1 m` to the arguments.
+-- 'Monadic1' to the arguments.
 type family   DenotationM (m :: * -> *) sig
 type instance DenotationM (m :: * -> *) (Full (NonFun a)) = m a
 type instance DenotationM (m :: * -> *) (a :-> sig)       = Monadic1 m a -> DenotationM m sig
@@ -154,17 +194,17 @@ getResult :: MonadicRes m (Full a) -> Monadic m a
 getResult (MonadicRes _ d) = d
 
 -- | Apply a monadic semantic function to a list of 'MonadicRes' arguments
-appArgsM :: (Monad m, DenResult sig ~ NonFun a) =>
+appDenM :: (Monad m, DenResult sig ~ NonFun a) =>
     DenotationM m sig -> Args (MonadicRes m) sig -> m a
-appArgsM d Nil                           = d
-appArgsM d (MonadicRes IsntFun ma :* as) = ma >>= \a -> appArgsM (d a) as
-appArgsM d (MonadicRes IsFun f    :* as) = appArgsM (d f) as
+appDenM d Nil                           = d
+appDenM d (MonadicRes IsntFun ma :* as) = ma >>= \a -> appDenM (d a) as
+appDenM d (MonadicRes IsFun f    :* as) = appDenM (d f) as
 
 -- | Apply a monadic semantic function to a list of 'MonadicRes' arguments
-appArgsMM :: (Monad m, DenResult sig ~ NonFun a) =>
+appDenMM :: (Monad m, DenResult sig ~ NonFun a) =>
     DenotationMM m sig -> Args (MonadicRes m) sig -> m a
-appArgsMM d Nil                    = d
-appArgsMM d (MonadicRes _ f :* as) = appArgsMM (d f) as
+appDenMM d Nil                    = d
+appDenMM d (MonadicRes _ f :* as) = appDenMM (d f) as
 
 -- | Symbols in a monadic semantic tree
 data SemM m t sig
@@ -188,9 +228,10 @@ evalSemM' env = match ev
         msgType  = "evalSem: type error"  -- TODO Print types
     ev (SemLamM t v) (body :* Nil) =
         MonadicRes IsFun $ \a -> getResult $ evalSemM' ((v, Dyn t a) : env) body
-    ev (SemM d)  as = MonadicRes IsntFun $ appArgsM d  $ mapArgs (evalSemM' env) as
-    ev (SemMM d) as = MonadicRes IsntFun $ appArgsMM d $ mapArgs (evalSemM' env) as
+    ev (SemM d)  as = MonadicRes IsntFun $ appDenM d  $ mapArgs (evalSemM' env) as
+    ev (SemMM d) as = MonadicRes IsntFun $ appDenMM d $ mapArgs (evalSemM' env) as
 
+-- | Evaluation of a monadic semantic tree
 evalSemM :: (Monad m, TypeEq t t) => EvalEnv t -> ASTF (SemM m t) a -> Monadic m a
 evalSemM env = getResult . evalSemM' env
 

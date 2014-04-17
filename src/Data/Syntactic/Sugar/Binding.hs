@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
--- | Syntactic sugar for functions
+-- | 'Syntactic' instance for functions
 --
 -- This module is based on having 'Binding' in the domain. For 'BindingT' import module
 -- "Data.Syntactic.Sugar.BindingT" instead

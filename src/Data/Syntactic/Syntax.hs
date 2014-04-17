@@ -77,7 +77,7 @@ newtype a :-> sig = Partial (a -> sig)
 
 infixr :->
 
--- | Count the number of symbols in an expression
+-- | Count the number of symbols in an 'AST'
 size :: AST sym sig -> Int
 size (Sym _)  = 1
 size (s :$ a) = size s + size a
@@ -126,16 +126,16 @@ instance Project sub sup => Project sub (AST sup)
     prj (Sym s) = prj s
     prj _       = Nothing
 
-instance Project expr expr
+instance Project e e
   where
     prj = Just
 
-instance Project expr1 (expr1 :+: expr2)
+instance Project sym1 (sym1 :+: sym2)
   where
     prj (InjL a) = Just a
     prj _        = Nothing
 
-instance Project expr1 expr3 => Project expr1 (expr2 :+: expr3)
+instance Project sym1 sym3 => Project sym1 (sym2 :+: sym3)
   where
     prj (InjR a) = prj a
     prj _        = Nothing
@@ -150,15 +150,15 @@ instance (sub :<: sup) => (sub :<: AST sup)
   where
     inj = Sym . inj
 
-instance (expr :<: expr)
+instance (sym :<: sym)
   where
     inj = id
 
-instance (expr1 :<: (expr1 :+: expr2))
+instance (sym1 :<: (sym1 :+: sym2))
   where
     inj = InjL
 
-instance (expr1 :<: expr3) => (expr1 :<: (expr2 :+: expr3))
+instance (sym1 :<: sym3) => (sym1 :<: (sym2 :+: sym3))
   where
     inj = InjR . inj
 

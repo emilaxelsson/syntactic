@@ -56,15 +56,15 @@ gmapQ f a = go a
     go (s :$ a) = f a : go s
     go _        = []
 
--- | Apply a transformation bottom-up over an expression (corresponds to
--- @everywhere@ in Scrap Your Boilerplate)
+-- | Apply a transformation bottom-up over an 'AST' (corresponds to @everywhere@ in Scrap Your
+-- Boilerplate)
 everywhereUp
     :: (forall a . ASTF sym a -> ASTF sym a)
     -> (forall a . ASTF sym a -> ASTF sym a)
 everywhereUp f = f . gmapT (everywhereUp f)
 
--- | Apply a transformation top-down over an expression (corresponds to
--- @everywhere'@ in Scrap Your Boilerplate)
+-- | Apply a transformation top-down over an 'AST' (corresponds to @everywhere'@ in Scrap Your
+-- Boilerplate)
 everywhereDown
     :: (forall a . ASTF sym a -> ASTF sym a)
     -> (forall a . ASTF sym a -> ASTF sym a)
@@ -86,8 +86,7 @@ data Args c sig
 
 infixr :*
 
--- | Map a function over an 'Args' list and collect the results in an ordinary
--- list
+-- | Map a function over an 'Args' list and collect the results in an ordinary list
 listArgs :: (forall a . c (Full a) -> b) -> Args c sig -> [b]
 listArgs f Nil       = []
 listArgs f (a :* as) = f a : listArgs f as
