@@ -27,7 +27,7 @@ import qualified Prelude
 import Data.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAST)
 import qualified Data.Syntactic as Syntactic
 import Data.Syntactic.TypeUniverse
-import Data.Syntactic.Evaluation
+import Data.Syntactic.Evaluation (Sem (..), Eval (..), evalClosed)
 import Data.Syntactic.Constructs
 import Data.Syntactic.Sugar.BindingT
 
@@ -164,6 +164,9 @@ drawAST = putStrLn . showAST
 -- | Write the syntax tree to an HTML file with foldable nodes
 writeHtmlAST :: (Syntactic a, Domain a ~ FeldDomain) => a -> IO ()
 writeHtmlAST = Syntactic.writeHtmlAST "tree.html" . desugar
+
+eval :: (Syntactic a, Domain a ~ FeldDomain) => a -> Internal a
+eval = evalClosed (Proxy :: Proxy FeldTypes) . desugar
 
 
 
