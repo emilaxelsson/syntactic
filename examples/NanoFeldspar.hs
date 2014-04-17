@@ -26,8 +26,10 @@ import qualified Prelude
 
 import Data.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAST)
 import qualified Data.Syntactic as Syntactic
+import Data.Syntactic.TypeUniverse
 import Data.Syntactic.Evaluation
 import Data.Syntactic.Constructs
+import Data.Syntactic.Sugar.BindingT
 
 
 
@@ -35,9 +37,11 @@ import Data.Syntactic.Constructs
 -- * Types
 --------------------------------------------------------------------------------
 
+type FeldTypes = BoolType :+: IntType :+: FloatType :+: ListType
+
 -- | Convenient class alias
-class    (Ord a, Show a) => Type a
-instance (Ord a, Show a) => Type a
+class    (Typeable FeldTypes a, Show a, Eq a, Ord a) => Type a
+instance (Typeable FeldTypes a, Show a, Eq a, Ord a) => Type a
 
 type Length = Int
 type Index  = Int
@@ -72,6 +76,9 @@ instance Eval Arithmetic t
     toSemSym Sub         = Sem (-)
     toSemSym Mul         = Sem (*)
 
+type instance VarUniverse Arithmetic = Empty
+type instance VarUniverse (Arithmetic :+: dom) = VarUniverse dom
+
 data Parallel a
   where
     Parallel :: Type a => Parallel (Length :-> (Index -> a) :-> Full [a])
@@ -85,6 +92,9 @@ interpretationInstances ''Parallel
 instance Eval Parallel t
   where
     toSemSym Parallel = Sem $ \len ixf -> Prelude.map ixf [0 .. len-1]
+
+type instance VarUniverse Parallel = Empty
+type instance VarUniverse (Parallel :+: dom) = VarUniverse dom
 
 data ForLoop a
   where
@@ -101,9 +111,12 @@ instance Eval ForLoop t
   where
     toSemSym ForLoop = Sem $ \len init body -> foldl (flip body) init [0 .. len-1]
 
+type instance VarUniverse ForLoop = Empty
+type instance VarUniverse (ForLoop :+: dom) = VarUniverse dom
+
 type FeldDomain
     =   Arithmetic
-    :+: Binding
+    :+: BindingT FeldTypes
     :+: Parallel
     :+: ForLoop
     :+: Construct
@@ -179,18 +192,6 @@ instance (Type a, Num a) => Num (Data a)
     (+)         = sugarSym Add
     (-)         = sugarSym Sub
     (*)         = sugarSym Mul
-
-instance
-    ( Syntactic a, Domain a ~ dom
-    , Syntactic b, Domain b ~ dom
-    , Binding :<: dom
-    ) =>
-      Syntactic (a -> b)
-  where
-    type Domain (a -> b)   = Domain a
-    type Internal (a -> b) = Internal a -> Internal b
-    desugar f = lam (desugar . f . sugar)
-    sugar     = error "sugar not implemented for (a -> b)"
 
 -- | Parallel array
 parallel :: Type a => Data Length -> (Data Index -> Data a) -> Data [a]

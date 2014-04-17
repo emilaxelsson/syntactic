@@ -53,6 +53,8 @@ library
     Data.Syntactic.TypeUniverse
     Data.Syntactic.Evaluation
     Data.Syntactic.Constructs
+    Data.Syntactic.Sugar.Binding
+    Data.Syntactic.Sugar.BindingT
 
   other-modules:
     Data.Syntactic.TypeUniverse.TypeUniverse
