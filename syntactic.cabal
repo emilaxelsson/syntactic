@@ -59,19 +59,15 @@ library
     Data.Syntactic.TypeUniverse.Sub
 
   build-depends:
-    array,
-    base >= 4 && < 4.8,
+    base >= 4 && < 5,
     containers,
     constraints,
     data-hash,
-    ghc-prim,
     mtl >= 2 && < 3,
     safe,
     tagged,
     template-haskell,
-    transformers >= 0.2,
-    tree-view,
-    tuple >= 0.2
+    tree-view
 
   hs-source-dirs: src
 
@@ -123,7 +119,6 @@ test-suite NanoFeldspar
   build-depends:
     syntactic,
     base,
-    bytestring,
     containers,
     tasty,
     tasty-golden,
