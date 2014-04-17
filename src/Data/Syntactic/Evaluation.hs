@@ -70,12 +70,13 @@ instance (Eval sym1 t, Eval sym2 t) => Eval (sym1 :+: sym2) t
     toSemSym (InjL s) = toSemSym s
     toSemSym (InjR s) = toSemSym s
 
-instance Eval sym t => Eval (sym :| pred) t            where toSemSym (C a) = toSemSym a
-instance Eval sym t => Eval (sym :|| pred) t           where toSemSym (C' a) = toSemSym a
-instance Eval sym t => Eval (SubConstr1 c sym p) t     where toSemSym (SubConstr1 a) = toSemSym a
-instance Eval sym t => Eval (SubConstr2 c sym pa pb) t where toSemSym (SubConstr2 a) = toSemSym a
-instance               Eval Empty t                    where toSemSym = error "Not implemented: toSemSym for Empty"
-instance Eval sym t => Eval (sym :&: info) t           where toSemSym = toSemSym . decorExpr
+instance Eval Empty t
+  where
+    toSemSym = error "Not implemented: toSemSym for Empty"
+
+instance Eval sym t => Eval (sym :&: info) t
+  where
+    toSemSym = toSemSym . decorExpr
 
 -- | Construct a semantic tree
 toSem :: Eval sym t => AST sym sig -> AST (Sem t) sig
@@ -202,12 +203,13 @@ instance (EvalM sym1 m t, EvalM sym2 m t) => EvalM (sym1 :+: sym2) m t
     toSemSymM (InjL s) = toSemSymM s
     toSemSymM (InjR s) = toSemSymM s
 
-instance EvalM sym t m => EvalM (sym :| pred) t m            where toSemSymM (C a) = toSemSymM a
-instance EvalM sym t m => EvalM (sym :|| pred) t m           where toSemSymM (C' a) = toSemSymM a
-instance EvalM sym t m => EvalM (SubConstr1 c sym p) t m     where toSemSymM (SubConstr1 a) = toSemSymM a
-instance EvalM sym t m => EvalM (SubConstr2 c sym pa pb) t m where toSemSymM (SubConstr2 a) = toSemSymM a
-instance                  EvalM Empty t m                    where toSemSymM = error "Not implemented: toSemSymM for Empty"
-instance EvalM sym t m => EvalM (sym :&: info) t m           where toSemSymM = toSemSymM . decorExpr
+instance EvalM Empty t m
+  where
+    toSemSymM = error "Not implemented: toSemSymM for Empty"
+
+instance EvalM sym t m => EvalM (sym :&: info) t m
+  where
+    toSemSymM = toSemSymM . decorExpr
 
 -- | Construct a monadic semantic tree
 toSemM :: EvalM sym m t => AST sym sig -> AST (SemM m t) sig

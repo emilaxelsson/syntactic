@@ -11,7 +11,6 @@ module Data.Syntactic.Sugar where
 
 
 import Data.Syntactic.Syntax
-import Data.Syntactic.Constraint
 
 
 
@@ -77,8 +76,6 @@ instance
     desugarN f = desugarN . f . sugar
     sugarN f   = sugarN . f . desugar
 
-
-
 -- | \"Sugared\" symbol application
 --
 -- 'sugarSym' has any type of the form:
@@ -94,25 +91,4 @@ instance
 -- >       -> (a -> b -> ... -> x)
 sugarSym :: (sub :<: AST sup, ApplySym sig fi sup, SyntacticN f fi) => sub sig -> f
 sugarSym = sugarN . appSym
-
--- | \"Sugared\" symbol application
---
--- 'sugarSymC' has any type of the form:
---
--- > sugarSymC ::
--- >     ( InjectC sub (AST sup) (Internal x)
--- >     , Syntactic a
--- >     , Syntactic b
--- >     , ...
--- >     , Syntactic x
--- >     , Domain a ~ Domain b ~ ... ~ Domain x
--- >     ) => sub (Internal a :-> Internal b :-> ... :-> Full (Internal x))
--- >       -> (a -> b -> ... -> x)
-sugarSymC
-    :: ( InjectC sub (AST sup) (DenResult sig)
-       , ApplySym sig fi sup
-       , SyntacticN f fi
-       )
-    => sub sig -> f
-sugarSymC = sugarN . appSymC
 

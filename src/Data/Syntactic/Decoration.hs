@@ -10,7 +10,6 @@ import Data.Tree.View
 
 import Data.Syntactic.Syntax
 import Data.Syntactic.Traversal
-import Data.Syntactic.Constraint
 import Data.Syntactic.Interpretation
 
 
@@ -32,11 +31,6 @@ data (expr :&: info) sig
            , decorInfo :: info (DenResult sig)
            }
         -> (expr :&: info) sig
-
-instance Constrained expr => Constrained (expr :&: info)
-  where
-    type Sat (expr :&: info) = Sat expr
-    exprDict (a :&: _) = exprDict a
 
 instance Project sub sup => Project sub (sup :&: info)
   where

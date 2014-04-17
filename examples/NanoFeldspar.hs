@@ -198,11 +198,11 @@ instance (Type a, Num a) => Num (Data a)
 
 -- | Parallel array
 parallel :: Type a => Data Length -> (Data Index -> Data a) -> Data [a]
-parallel = sugarSymC Parallel
+parallel = sugarSym Parallel
 
 -- | For loop
 forLoop :: Syntax st => Data Length -> st -> (Data Index -> st -> st) -> st
-forLoop = sugarSymC ForLoop
+forLoop = sugarSym ForLoop
 
 (?) :: forall a . Syntax a => Data Bool -> (a,a) -> a
 c ? (t,f) = sugarSym sym c t f
