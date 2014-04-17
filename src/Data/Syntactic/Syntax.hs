@@ -21,6 +21,13 @@ module Data.Syntactic.Syntax
     , (:<:) (..)
     , appSym
     , Empty
+      -- * Existential quantification
+    , E (..)
+    , liftE
+    , liftE2
+    , EF (..)
+    , liftEF
+    , liftEF2
       -- * Type inference
     , symType
     , prjP
@@ -176,6 +183,34 @@ appSym = appSym' . inj
 --
 -- > (A :+: B :+: Empty)
 data Empty :: * -> *
+
+
+
+--------------------------------------------------------------------------------
+-- * Existential quantification
+--------------------------------------------------------------------------------
+
+-- | Existential quantification
+data E e
+  where
+    E :: e a -> E e
+
+liftE :: (forall a . e a -> b) -> E e -> b
+liftE f (E a) = f a
+
+liftE2 :: (forall a b . e a -> e b -> c) -> E e -> E e -> c
+liftE2 f (E a) (E b) = f a b
+
+-- | Existential quantification of 'Full'-indexed type
+data EF e
+  where
+    EF :: e (Full a) -> EF e
+
+liftEF :: (forall a . e (Full a) -> b) -> EF e -> b
+liftEF f (EF a) = f a
+
+liftEF2 :: (forall a b . e (Full a) -> e (Full b) -> c) -> EF e -> EF e -> c
+liftEF2 f (EF a) (EF b) = f a b
 
 
 

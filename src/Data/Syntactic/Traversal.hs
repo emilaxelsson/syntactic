@@ -5,6 +5,7 @@ module Data.Syntactic.Traversal
     , gmapT
     , everywhereUp
     , everywhereDown
+    , universe
     , Args (..)
     , listArgs
     , mapArgs
@@ -69,6 +70,14 @@ everywhereDown
     :: (forall a . ASTF sym a -> ASTF sym a)
     -> (forall a . ASTF sym a -> ASTF sym a)
 everywhereDown f = gmapT (everywhereDown f) . f
+
+-- | List all sub-terms (corresponds to @universe@ in Uniplate)
+universe :: ASTF sym a -> [EF (AST sym)]
+universe a = EF a : go a
+  where
+    go :: AST sym a -> [EF (AST sym)]
+    go (Sym s)  = []
+    go (s :$ a) = go s ++ universe a
 
 -- | List of symbol arguments
 data Args c sig
