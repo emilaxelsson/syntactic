@@ -6,7 +6,6 @@ module Data.Syntactic.Evaluation where
 
 import Control.Monad.Identity
 
-import Data.Proxy
 import Safe
 
 import Data.Syntactic

@@ -1,8 +1,6 @@
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-{-# OPTIONS_GHC -cpp #-}
-
 -- | Generic representation of typed syntax trees
 --
 -- For details, see: A Generic Abstract Syntax Model for Embedded Languages
@@ -29,7 +27,6 @@ module Data.Syntactic.Syntax
 
 
 
-import Control.Monad.Instances  -- TODO Not needed in GHC 7.6
 import Data.Foldable (Foldable)
 import Data.Traversable (Traversable)
 import Data.Typeable

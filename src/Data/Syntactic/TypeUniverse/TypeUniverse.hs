@@ -7,11 +7,7 @@ module Data.Syntactic.TypeUniverse.TypeUniverse where
 import Data.Constraint
 import Data.Proxy
 
-import Data.Syntactic.Syntax
-import Data.Syntactic.Traversal
-import Data.Syntactic.Constraint
-import Data.Syntactic.Sugar
-import Data.Syntactic.Interpretation
+import Data.Syntactic
 
 
 

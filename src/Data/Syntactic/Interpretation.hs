@@ -22,7 +22,6 @@ module Data.Syntactic.Interpretation
 
 import Data.Tree (Tree (..))
 import Language.Haskell.TH
-import Language.Haskell.TH.Quote
 
 import Data.Hash
 import Data.Tree.View

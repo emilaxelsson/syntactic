@@ -24,8 +24,6 @@ import Prelude hiding
     )
 import qualified Prelude
 
-import Data.Tree
-
 import Data.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAST)
 import qualified Data.Syntactic as Syntactic
 import Data.Syntactic.Evaluation
