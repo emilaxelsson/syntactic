@@ -1,4 +1,5 @@
-{-# LANGUAGE GADTs, TypeOperators, TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell #-}
+
 module WithArity (main) where
 
 import Criterion.Main

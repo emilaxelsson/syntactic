@@ -108,16 +108,17 @@ test-suite NanoFeldspar
   default-language: Haskell2010
 
   default-extensions:
+
+  other-extensions:
     FlexibleContexts
     FlexibleInstances
     GADTs
+    MultiParamTypeClasses
     ScopedTypeVariables
+    TemplateHaskell
     TypeFamilies
     TypeOperators
     UndecidableInstances
-
-  other-extensions:
-    TemplateHaskell
 
   build-depends:
     syntactic,
@@ -143,10 +144,10 @@ benchmark syntactic-bench
   default-language: Haskell2010
 
   default-extensions:
-    FlexibleContexts
     FlexibleInstances
     GADTs
-    ScopedTypeVariables
-    TypeFamilies
+    MultiParamTypeClasses
     TypeOperators
-    UndecidableInstances
+
+  other-extensions:
+    TemplateHaskell

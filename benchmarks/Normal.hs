@@ -1,4 +1,5 @@
-{-# LANGUAGE GADTs, TypeOperators, TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell #-}
+
 module Normal (main) where
 
 import Criterion.Main
