@@ -18,11 +18,10 @@ module NanoFeldspar where
 
 
 
-import Prelude hiding
-    ( length, max, min, not, (==)
-    , map, sum, zip, zipWith
-    )
+import Prelude hiding (max, min, not, (==), length, map, sum, zip, zipWith)
 import qualified Prelude
+
+import Data.Tree
 
 import Data.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAST)
 import qualified Data.Syntactic as Syntactic
@@ -77,6 +76,24 @@ instance Eval Arithmetic t
 
 type instance VarUniverse (Arithmetic :+: dom) = VarUniverse dom
 
+data Let a
+  where
+    Let :: Let (a :-> (a -> b) :-> Full b)
+
+instance Render Let
+  where
+    renderSym Let = "letBind"
+
+instance StringTree Let
+  where
+    stringTreeSym [a, Node lam [body]] Let
+        | ("Lam",v) <- splitAt 3 lam = Node ("Let" ++ v) [a,body]
+    stringTreeSym [a,f] Let = Node "Let" [a,f]
+
+instance Eval Let t
+  where
+    toSemSym Let = Sem (flip ($))
+
 data Parallel a
   where
     Parallel :: Type a => Parallel (Length :-> (Index -> a) :-> Full [a])
@@ -112,6 +129,7 @@ type instance VarUniverse (ForLoop :+: dom) = VarUniverse dom
 type FeldDomain
     =   Arithmetic
     :+: BindingT FeldTypes
+    :+: Let
     :+: Parallel
     :+: ForLoop
     :+: Construct
@@ -132,7 +150,7 @@ instance (Syntactic a, Domain a ~ FeldDomain, Type (Internal a)) => Syntax a
 
 instance Type a => Show (Data a)
   where
-    show (Data a) = render a
+    show = render . unData
 
 
 
@@ -190,6 +208,9 @@ instance (Type a, Num a) => Num (Data a)
     (+)         = sugarSym Add
     (-)         = sugarSym Sub
     (*)         = sugarSym Mul
+
+share :: (Syntax a, Syntactic b, Domain b ~ FeldDomain) => a -> (a -> b) -> b
+share = sugarSym Let
 
 -- | Parallel array
 parallel :: Type a => Data Length -> (Data Index -> Data a) -> Data [a]
