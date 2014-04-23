@@ -116,6 +116,9 @@ data (sym1 :+: sym2) a
 infixr :+:
 
 -- | Symbol projection
+--
+-- The class is defined for /all pairs of types/, but 'prj' can only succeed if @sup@ is of the form
+-- @(... `:+:` sub `:+:` ...)@.
 class Project sub sup
   where
     -- | Partial projection from @sup@ to @sub@
@@ -126,7 +129,7 @@ instance Project sub sup => Project sub (AST sup)
     prj (Sym s) = prj s
     prj _       = Nothing
 
-instance Project e e
+instance Project sym sym
   where
     prj = Just
 
@@ -140,7 +143,9 @@ instance Project sym1 sym3 => Project sym1 (sym2 :+: sym3)
     prj (InjR a) = prj a
     prj _        = Nothing
 
--- | Symbol subsumption
+-- | Symbol injection
+--
+-- The class includes types @sub@ and @sup@ where @sup@ is of the form @(... `:+:` sub `:+:` ...)@.
 class Project sub sup => sub :<: sup
   where
     -- | Injection from @sub@ to @sup@
