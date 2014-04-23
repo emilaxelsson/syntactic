@@ -79,6 +79,11 @@ data Let a
   where
     Let :: Let (a :-> (a -> b) :-> Full b)
 
+instance Equality Let
+  where
+    equal = equalDefault
+    hash  = hashDefault
+
 instance Render Let
   where
     renderSym Let = "letBind"
