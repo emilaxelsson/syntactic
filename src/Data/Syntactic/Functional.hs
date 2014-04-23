@@ -14,6 +14,10 @@ module Data.Syntactic.Functional
     , maxLamT
     , lamT
     , BindingDomain (..)
+      -- * Alpha-equivalence
+    , AlphaEnv
+    , alphaEq'
+    , alphaEq
       -- * Simple evaluation
     , Denotation
     , EvalEnv
@@ -100,6 +104,12 @@ data Binding a
     Var :: Name -> Binding (Full a)
     Lam :: Name -> Binding (b :-> Full (a -> b))
 
+-- | 'equal' does strict identifier comparison; i.e. no alpha equivalence.
+--
+-- 'hash' assigns the same hash to all variables and binders. This is a valid over-approximation
+-- that enables the following property:
+--
+-- @`alphaEq` a b ==> `hash` a == `hash` b@
 instance Equality Binding
   where
     equal (Var v1) (Var v2) = v1==v2
@@ -155,6 +165,12 @@ data BindingT t a
     VarT :: TypeRep t a -> Name -> BindingT t (Full a)
     LamT :: TypeRep t a -> Name -> BindingT t (b :-> Full (a -> b))
 
+-- | 'equal' does strict identifier comparison; i.e. no alpha equivalence.
+--
+-- 'hash' assigns the same hash to all variables and binders. This is a valid over-approximation
+-- that enables the following property:
+--
+-- @`alphaEq` a b ==> `hash` a == `hash` b@
 instance Equality (BindingT t)
   where
     equal (VarT _ v1) (VarT _ v2) = v1==v2
@@ -225,7 +241,7 @@ instance (BindingDomain sym1, BindingDomain sym2) => BindingDomain (sym1 :+: sym
     prVar (InjL s) = prVar s
     prVar (InjR s) = prVar s
     prLam (InjL s) = prLam s
-    prLam (InjR s) = prVar s
+    prLam (InjR s) = prLam s
 
 instance BindingDomain sym => BindingDomain (sym :&: i)
   where
@@ -236,7 +252,7 @@ instance BindingDomain sym => BindingDomain (AST sym)
   where
     prVar (Sym s) = prVar s
     prVar _       = Nothing
-    prLam (Sym s) = prVar s
+    prLam (Sym s) = prLam s
     prLam _       = Nothing
 
 instance BindingDomain Binding
@@ -257,6 +273,50 @@ instance BindingDomain sym
   where
     prVar _ = Nothing
     prLam _ = Nothing
+
+
+
+----------------------------------------------------------------------------------------------------
+-- * Alpha-equivalence
+----------------------------------------------------------------------------------------------------
+
+-- | Environment used by 'alphaEq''
+type AlphaEnv = [(Name,Name)]
+
+alphaEq' :: (Equality sym, BindingDomain sym) => AlphaEnv -> ASTF sym a -> ASTF sym b -> Bool
+alphaEq' env var1 var2
+    | Just v1 <- prVar var1
+    , Just v2 <- prVar var2
+    = case lookup v1 env of
+        Nothing  -> v1==v2   -- Free variables
+        Just v2' -> v2==v2'
+alphaEq' env (lam1 :$ body1) (lam2 :$ body2)
+    | Just v1 <- prLam lam1
+    , Just v2 <- prLam lam2
+    = alphaEq' ((v1,v2):env) body1 body2
+alphaEq' env a b = simpleMatch (alphaEq'' env b) a
+
+alphaEq'' :: (Equality sym, BindingDomain sym) =>
+    AlphaEnv -> ASTF sym b -> sym a -> Args (AST sym) a -> Bool
+alphaEq'' env b a aArgs = simpleMatch (alphaEq''' env a aArgs) b
+
+alphaEq''' :: (Equality sym, BindingDomain sym) =>
+    AlphaEnv -> sym a -> Args (AST sym) a -> sym b -> Args (AST sym) b -> Bool
+alphaEq''' env a aArgs b bArgs
+    | equal a b = alphaEqChildren env a' b'
+    | otherwise = False
+  where
+    a' = appArgs (Sym undefined) aArgs
+    b' = appArgs (Sym undefined) bArgs
+
+alphaEqChildren :: (Equality sym, BindingDomain sym) => AlphaEnv -> AST sym a -> AST sym b -> Bool
+alphaEqChildren _ (Sym _) (Sym _) = True
+alphaEqChildren env (s :$ a) (t :$ b) = alphaEqChildren env s t && alphaEq' env a b
+alphaEqChildren _ _ _ = False
+
+-- | Alpha-equivalence
+alphaEq :: (Equality sym, BindingDomain sym) => ASTF sym a -> ASTF sym b -> Bool
+alphaEq = alphaEq' []
 
 
 
