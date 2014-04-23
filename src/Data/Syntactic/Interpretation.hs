@@ -137,8 +137,6 @@ instance Render Empty
     renderSym  = error "renderSym: Empty"
     renderArgs = error "renderArgs: Empty"
 
-instance StringTree Empty
-
 instance Render sym => Show (ASTF sym a)
   where
     show = render
@@ -156,6 +154,8 @@ instance (StringTree sym1, StringTree sym2) => StringTree (sym1 :+: sym2)
   where
     stringTreeSym args (InjL s) = stringTreeSym args s
     stringTreeSym args (InjR s) = stringTreeSym args s
+
+instance StringTree Empty
 
 -- | Convert an 'AST' to a 'Tree' of strings
 stringTree :: forall sym a . StringTree sym => ASTF sym a -> Tree String

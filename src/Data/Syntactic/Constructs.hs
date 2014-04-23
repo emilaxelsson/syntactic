@@ -17,6 +17,8 @@ module Data.Syntactic.Constructs
 
 import Data.Tree
 
+import Data.Hash (hashInt)
+
 import Data.Syntactic
 import Data.Syntactic.TypeUniverse
 import Data.Syntactic.Evaluation
@@ -54,6 +56,21 @@ data Binding a
   where
     Var :: Name -> Binding (Full a)
     Lam :: Name -> Binding (b :-> Full (a -> b))
+
+-- | 'equal' does strict identifier comparison; i.e. no alpha equivalence.
+--
+-- 'exprHash' assigns the same hash to all variables and binders. This is a valid over-approximation
+-- that enables the following property:
+--
+-- @`alphaEq` a b ==> `exprHash` a == `exprHash` b@instance Equality Binding
+instance Equality Binding
+  where
+    equal (Var v1) (Var v2) = v1==v2
+    equal (Lam v1) (Lam v2) = v1==v2
+    equal _ _ = False
+
+    hash (Var _) = hashInt 0
+    hash (Lam _) = hashInt 0
 
 instance Render Binding
   where
