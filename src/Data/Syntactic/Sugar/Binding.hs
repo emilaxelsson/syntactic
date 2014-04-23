@@ -10,7 +10,7 @@ module Data.Syntactic.Sugar.Binding where
 
 
 import Data.Syntactic
-import Data.Syntactic.Constructs
+import Data.Syntactic.Functional
 
 
 

@@ -51,8 +51,7 @@ library
     Data.Syntactic.Sugar
     Data.Syntactic.Decoration
     Data.Syntactic.TypeUniverse
-    Data.Syntactic.Evaluation
-    Data.Syntactic.Constructs
+    Data.Syntactic.Functional
     Data.Syntactic.Sugar.Binding
     Data.Syntactic.Sugar.BindingT
 

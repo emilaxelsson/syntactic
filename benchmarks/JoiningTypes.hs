@@ -6,7 +6,7 @@ import Criterion.Main
 import Criterion.Config
 import Data.Monoid
 import Data.Syntactic
-import Data.Syntactic.Evaluation
+import Data.Syntactic.Functional
 
 -- Normal DSL, not joined types.
 data Expr1 t where

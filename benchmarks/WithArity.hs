@@ -6,7 +6,7 @@ import Criterion.Main
 import Criterion.Config
 import Data.Monoid
 import Data.Syntactic hiding (E)
-import Data.Syntactic.Evaluation
+import Data.Syntactic.Functional
 
 main :: IO ()
 main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-results/withArity.csv"}) (return ())

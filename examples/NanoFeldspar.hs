@@ -26,8 +26,7 @@ import Data.Tree
 import Data.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAST)
 import qualified Data.Syntactic as Syntactic
 import Data.Syntactic.TypeUniverse
-import Data.Syntactic.Evaluation (Sem (..), Eval (..), evalClosed)
-import Data.Syntactic.Constructs
+import Data.Syntactic.Functional
 import Data.Syntactic.Sugar.BindingT
 
 

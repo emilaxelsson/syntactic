@@ -11,7 +11,7 @@ module Data.Syntactic.Sugar.BindingT where
 
 import Data.Syntactic
 import Data.Syntactic.TypeUniverse
-import Data.Syntactic.Constructs
+import Data.Syntactic.Functional
 
 
 
