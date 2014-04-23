@@ -98,7 +98,7 @@ instance Show Name
   where
     show (Name n) = show n
 
--- | Variables and binding
+-- | Variables and binders
 data Binding a
   where
     Var :: Name -> Binding (Full a)
@@ -131,8 +131,8 @@ instance StringTree Binding
     stringTreeSym []     (Var v) = Node ('v' : show v) []
     stringTreeSym [body] (Lam v) = Node ("Lam " ++ 'v' : show v) [body]
 
--- | Get the highest variable name of the closest 'Lam' binders. If the term has
--- /ordered binders/ \[1\], 'maxLam' returns the highest name introduced in the whole term.
+-- | Get the highest name bound by the first 'Lam' binders at every path from the root. If the term
+-- has /ordered binders/ \[1\], 'maxLam' returns the highest name introduced in the whole term.
 --
 -- \[1\] Ordered binders means that the names of 'Lam' nodes are decreasing along every path from
 -- the root.
@@ -151,15 +151,16 @@ maxLam _ = 0
 --
 -- \[1\] Ordered binders means that the names of 'Lam' nodes are decreasing along every path from
 -- the root.
+--
+-- See \"Using Circular Programs for Higher-Order Syntax\"
+-- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>)
 lam :: (Binding :<: s) => (ASTF s a -> ASTF s b) -> ASTF s (a -> b)
 lam f = appSym (Lam v) body
   where
     body = f (appSym (Var v))
     v    = maxLam body + 1
-  -- Based on "Using Circular Programs for Higher-Order Syntax"
-  -- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>)
 
--- | Typed variables and binding
+-- | Typed variables and binders
 data BindingT t a
   where
     VarT :: TypeRep t a -> Name -> BindingT t (Full a)
@@ -197,8 +198,8 @@ instance Eval (BindingT t) t
     toSemSym (VarT t v) = SemVar t v
     toSemSym (LamT t v) = SemLam t v
 
--- | Get the highest variable name of the closest 'LamT' binders. If the term has
--- /ordered binders/ \[1\], 'maxLamT' returns the highest name introduced in the whole term.
+-- | Get the highest name bound by the first 'LamT' binders at every path from the root. If the term
+-- has /ordered binders/ \[1\], 'maxLamT' returns the highest name introduced in the whole term.
 --
 -- \[1\] Ordered binders means that the names of 'LamT' nodes are decreasing along every path from
 -- the root.
@@ -217,6 +218,9 @@ maxLamT _ _ = 0
 --
 -- \[1\] Ordered binders means that the names of 'LamT' nodes are decreasing along every path from
 -- the root.
+--
+-- See \"Using Circular Programs for Higher-Order Syntax\"
+-- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>)
 lamT :: forall t s a b . (BindingT t :<: s, Typeable t a) =>
     Proxy t -> (ASTF s a -> ASTF s b) -> ASTF s (a -> b)
 lamT p f = appSym (LamT t v :: BindingT t (b :-> Full (a -> b))) body
@@ -224,8 +228,6 @@ lamT p f = appSym (LamT t v :: BindingT t (b :-> Full (a -> b))) body
     t    = typeRep :: TypeRep t a
     body = f (appSym (VarT t v))
     v    = maxLamT p body + 1
-  -- Based on "Using Circular Programs for Higher-Order Syntax"
-  -- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>)
 
 -- | Domains that \"might\" include variables and binders
 class BindingDomain sym
