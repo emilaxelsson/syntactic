@@ -92,7 +92,7 @@ instance Eval Construct t
 
 -- | Variable name
 newtype Name = Name Integer
-  deriving (Eq, Ord, Num)
+  deriving (Eq, Ord, Num, Enum)
 
 instance Show Name
   where
