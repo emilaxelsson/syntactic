@@ -66,11 +66,13 @@ prop_alphaEq a = alphaEq a (alphaRename a)
 
 prop_alphaEqBad a = alphaEq a (badRename a)
 
-tests = testGroup "TreeTests"
+tests = testGroup "NanoFeldsparTests"
     [ goldenVsString "scProd tree" "tests/gold/scProd.txt" $ return $ fromString $ Nano.showAST Nano.scProd
     , goldenVsString "matMul tree" "tests/gold/matMul.txt" $ return $ fromString $ Nano.showAST Nano.matMul
+
     , testProperty "scProd eval" prop_scProd
     , testProperty "matMul eval" prop_matMul
+
     , testProperty "alphaEq scProd"        (prop_alphaEq (desugar Nano.scProd))
     , testProperty "alphaEq matMul"        (prop_alphaEq (desugar Nano.matMul))
     , testProperty "alphaEq scProd matMul" (not (alphaEq (desugar Nano.scProd) (desugar Nano.matMul)))

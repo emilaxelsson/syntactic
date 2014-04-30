@@ -100,7 +100,7 @@ test-suite NanoFeldspar
 
   hs-source-dirs: tests examples
 
-  main-is: NanoFeldsparTest.hs
+  main-is: NanoFeldsparTests.hs
 
   default-language: Haskell2010
 
