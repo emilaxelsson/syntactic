@@ -1,5 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE RecursiveDo #-}
+{-# LANGUAGE DoRec #-}
 module Language.Syntactic.Sharing.CodeMotion2 
     ( codeMotion2
     , reifySmart2
