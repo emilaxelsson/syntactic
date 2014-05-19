@@ -487,16 +487,21 @@ gather hoistOver pd a = (gatheredArr, a')
                 (Map.findWithDefault [] (geNodeId g) propagateAdditionals)
 
     propagateAdditionals :: Additional
-    propagateAdditionals = propAddsExpr 0 a' $ additionals st
+    propagateAdditionals = foldr propAdditional (additionals st) $ Map.toDescList (additionals st) 
       where
-        propAddsNode :: NodeId -> Additional -> Additional
-        propAddsNode n ad = liftASTB (propAddsExpr n) (geExpr (preGatheredArr ! n)) ad
+        propAdditional :: (NodeId, [(NodeId, GatherInfo)]) -> Additional -> Additional
+        propAdditional (n, gi) ad = propAdditionalNode n gi ad
 
-        propAddsExpr :: NodeId -> AST (NodeDomain dom) b -> Additional -> Additional
-        propAddsExpr n (Sym s) ad = ad
-        propAddsExpr n (s :$ Sym (C' (InjL (Node n')))) ad = propAddsNode n' ad'
+        propAdditionalNode :: NodeId -> [(NodeId, GatherInfo)] -> Additional -> Additional
+        propAdditionalNode n gi ad = liftASTB (propAdditionalExpr n gi) (geExpr (preGatheredArr ! n)) ad
+
+        propAdditionalExpr :: NodeId -> [(NodeId, GatherInfo)] -> AST (NodeDomain dom) b -> Additional -> Additional
+        propAdditionalExpr n gi (Sym s) ad = ad
+        propAdditionalExpr n gi (s :$ Sym (C' (InjL (Node n')))) ad = ad3
           where
-            ad' = Map.insertWith mergeInfos n' (Map.findWithDefault [] n ad) ad
+            ad1 = Map.insertWith mergeInfos n' gi ad
+            ad2 = propAdditionalNode n' gi ad1
+            ad3 = propAdditionalExpr n gi s ad2
 
     applyAdditionals :: [(NodeId, GatherInfo)] -> Gathered dom -> Gathered dom
     applyAdditionals ad g = g { geInfo = mergeInfos ad (geInfo g) }
