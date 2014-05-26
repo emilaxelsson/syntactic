@@ -30,6 +30,7 @@
 module Data.Syntactic.TypeUniverse
     ( module Data.Constraint
     , module Data.Proxy
+    , module Data.Syntactic.Syntax
     , module Data.Syntactic.TypeUniverse.TypeUniverse
     , module Data.Syntactic.TypeUniverse.Sub
     ) where
@@ -39,6 +40,7 @@ module Data.Syntactic.TypeUniverse
 import Data.Constraint (Dict (..))
 import Data.Proxy
 
+import Data.Syntactic.Syntax (E (..))
 import Data.Syntactic.TypeUniverse.TypeUniverse
 import Data.Syntactic.TypeUniverse.Sub
 
