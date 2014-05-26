@@ -113,7 +113,7 @@ instance Render ExprS where
 
 interpretationInstances ''ExprS
 
-instance Eval ExprS t where
+instance Eval ExprS where
   toSemSym (EI n) = Sem n
   toSemSym (EB b) = Sem b
   toSemSym (EAdd) = Sem (+)

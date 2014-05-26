@@ -42,7 +42,7 @@ instance Render Expr1 where
 
 interpretationInstances ''Expr1
 
-instance Eval Expr1 t where
+instance Eval Expr1 where
   toSemSym (EI n)  = Sem n
   toSemSym (EB b)  = Sem b
   toSemSym (EAdd)  = Sem (+)
@@ -88,10 +88,10 @@ instance Render ExprB where
 interpretationInstances ''ExprI
 interpretationInstances ''ExprB
 
-instance Eval ExprI t where
+instance Eval ExprI where
   toSemSym (EIJ n) = Sem n
   toSemSym (EAddJ) = Sem (+)
-instance Eval ExprB t where
+instance Eval ExprB where
   toSemSym (EBJ b) = Sem b
   toSemSym (EEqJ)  = Sem (==)
   toSemSym (EIfJ)  = Sem $ \c a b -> if c then a else b
@@ -148,19 +148,19 @@ interpretationInstances ''Expr4J3
 interpretationInstances ''Expr4J4
 interpretationInstances ''Expr4J5
 
-instance Eval Expr4J1 t where
+instance Eval Expr4J1 where
   toSemSym (E4JI n)  = Sem n
 
-instance Eval Expr4J2 t where
+instance Eval Expr4J2 where
   toSemSym (E4JB b)  = Sem b
 
-instance Eval Expr4J3 t where
+instance Eval Expr4J3 where
   toSemSym (E4JAdd)  = Sem (+)
 
-instance Eval Expr4J4 t where
+instance Eval Expr4J4 where
   toSemSym (E4JEq)   = Sem (==)
 
-instance Eval Expr4J5 t where
+instance Eval Expr4J5 where
   toSemSym (E4JIf)   = Sem $ \c a b -> if c then a else b
 
 -- Expressions

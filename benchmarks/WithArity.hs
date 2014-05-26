@@ -107,7 +107,7 @@ instance Render T
 
 interpretationInstances ''T
 
-instance Eval T t
+instance Eval T
   where
     toSemSym (T0 a) = Sem a
     toSemSym T1     = Sem id
