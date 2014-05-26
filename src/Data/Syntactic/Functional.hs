@@ -26,7 +26,6 @@ module Data.Syntactic.Functional
     , Eval (..)
     , toSem
     , evalOpen
-    , evalClosed
     , eval
     , appDen
       -- * Monadic evaluation
@@ -45,7 +44,6 @@ module Data.Syntactic.Functional
     , EvalM (..)
     , toSemM
     , evalOpenM
-    , evalClosedM
     , evalM
     ) where
 
@@ -53,12 +51,13 @@ module Data.Syntactic.Functional
 
 import Control.Monad.Identity
 import Data.Tree
+import Data.Dynamic
 
 import Data.Hash (hashInt)
+import Data.Proxy
 import Safe
 
 import Data.Syntactic
-import Data.Syntactic.TypeUniverse
 
 
 
@@ -86,7 +85,7 @@ instance Equality Construct
 
 instance StringTree Construct
 
-instance Eval Construct t
+instance Eval Construct
   where
     toSemSym (Construct _ d) = Sem d
 
@@ -161,10 +160,10 @@ lam f = appSym (Lam v) body
     v    = maxLam body + 1
 
 -- | Typed variables and binders
-data BindingT t a
+data BindingT a
   where
-    VarT :: TypeRep t a -> Name -> BindingT t (Full a)
-    LamT :: TypeRep t a -> Name -> BindingT t (b :-> Full (a -> b))
+    VarT :: Typeable a => Name -> BindingT (Full a)
+    LamT :: Typeable a => Name -> BindingT (b :-> Full (a -> b))
 
 -- | 'equal' does strict identifier comparison; i.e. no alpha equivalence.
 --
@@ -172,41 +171,41 @@ data BindingT t a
 -- that enables the following property:
 --
 -- @`alphaEq` a b ==> `hash` a == `hash` b@
-instance Equality (BindingT t)
+instance Equality BindingT
   where
-    equal (VarT _ v1) (VarT _ v2) = v1==v2
-    equal (LamT _ v1) (LamT _ v2) = v1==v2
+    equal (VarT v1) (VarT v2) = v1==v2
+    equal (LamT v1) (LamT v2) = v1==v2
     equal _ _ = False
 
-    hash (VarT _ _) = hashInt 0
-    hash (LamT _ _) = hashInt 0
+    hash (VarT _) = hashInt 0
+    hash (LamT _) = hashInt 0
 
-instance Render (BindingT t)
+instance Render BindingT
   where
-    renderSym (VarT _ v) = renderSym (Var v)
-    renderSym (LamT _ v) = renderSym (Lam v)
-    renderArgs args (VarT _ v) = renderArgs args (Var v)
-    renderArgs args (LamT _ v) = renderArgs args (Lam v)
+    renderSym (VarT v) = renderSym (Var v)
+    renderSym (LamT v) = renderSym (Lam v)
+    renderArgs args (VarT v) = renderArgs args (Var v)
+    renderArgs args (LamT v) = renderArgs args (Lam v)
 
-instance StringTree (BindingT t)
+instance StringTree BindingT
   where
-    stringTreeSym args (VarT _ v) = stringTreeSym args (Var v)
-    stringTreeSym args (LamT _ v) = stringTreeSym args (Lam v)
+    stringTreeSym args (VarT v) = stringTreeSym args (Var v)
+    stringTreeSym args (LamT v) = stringTreeSym args (Lam v)
 
-instance Eval (BindingT t) t
+instance Eval BindingT
   where
-    toSemSym (VarT t v) = SemVar t v
-    toSemSym (LamT t v) = SemLam t v
+    toSemSym (VarT v) = SemVar v
+    toSemSym (LamT v) = SemLam v
 
 -- | Get the highest name bound by the first 'LamT' binders at every path from the root. If the term
 -- has /ordered binders/ \[1\], 'maxLamT' returns the highest name introduced in the whole term.
 --
 -- \[1\] Ordered binders means that the names of 'LamT' nodes are decreasing along every path from
 -- the root.
-maxLamT :: forall t s a . (BindingT t :<: s) => Proxy t -> AST s a -> Name
-maxLamT _ (Sym lam :$ _) | Just (LamT _ n :: BindingT t (b :-> a)) <- prj lam = n
-maxLamT p (s :$ a) = maxLamT p s `Prelude.max` maxLamT p a
-maxLamT _ _ = 0
+maxLamT :: (BindingT :<: s) => AST s a -> Name
+maxLamT (Sym lam :$ _) | Just (LamT n :: BindingT (b :-> a)) <- prj lam = n
+maxLamT (s :$ a) = maxLamT s `Prelude.max` maxLamT a
+maxLamT _ = 0
 
 -- | Higher-order interface for typed variable binding
 --
@@ -221,13 +220,11 @@ maxLamT _ _ = 0
 --
 -- See \"Using Circular Programs for Higher-Order Syntax\"
 -- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>)
-lamT :: forall t s a b . (BindingT t :<: s, Typeable t a) =>
-    Proxy t -> (ASTF s a -> ASTF s b) -> ASTF s (a -> b)
-lamT p f = appSym (LamT t v :: BindingT t (b :-> Full (a -> b))) body
+lamT :: forall s a b . (BindingT :<: s, Typeable a) => (ASTF s a -> ASTF s b) -> ASTF s (a -> b)
+lamT f = appSym (LamT v :: BindingT (b :-> Full (a -> b))) body
   where
-    t    = typeRep :: TypeRep t a
-    body = f (appSym (VarT t v))
-    v    = maxLamT p body + 1
+    body = f (appSym (VarT v))
+    v    = maxLamT body + 1
 
 -- | Domains that \"might\" include variables and binders
 class BindingDomain sym
@@ -235,7 +232,7 @@ class BindingDomain sym
     prVar :: sym sig -> Maybe Name
     prLam :: sym sig -> Maybe Name
   -- It is in principle possible to replace a constraint `BindingDomain s` by
-  -- `(Project Binding s, Project (BindingT t) s)`. However, the problem is that one then has to
+  -- `(Project Binding s, Project BindingT s)`. However, the problem is that one then has to
   -- specify the type `t` through a `Proxy`. The `BindingDomain` class gets around this problem.
 
 instance (BindingDomain sym1, BindingDomain sym2) => BindingDomain (sym1 :+: sym2)
@@ -264,12 +261,12 @@ instance BindingDomain Binding
     prLam (Lam v) = Just v
     prLam _       = Nothing
 
-instance BindingDomain (BindingT t)
+instance BindingDomain BindingT
   where
-    prVar (VarT _ v) = Just v
-    prVar _          = Nothing
-    prLam (LamT _ v) = Just v
-    prLam _          = Nothing
+    prVar (VarT v) = Just v
+    prVar _        = Nothing
+    prLam (LamT v) = Just v
+    prLam _        = Nothing
 
 instance BindingDomain sym
   where
@@ -332,66 +329,57 @@ type instance Denotation (Full a)    = a
 type instance Denotation (a :-> sig) = a -> Denotation sig
 
 -- | Variable environment used for evaluation
-type EvalEnv t = [(Name, Dynamic t)]
+type EvalEnv = [(Name, Dynamic)]
   -- TODO Use a more efficient data structure
 
 -- | Symbols in a semantic tree
-data Sem t a
+data Sem a
   where
-    SemVar :: TypeRep t a -> Name -> Sem t (Full a)
-    SemLam :: TypeRep t a -> Name -> Sem t (b :-> Full (a -> b))
-    Sem    :: Denotation sig -> Sem t sig
+    SemVar :: Typeable a => Name -> Sem (Full a)
+    SemLam :: Typeable a => Name -> Sem (b :-> Full (a -> b))
+    Sem    :: Denotation sig -> Sem sig
 
 -- | Evaluation of a semantic tree
-evalSem :: TypeEq t t => EvalEnv t -> AST (Sem t) sig -> Denotation sig
-evalSem env (Sym (SemVar t v))
-    | Dyn ta a <- fromJustNote (msgVar v) $ lookup v env
-    , Dict     <- fromJustNote msgType    $ typeEq t ta
-    = a
+evalSem :: EvalEnv -> AST Sem sig -> Denotation sig
+evalSem env (Sym (SemVar v))
+    | d <- fromJustNote (msgVar v) $ lookup v env
+    = fromJustNote msgType $ fromDynamic d
   where
     msgVar v = "evalSem: Variable " ++ show v ++ " not in scope"
     msgType  = "evalSem: type error"  -- TODO Print types
-evalSem env (Sym (SemLam ta v) :$ body) = \a -> evalSem ((v, Dyn ta a) : env) body
-evalSem env (Sym (Sem d))               = d
-evalSem env (s :$ a)                    = evalSem env s $ evalSem env a
+evalSem env (Sym (SemLam v) :$ body) = \a -> evalSem ((v, toDyn a) : env) body
+evalSem env (Sym (Sem d))            = d
+evalSem env (s :$ a)                 = evalSem env s $ evalSem env a
 
 -- | Symbol evaluation
-class Eval sym t
+class Eval sym
   where
-    toSemSym :: sym sig -> Sem t sig
+    toSemSym :: sym sig -> Sem sig
 
-instance (Eval sym1 t, Eval sym2 t) => Eval (sym1 :+: sym2) t
+instance (Eval sym1, Eval sym2) => Eval (sym1 :+: sym2)
   where
     toSemSym (InjL s) = toSemSym s
     toSemSym (InjR s) = toSemSym s
 
-instance Eval Empty t
+instance Eval Empty
   where
     toSemSym = error "Not implemented: toSemSym for Empty"
 
-instance Eval sym t => Eval (sym :&: info) t
+instance Eval sym => Eval (sym :&: info)
   where
     toSemSym = toSemSym . decorExpr
 
 -- | Construct a semantic tree
-toSem :: Eval sym t => AST sym sig -> AST (Sem t) sig
+toSem :: Eval sym => AST sym sig -> AST Sem sig
 toSem = mapAST toSemSym
 
 -- | Evaluation of open terms
-evalOpen :: (Eval sym t, TypeEq t t) => EvalEnv t -> AST sym sig -> Denotation sig
+evalOpen :: Eval sym => EvalEnv -> AST sym sig -> Denotation sig
 evalOpen env = evalSem env . toSem
 
 -- | Evaluation of closed terms
-evalClosed :: forall sym t sig . (Eval sym t, TypeEq t t) =>
-    Proxy t -> AST sym sig -> Denotation sig
-evalClosed _ = evalSem ([] :: EvalEnv t) . toSem
-
--- | Evaluation of terms without variables
-eval :: Eval sym Empty => AST sym sig -> Denotation sig
-eval = evalSem ([] :: EvalEnv Empty) . toSem
-  -- No guarantee that the expression does not contain variables. This could be made safer by having
-  -- a version of `Sem` with only the `Sem` constructor and another class for constructing such
-  -- semantic trees.
+eval :: Eval sym => AST sym sig -> Denotation sig
+eval = evalSem []. toSem
 
 -- | Apply a semantic function to a list of arguments
 appDen :: Denotation sig -> Args Identity sig -> DenResult sig
@@ -462,77 +450,65 @@ appDenMM d Nil                    = d
 appDenMM d (MonadicRes _ f :* as) = appDenMM (d f) as
 
 -- | Symbols in a monadic semantic tree
-data SemM m t sig
+data SemM m sig
   where
-    SemVarM :: TypeRep t a -> Name -> SemM m t (Full (NonFun a))
-    SemLamM :: TypeRep t a -> Name -> SemM m t (b :-> Full (a -> b))
-    SemM    :: (DenResult sig ~ NonFun a) => DenotationM m sig  -> SemM m t sig
-    SemMM   :: (DenResult sig ~ NonFun a) => DenotationMM m sig -> SemM m t sig
+    SemVarM :: Typeable a => Name -> SemM m (Full (NonFun a))
+    SemLamM :: Typeable a => Name -> SemM m (b :-> Full (a -> b))
+    SemM    :: (DenResult sig ~ NonFun a) => DenotationM m sig  -> SemM m sig
+    SemMM   :: (DenResult sig ~ NonFun a) => DenotationMM m sig -> SemM m sig
 
-evalSemM' :: forall m t a . (Monad m, TypeEq t t) =>
-    EvalEnv t -> ASTF (SemM m t) a -> MonadicRes m (Full a)
+evalSemM' :: forall m a . Monad m => EvalEnv -> ASTF (SemM m) a -> MonadicRes m (Full a)
 evalSemM' env = match ev
   where
-    ev :: SemM m t sig -> Args (AST (SemM m t)) sig -> MonadicRes m (Full (DenResult sig))
-    ev (SemVarM t v) Nil
-        | Dyn ta a <- fromJustNote (msgVar v) $ lookup v env
-        , Dict     <- fromJustNote msgType    $ typeEq t ta
-        = MonadicRes IsntFun $ return a
+    ev :: SemM m sig -> Args (AST (SemM m)) sig -> MonadicRes m (Full (DenResult sig))
+    ev (SemVarM v) Nil
+        | d <- fromJustNote (msgVar v) $ lookup v env
+        = MonadicRes IsntFun $ return $ fromJustNote msgType $ fromDynamic d
       where
         msgVar v = "evalSem: Variable " ++ show v ++ " not in scope"
         msgType  = "evalSem: type error"  -- TODO Print types
-    ev (SemLamM t v) (body :* Nil) =
-        MonadicRes IsFun $ \a -> getResult $ evalSemM' ((v, Dyn t a) : env) body
+    ev (SemLamM v) (body :* Nil) =
+        MonadicRes IsFun $ \a -> getResult $ evalSemM' ((v, toDyn a) : env) body
     ev (SemM d)  as = MonadicRes IsntFun $ appDenM d  $ mapArgs (evalSemM' env) as
     ev (SemMM d) as = MonadicRes IsntFun $ appDenMM d $ mapArgs (evalSemM' env) as
 
 -- | Evaluation of a monadic semantic tree
-evalSemM :: (Monad m, TypeEq t t) => EvalEnv t -> ASTF (SemM m t) a -> Monadic m a
+evalSemM :: Monad m => EvalEnv -> ASTF (SemM m) a -> Monadic m a
 evalSemM env = getResult . evalSemM' env
 
-class EvalM sym m t
+class EvalM sym m
   where
-    toSemSymM :: sym sig -> SemM m t sig
+    toSemSymM :: sym sig -> SemM m sig
 
-instance (EvalM sym1 m t, EvalM sym2 m t) => EvalM (sym1 :+: sym2) m t
+instance (EvalM sym1 m, EvalM sym2 m) => EvalM (sym1 :+: sym2) m
   where
     toSemSymM (InjL s) = toSemSymM s
     toSemSymM (InjR s) = toSemSymM s
 
-instance EvalM Empty t m
+instance EvalM Empty m
   where
     toSemSymM = error "Not implemented: toSemSymM for Empty"
 
-instance EvalM sym t m => EvalM (sym :&: info) t m
+instance EvalM sym m => EvalM (sym :&: info) m
   where
     toSemSymM = toSemSymM . decorExpr
 
 -- | Construct a monadic semantic tree
-toSemM :: EvalM sym m t => AST sym sig -> AST (SemM m t) sig
+toSemM :: EvalM sym m => AST sym sig -> AST (SemM m) sig
 toSemM = mapAST toSemSymM
 
 -- | Monadic evaluation of open terms
-evalOpenM :: forall sym m t a . (EvalM sym m t, TypeEq t t, Monad m) =>
-    Proxy m -> EvalEnv t -> ASTF sym a -> Monadic m a
+evalOpenM :: forall sym m a . (EvalM sym m, Monad m) =>
+    Proxy m -> EvalEnv -> ASTF sym a -> Monadic m a
 evalOpenM _ env
     = evalSemM env
-    . (id :: ASTF (SemM m t) a -> ASTF (SemM m t) a)
+    . (id :: ASTF (SemM m) a -> ASTF (SemM m) a)
     . toSemM
 
 -- | Monadic evaluation of closed terms
-evalClosedM :: forall sym m t a . (EvalM sym m t, TypeEq t t, Monad m) =>
-    Proxy m -> Proxy t -> ASTF sym a -> Monadic m a
-evalClosedM _ _
-    = evalSemM ([] :: EvalEnv t)
-    . (id :: ASTF (SemM m t) a -> ASTF (SemM m t) a)
-    . toSemM
-
--- | Monadic evaluation of terms without variables
-evalM :: forall sym m a . (EvalM sym m Empty, Monad m) =>
-    Proxy m -> ASTF sym a -> Monadic m a
+evalM :: forall sym m a . (EvalM sym m, Monad m) => Proxy m -> ASTF sym a -> Monadic m a
 evalM _
-    = evalSemM ([] :: EvalEnv Empty)
-    . (id :: ASTF (SemM m Empty) a -> ASTF (SemM m Empty) a)
+    = evalSemM []
+    . (id :: ASTF (SemM m) a -> ASTF (SemM m) a)
     . toSemM
-  -- See comment to `eval`
 

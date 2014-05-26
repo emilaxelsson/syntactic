@@ -49,8 +49,8 @@ alphaRename = mapAST rename
   where
     rename :: Nano.FeldDomain a -> Nano.FeldDomain a
     rename s
-        | Just (VarT t v :: BindingT Nano.FeldTypes sig) <- prj s = inj (VarT t (v+1))
-        | Just (LamT t v :: BindingT Nano.FeldTypes sig) <- prj s = inj (LamT t (v+1))
+        | Just (VarT v) <- prj s = inj (VarT (v+1))
+        | Just (LamT v) <- prj s = inj (LamT (v+1))
         | otherwise = s
 
 badRename :: ASTF Nano.FeldDomain a -> ASTF Nano.FeldDomain a
@@ -58,8 +58,8 @@ badRename = mapAST rename
   where
     rename :: Nano.FeldDomain a -> Nano.FeldDomain a
     rename s
-        | Just (VarT t v :: BindingT Nano.FeldTypes sig) <- prj s = inj (VarT t (v+1))
-        | Just (LamT t v :: BindingT Nano.FeldTypes sig) <- prj s = inj (LamT t (v-1))
+        | Just (VarT v) <- prj s = inj (VarT (v+1))
+        | Just (LamT v) <- prj s = inj (LamT (v-1))
         | otherwise = s
 
 prop_alphaEq a = alphaEq a (alphaRename a)

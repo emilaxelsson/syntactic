@@ -22,11 +22,12 @@ import Prelude hiding (max, min, not, (==), length, map, sum, zip, zipWith)
 import qualified Prelude
 
 import Data.Tree
+import Data.Typeable
 
 import Data.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAST)
 import qualified Data.Syntactic as Syntactic
-import Data.Syntactic.TypeUniverse
 import Data.Syntactic.Functional
+import qualified Data.Syntactic.Functional as Syntactic
 import Data.Syntactic.Sugar.BindingT
 
 
@@ -35,13 +36,9 @@ import Data.Syntactic.Sugar.BindingT
 -- * Types
 --------------------------------------------------------------------------------
 
-type FeldTypes = BoolType :+: IntType :+: FloatType :+: ListType
-
 -- | Convenient class alias
-class    (Typeable FeldTypes a, Show a, Eq a, Ord a) => Type a
-instance (Typeable FeldTypes a, Show a, Eq a, Ord a) => Type a
-  -- It would be possible to derive the `Show`, `Eq` and `Ord` instances from `Typeable` (using
-  -- `wit`), but this would just make the code more complicated.
+class    (Typeable a, Show a, Eq a, Ord a) => Type a
+instance (Typeable a, Show a, Eq a, Ord a) => Type a
 
 type Length = Int
 type Index  = Int
@@ -67,13 +64,11 @@ instance Render Arithmetic
 
 interpretationInstances ''Arithmetic
 
-instance Eval Arithmetic t
+instance Eval Arithmetic
   where
     toSemSym Add = Sem (+)
     toSemSym Sub = Sem (-)
     toSemSym Mul = Sem (*)
-
-type instance VarUniverse (Arithmetic :+: dom) = VarUniverse dom
 
 data Let a
   where
@@ -94,7 +89,7 @@ instance StringTree Let
         | ("Lam",v) <- splitAt 3 lam = Node ("Let" ++ v) [a,body]
     stringTreeSym [a,f] Let = Node "Let" [a,f]
 
-instance Eval Let t
+instance Eval Let
   where
     toSemSym Let = Sem (flip ($))
 
@@ -108,11 +103,9 @@ instance Render Parallel
 
 interpretationInstances ''Parallel
 
-instance Eval Parallel t
+instance Eval Parallel
   where
     toSemSym Parallel = Sem $ \len ixf -> Prelude.map ixf [0 .. len-1]
-
-type instance VarUniverse (Parallel :+: dom) = VarUniverse dom
 
 data ForLoop a
   where
@@ -124,15 +117,13 @@ instance Render ForLoop
 
 interpretationInstances ''ForLoop
 
-instance Eval ForLoop t
+instance Eval ForLoop
   where
     toSemSym ForLoop = Sem $ \len init body -> foldl (flip body) init [0 .. len-1]
 
-type instance VarUniverse (ForLoop :+: dom) = VarUniverse dom
-
 type FeldDomain
     =   Arithmetic
-    :+: BindingT FeldTypes
+    :+: BindingT
     :+: Let
     :+: Parallel
     :+: ForLoop
@@ -183,7 +174,7 @@ writeHtmlAST :: (Syntactic a, Domain a ~ FeldDomain) => a -> IO ()
 writeHtmlAST = Syntactic.writeHtmlAST "tree.html" . desugar
 
 eval :: (Syntactic a, Domain a ~ FeldDomain) => a -> Internal a
-eval = evalClosed (Proxy :: Proxy FeldTypes) . desugar
+eval = Syntactic.eval . desugar
 
 
 
