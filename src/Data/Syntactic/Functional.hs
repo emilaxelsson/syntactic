@@ -72,6 +72,7 @@ import Data.Syntactic
 data Construct a
   where
     Construct :: String -> Denotation sig -> Construct sig
+  deriving (Typeable)
 
 instance Render Construct
   where
@@ -164,6 +165,7 @@ data BindingT a
   where
     VarT :: Typeable a => Name -> BindingT (Full a)
     LamT :: Typeable a => Name -> BindingT (b :-> Full (a -> b))
+  deriving (Typeable)
 
 -- | 'equal' does strict identifier comparison; i.e. no alpha equivalence.
 --
