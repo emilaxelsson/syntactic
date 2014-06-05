@@ -56,6 +56,7 @@ data AST sym sig
   where
     Sym  :: sym sig -> AST sym sig
     (:$) :: AST sym (a :-> sig) -> AST sym (Full a) -> AST sym sig
+  deriving (Typeable)
 
 infixl 1 :$
 
@@ -111,7 +112,7 @@ data (sym1 :+: sym2) a
   where
     InjL :: sym1 a -> (sym1 :+: sym2) a
     InjR :: sym2 a -> (sym1 :+: sym2) a
-  deriving (Functor, Foldable, Traversable)
+  deriving (Functor, Foldable, Traversable, Typeable)
 
 infixr :+:
 
@@ -192,7 +193,7 @@ appSym = appSym' . inj
 -- lists (e.g. to avoid overlapping instances):
 --
 -- > (A :+: B :+: Empty)
-data Empty :: * -> *
+data Empty :: * -> * deriving (Typeable)
 
 
 
