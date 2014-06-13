@@ -32,8 +32,8 @@ module Data.Syntactic.Functional
 
 
 
-import Control.Applicative (Applicative)
 import Control.Monad.Identity
+import Control.Monad.Reader
 import Data.Dynamic
 import Data.Tree
 
@@ -332,10 +332,6 @@ liftDenotationM _ _ = help2 sig . help1 sig
     help2 Nil f = f Nil
     help2 (_ :* sig) f = \a -> help2 sig (\as -> f (WrapFull a :* as))
 
--- | Closure
-newtype Cl env a = Cl {runCl :: env -> a}
-  deriving (Functor, Applicative, Monad)
-
 -- | Variable environment used for evaluation
 type EvalEnv = [(Name, Dynamic)]
   -- TODO Use a more efficient data structure?
@@ -345,12 +341,12 @@ type EvalEnv = [(Name, Dynamic)]
 --
 class Eval sym env
   where
-    compileSym :: proxy env -> sym sig -> DenotationM (Cl env) sig
+    compileSym :: proxy env -> sym sig -> DenotationM (Reader env) sig
 
 -- | Simple implementation of `compileSym` from a 'Denotation'
 compileSymDen :: forall env sig proxy1 proxy2 . Signature sig =>
-    proxy1 env -> proxy2 sig -> Denotation sig -> DenotationM (Cl env) sig
-compileSymDen _ p d = liftDenotationM (Proxy :: Proxy (Cl env)) p d
+    proxy1 env -> proxy2 sig -> Denotation sig -> DenotationM (Reader env) sig
+compileSymDen _ p d = liftDenotationM (Proxy :: Proxy (Reader env)) p d
 
 instance (Eval sym1 env, Eval sym2 env) => Eval (sym1 :+: sym2) env
   where
@@ -369,31 +365,31 @@ instance Eval Construct env
   where
     compileSym _ s@(Construct _ d :: Construct sig) = liftDenotationM p s d
       where
-        p = Proxy :: Proxy (Cl env)
+        p = Proxy :: Proxy (Reader env)
 
 instance Eval BindingT EvalEnv
   where
-    compileSym _ (VarT v) = Cl $ \env -> case fromJustNote (msgVar v) $ lookup v env of
+    compileSym _ (VarT v) = reader $ \env -> case fromJustNote (msgVar v) $ lookup v env of
         d -> fromJustNote msgType $ fromDynamic d
       where
         msgVar v = "evalSem: Variable " ++ show v ++ " not in scope"
         msgType  = "evalSem: type error"  -- TODO Print types
-    compileSym _ (LamT v) = \body -> Cl $ \env a -> runCl body ((v, toDyn a) : env)
+    compileSym _ (LamT v) = \body -> reader $ \env a -> runReader body ((v, toDyn a) : env)
 
 -- | \"Compile\" a term to a Haskell function
-compile :: Eval sym env => proxy env -> AST sym sig -> DenotationM (Cl env) sig
+compile :: Eval sym env => proxy env -> AST sym sig -> DenotationM (Reader env) sig
 compile p (Sym s)  = compileSym p s
 compile p (s :$ a) = compile p s $ compile p a
 
 -- | Evaluation of open terms
 evalOpen :: Eval sym EvalEnv => EvalEnv -> ASTF sym a -> a
-evalOpen env a = runCl (compile Proxy a) env
+evalOpen env a = runReader (compile Proxy a) env
 
 -- | Evaluation of closed terms
 --
 -- (Note that there is no guarantee that the term is actually closed.)
 eval :: Eval sym EvalEnv => ASTF sym a -> a
-eval a = runCl (compile (Proxy :: Proxy EvalEnv) a) []
+eval a = runReader (compile (Proxy :: Proxy EvalEnv) a) []
 
 -- | Apply a semantic function to a list of arguments
 --
