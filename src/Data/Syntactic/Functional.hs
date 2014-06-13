@@ -18,15 +18,15 @@ module Data.Syntactic.Functional
     , AlphaEnv
     , alphaEq'
     , alphaEq
-      -- * Simple evaluation
+      -- * Evaluation
     , Denotation
     , DenotationM
     , liftDenotationM
-    , EvalEnv
-    , Eval (..)
+    , RunEnv
+    , EvalEnv (..)
     , compileSymDen
     , evalOpen
-    , eval
+    , evalClosed
     , appDen
     ) where
 
@@ -295,7 +295,7 @@ alphaEq = alphaEq' []
 
 
 ----------------------------------------------------------------------------------------------------
--- * Simple evaluation
+-- * Evaluation
 ----------------------------------------------------------------------------------------------------
 
 -- | Semantic function type of the given symbol signature
@@ -303,7 +303,28 @@ type family   Denotation sig
 type instance Denotation (Full a)    = a
 type instance Denotation (a :-> sig) = a -> Denotation sig
 
--- | Mapping from a symbol signature
+class Eval s
+  where
+    evalSym :: s sig -> Denotation sig
+
+instance (Eval s, Eval t) => Eval (s :+: t)
+  where
+    evalSym (InjL s) = evalSym s
+    evalSym (InjR s) = evalSym s
+
+instance Eval Empty
+  where
+    evalSym = error "evalSym: Empty"
+
+instance Eval sym => Eval (sym :&: info)
+  where
+    evalSym = evalSym . decorExpr
+
+instance Eval Construct
+  where
+    evalSym (Construct _ d) = d
+
+-- | Monadic denotation; mapping from a symbol signature
 --
 -- > a :-> b :-> Full c
 --
@@ -332,14 +353,12 @@ liftDenotationM _ _ = help2 sig . help1 sig
     help2 Nil f = f Nil
     help2 (_ :* sig) f = \a -> help2 sig (\as -> f (WrapFull a :* as))
 
--- | Variable environment used for evaluation
-type EvalEnv = [(Name, Dynamic)]
+-- | Runtime environment
+type RunEnv = [(Name, Dynamic)]
   -- TODO Use a more efficient data structure?
 
 -- | Evaluation
---
---
-class Eval sym env
+class EvalEnv sym env
   where
     compileSym :: proxy env -> sym sig -> DenotationM (Reader env) sig
 
@@ -348,48 +367,48 @@ compileSymDen :: forall env sig proxy1 proxy2 . Signature sig =>
     proxy1 env -> proxy2 sig -> Denotation sig -> DenotationM (Reader env) sig
 compileSymDen _ p d = liftDenotationM (Proxy :: Proxy (Reader env)) p d
 
-instance (Eval sym1 env, Eval sym2 env) => Eval (sym1 :+: sym2) env
+instance (EvalEnv sym1 env, EvalEnv sym2 env) => EvalEnv (sym1 :+: sym2) env
   where
     compileSym p (InjL s) = compileSym p s
     compileSym p (InjR s) = compileSym p s
 
-instance Eval Empty env
+instance EvalEnv Empty env
   where
-    compileSym = error "Not implemented: compileSym for Empty"
+    compileSym = error "compileSym: Empty"
 
-instance Eval sym env => Eval (sym :&: info) env
+instance EvalEnv sym env => EvalEnv (sym :&: info) env
   where
     compileSym p = compileSym p . decorExpr
 
-instance Eval Construct env
+instance EvalEnv Construct env
   where
     compileSym _ s@(Construct _ d :: Construct sig) = liftDenotationM p s d
       where
         p = Proxy :: Proxy (Reader env)
 
-instance Eval BindingT EvalEnv
+instance EvalEnv BindingT RunEnv
   where
     compileSym _ (VarT v) = reader $ \env -> case fromJustNote (msgVar v) $ lookup v env of
         d -> fromJustNote msgType $ fromDynamic d
       where
-        msgVar v = "evalSem: Variable " ++ show v ++ " not in scope"
-        msgType  = "evalSem: type error"  -- TODO Print types
+        msgVar v = "compileSym: Variable " ++ show v ++ " not in scope"
+        msgType  = "compileSym: type error"  -- TODO Print types
     compileSym _ (LamT v) = \body -> reader $ \env a -> runReader body ((v, toDyn a) : env)
 
 -- | \"Compile\" a term to a Haskell function
-compile :: Eval sym env => proxy env -> AST sym sig -> DenotationM (Reader env) sig
+compile :: EvalEnv sym env => proxy env -> AST sym sig -> DenotationM (Reader env) sig
 compile p (Sym s)  = compileSym p s
 compile p (s :$ a) = compile p s $ compile p a
 
 -- | Evaluation of open terms
-evalOpen :: Eval sym EvalEnv => EvalEnv -> ASTF sym a -> a
+evalOpen :: EvalEnv sym env => env -> ASTF sym a -> a
 evalOpen env a = runReader (compile Proxy a) env
 
--- | Evaluation of closed terms
+-- | Evaluation of closed terms where 'RunEnv' is used as the internal environment
 --
 -- (Note that there is no guarantee that the term is actually closed.)
-eval :: Eval sym EvalEnv => ASTF sym a -> a
-eval a = runReader (compile (Proxy :: Proxy EvalEnv) a) []
+evalClosed :: EvalEnv sym RunEnv => ASTF sym a -> a
+evalClosed a = runReader (compile (Proxy :: Proxy RunEnv) a) []
 
 -- | Apply a semantic function to a list of arguments
 --

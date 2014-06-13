@@ -26,8 +26,7 @@ import Data.Typeable
 
 import Data.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAST)
 import qualified Data.Syntactic as Syntactic
-import Data.Syntactic.Functional hiding (eval)
-import qualified Data.Syntactic.Functional as Syntactic
+import Data.Syntactic.Functional
 import Data.Syntactic.Sugar.BindingT
 
 
@@ -64,7 +63,7 @@ instance Render Arithmetic
 
 interpretationInstances ''Arithmetic
 
-instance Eval Arithmetic env
+instance EvalEnv Arithmetic env
   where
     compileSym p Add = compileSymDen p Add (+)
     compileSym p Sub = compileSymDen p Sub (-)
@@ -89,7 +88,7 @@ instance StringTree Let
         | ("Lam",v) <- splitAt 3 lam = Node ("Let" ++ v) [a,body]
     stringTreeSym [a,f] Let = Node "Let" [a,f]
 
-instance Eval Let env
+instance EvalEnv Let env
   where
     compileSym p Let = compileSymDen p Let (flip ($))
 
@@ -103,7 +102,7 @@ instance Render Parallel
 
 interpretationInstances ''Parallel
 
-instance Eval Parallel env
+instance EvalEnv Parallel env
   where
     compileSym p Parallel = compileSymDen p Parallel $ \len ixf -> Prelude.map ixf [0 .. len-1]
 
@@ -117,7 +116,7 @@ instance Render ForLoop
 
 interpretationInstances ''ForLoop
 
-instance Eval ForLoop env
+instance EvalEnv ForLoop env
   where
     compileSym p ForLoop = compileSymDen p ForLoop $
         \len init body -> foldl (flip body) init [0 .. len-1]
@@ -175,7 +174,7 @@ writeHtmlAST :: (Syntactic a, Domain a ~ FeldDomain) => a -> IO ()
 writeHtmlAST = Syntactic.writeHtmlAST "tree.html" . desugar
 
 eval :: (Syntactic a, Domain a ~ FeldDomain) => a -> Internal a
-eval = Syntactic.eval . desugar
+eval = evalClosed . desugar
 
 
 
