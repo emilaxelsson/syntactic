@@ -20,31 +20,14 @@ module Data.Syntactic.Functional
     , alphaEq
       -- * Simple evaluation
     , Denotation
-    , DenotationM2
-    , liftDenotationM2
+    , DenotationM
+    , liftDenotationM
     , EvalEnv
     , Eval (..)
     , compileSymDen
     , evalOpen
     , eval
     , appDen
-      -- * Monadic evaluation
-    , NonFun (..)
-    , FunWit (..)
-    , Monadic
-    , Monadic1
-    , DenotationM
-    , DenotationMM
-    , MonadicRes
-    , getResult
-    , appDenM
-    , appDenMM
-    , SemM (..)
-    , evalSemM
-    , EvalM (..)
-    , toSemM
-    , evalOpenM
-    , evalM
     ) where
 
 
@@ -325,15 +308,14 @@ type instance Denotation (a :-> sig) = a -> Denotation sig
 -- to
 --
 -- > m a -> m b -> m c
-type family   DenotationM2 (m :: * -> *) sig
-type instance DenotationM2 m (Full a)    = m a
-type instance DenotationM2 m (a :-> sig) = m a -> DenotationM2 m sig
-  -- TODO Think about connection to DenotationM, and maybe pick a better name
+type family   DenotationM (m :: * -> *) sig
+type instance DenotationM m (Full a)    = m a
+type instance DenotationM m (a :-> sig) = m a -> DenotationM m sig
 
 -- | Lift a 'Denotation' to 'DenotationM'
-liftDenotationM2 :: forall m sig proxy1 proxy2 . (Monad m, Signature sig) =>
-    proxy1 m -> proxy2 sig -> Denotation sig -> DenotationM2 m sig
-liftDenotationM2 _ _ = help2 sig . help1 sig
+liftDenotationM :: forall m sig proxy1 proxy2 . (Monad m, Signature sig) =>
+    proxy1 m -> proxy2 sig -> Denotation sig -> DenotationM m sig
+liftDenotationM _ _ = help2 sig . help1 sig
   where
     sig = signature :: SigRep sig
 
@@ -344,7 +326,7 @@ liftDenotationM2 _ _ = help2 sig . help1 sig
         a <- ma
         help1 sig (f a) as
 
-    help2 :: SigRep sig' -> (Args (WrapFull m) sig' -> m (DenResult sig')) -> DenotationM2 m sig'
+    help2 :: SigRep sig' -> (Args (WrapFull m) sig' -> m (DenResult sig')) -> DenotationM m sig'
     help2 Nil f = f Nil
     help2 (_ :* sig) f = \a -> help2 sig (\as -> f (WrapFull a :* as))
 
@@ -354,12 +336,12 @@ type EvalEnv = [(Name, Dynamic)]
 
 class Eval sym env
   where
-    compileSym :: proxy env -> sym sig -> DenotationM2 ((->) env) sig
+    compileSym :: proxy env -> sym sig -> DenotationM ((->) env) sig
 
 -- | Simple implementation of `compileSym` from a 'Denotation'
 compileSymDen :: forall env sig proxy1 proxy2 . Signature sig =>
-    proxy1 env -> proxy2 sig -> Denotation sig -> DenotationM2 ((->) env) sig
-compileSymDen _ p d = liftDenotationM2 (Proxy :: Proxy ((->) env)) p d
+    proxy1 env -> proxy2 sig -> Denotation sig -> DenotationM ((->) env) sig
+compileSymDen _ p d = liftDenotationM (Proxy :: Proxy ((->) env)) p d
 
 instance (Eval sym1 env, Eval sym2 env) => Eval (sym1 :+: sym2) env
   where
@@ -376,7 +358,7 @@ instance Eval sym env => Eval (sym :&: info) env
 
 instance Eval Construct env
   where
-    compileSym _ s@(Construct _ d :: Construct sig) = liftDenotationM2 p s d
+    compileSym _ s@(Construct _ d :: Construct sig) = liftDenotationM p s d
       where
         p = Proxy :: Proxy ((->) env)
 
@@ -390,7 +372,7 @@ instance Eval BindingT EvalEnv
     compileSym _ (LamT v) = \body env a -> body ((v, toDyn a) : env)
 
 -- | \"Compile\" a term to a Haskell function
-compile :: Eval sym env => proxy env -> AST sym sig -> DenotationM2 ((->) env) sig
+compile :: Eval sym env => proxy env -> AST sym sig -> DenotationM ((->) env) sig
 compile p (Sym s)  = compileSym p s
 compile p (s :$ a) = compile p s $ compile p a
 
@@ -410,130 +392,4 @@ eval a = compile (Proxy :: Proxy EvalEnv) a []
 appDen :: Denotation sig -> Args Identity sig -> DenResult sig
 appDen a Nil       = a
 appDen f (a :* as) = appDen (f $ result $ runIdentity a) as
-
-
-
-----------------------------------------------------------------------------------------------------
--- * Monadic evaluation
-----------------------------------------------------------------------------------------------------
-
--- | Non-function
-newtype NonFun a = NonFun a
-  -- TODO With closed type families this type could probably be avoided.
-
--- | Witness for non-function or function types
-data FunWit a
-  where
-    IsntFun :: FunWit (NonFun a)
-    IsFun   :: FunWit (a -> b)
-  -- TODO With closed type families this type could probably be avoided.
-
--- | Wrap result of a [0..]-ary function in a monad
-type family   Monadic (m :: * -> *) a
-type instance Monadic m (NonFun a) = m a
-type instance Monadic m (a -> b)   = a -> Monadic m b
-
--- | Wrap result of a [1..]-ary function in a monad
---
--- The reason for not wrapping nullary functions is that the effects of nullary monadic values can
--- be threaded outside of the semantic functions. (This is done by 'appDenM'.)
-type family   Monadic1 (m :: * -> *) a
-type instance Monadic1 m (NonFun a) = a
-type instance Monadic1 m (a -> b)   = Monadic m (a -> b)
-
--- | Monadic semantic function. Like 'Denotation', but wraps the result in a monad, and applies
--- 'Monadic1' to the arguments.
-type family   DenotationM (m :: * -> *) sig
-type instance DenotationM (m :: * -> *) (Full (NonFun a)) = m a
-type instance DenotationM (m :: * -> *) (a :-> sig)       = Monadic1 m a -> DenotationM m sig
-
--- | Monadic semantic function. Like 'Denotation', but wraps the arguments and result in a monad.
-type family   DenotationMM (m :: * -> *) sig
-type instance DenotationMM (m :: * -> *) (Full (NonFun a)) = m a
-type instance DenotationMM (m :: * -> *) (a :-> sig)       = Monadic m a -> DenotationMM m sig
-
--- | Monadic evaluation result ('Full'-indexed wrapper around a 'Monadic' value)
-data MonadicRes m a
-  where
-    MonadicRes :: FunWit a -> Monadic m a -> MonadicRes m (Full a)
-
--- | Unwrap a 'MonadicRes'
-getResult :: MonadicRes m (Full a) -> Monadic m a
-getResult (MonadicRes _ d) = d
-
--- | Apply a monadic semantic function to a list of 'MonadicRes' arguments
-appDenM :: (Monad m, DenResult sig ~ NonFun a) =>
-    DenotationM m sig -> Args (MonadicRes m) sig -> m a
-appDenM d Nil                           = d
-appDenM d (MonadicRes IsntFun ma :* as) = ma >>= \a -> appDenM (d a) as
-appDenM d (MonadicRes IsFun f    :* as) = appDenM (d f) as
-
--- | Apply a monadic semantic function to a list of 'MonadicRes' arguments
-appDenMM :: (Monad m, DenResult sig ~ NonFun a) =>
-    DenotationMM m sig -> Args (MonadicRes m) sig -> m a
-appDenMM d Nil                    = d
-appDenMM d (MonadicRes _ f :* as) = appDenMM (d f) as
-
--- | Symbols in a monadic semantic tree
-data SemM m sig
-  where
-    SemVarM :: Typeable a => Name -> SemM m (Full (NonFun a))
-    SemLamM :: Typeable a => Name -> SemM m (b :-> Full (a -> b))
-    SemM    :: (DenResult sig ~ NonFun a) => DenotationM m sig  -> SemM m sig
-    SemMM   :: (DenResult sig ~ NonFun a) => DenotationMM m sig -> SemM m sig
-
-evalSemM' :: forall m a . Monad m => EvalEnv -> ASTF (SemM m) a -> MonadicRes m (Full a)
-evalSemM' env = match ev
-  where
-    ev :: SemM m sig -> Args (AST (SemM m)) sig -> MonadicRes m (Full (DenResult sig))
-    ev (SemVarM v) Nil
-        | d <- fromJustNote (msgVar v) $ lookup v env
-        = MonadicRes IsntFun $ return $ fromJustNote msgType $ fromDynamic d
-      where
-        msgVar v = "evalSem: Variable " ++ show v ++ " not in scope"
-        msgType  = "evalSem: type error"  -- TODO Print types
-    ev (SemLamM v) (body :* Nil) =
-        MonadicRes IsFun $ \a -> getResult $ evalSemM' ((v, toDyn a) : env) body
-    ev (SemM d)  as = MonadicRes IsntFun $ appDenM d  $ mapArgs (evalSemM' env) as
-    ev (SemMM d) as = MonadicRes IsntFun $ appDenMM d $ mapArgs (evalSemM' env) as
-
--- | Evaluation of a monadic semantic tree
-evalSemM :: Monad m => EvalEnv -> ASTF (SemM m) a -> Monadic m a
-evalSemM env = getResult . evalSemM' env
-
-class EvalM sym m
-  where
-    toSemSymM :: sym sig -> SemM m sig
-
-instance (EvalM sym1 m, EvalM sym2 m) => EvalM (sym1 :+: sym2) m
-  where
-    toSemSymM (InjL s) = toSemSymM s
-    toSemSymM (InjR s) = toSemSymM s
-
-instance EvalM Empty m
-  where
-    toSemSymM = error "Not implemented: toSemSymM for Empty"
-
-instance EvalM sym m => EvalM (sym :&: info) m
-  where
-    toSemSymM = toSemSymM . decorExpr
-
--- | Construct a monadic semantic tree
-toSemM :: EvalM sym m => AST sym sig -> AST (SemM m) sig
-toSemM = mapAST toSemSymM
-
--- | Monadic evaluation of open terms
-evalOpenM :: forall sym m proxy a . (EvalM sym m, Monad m) =>
-    proxy m -> EvalEnv -> ASTF sym a -> Monadic m a
-evalOpenM _ env
-    = evalSemM env
-    . (id :: ASTF (SemM m) a -> ASTF (SemM m) a)
-    . toSemM
-
--- | Monadic evaluation of closed terms
-evalM :: forall sym m proxy a . (EvalM sym m, Monad m) => proxy m -> ASTF sym a -> Monadic m a
-evalM _
-    = evalSemM []
-    . (id :: ASTF (SemM m) a -> ASTF (SemM m) a)
-    . toSemM
 
