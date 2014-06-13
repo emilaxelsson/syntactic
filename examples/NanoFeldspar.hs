@@ -63,11 +63,19 @@ instance Render Arithmetic
 
 interpretationInstances ''Arithmetic
 
+instance Eval Arithmetic
+  where
+    evalSym Add = (+)
+    evalSym Sub = (-)
+    evalSym Mul = (*)
+
 instance EvalEnv Arithmetic env
   where
-    compileSym p Add = compileSymDen p Add (+)
-    compileSym p Sub = compileSymDen p Sub (-)
-    compileSym p Mul = compileSymDen p Mul (*)
+    compileSym p Add = compileSymDefault p Add
+    compileSym p Sub = compileSymDefault p Sub
+    compileSym p Mul = compileSymDefault p Mul
+      -- Pattern matching on the individual constructors is needed in order to fulfill the
+      -- 'Signature' constraint required by the right-hand side.
 
 data Let a
   where
@@ -88,9 +96,13 @@ instance StringTree Let
         | ("Lam",v) <- splitAt 3 lam = Node ("Let" ++ v) [a,body]
     stringTreeSym [a,f] Let = Node "Let" [a,f]
 
+instance Eval Let
+  where
+    evalSym Let = flip ($)
+
 instance EvalEnv Let env
   where
-    compileSym p Let = compileSymDen p Let (flip ($))
+    compileSym p Let = compileSymDefault p Let
 
 data Parallel a
   where
@@ -102,9 +114,13 @@ instance Render Parallel
 
 interpretationInstances ''Parallel
 
+instance Eval Parallel
+  where
+    evalSym Parallel = \len ixf -> Prelude.map ixf [0 .. len-1]
+
 instance EvalEnv Parallel env
   where
-    compileSym p Parallel = compileSymDen p Parallel $ \len ixf -> Prelude.map ixf [0 .. len-1]
+    compileSym p Parallel = compileSymDefault p Parallel
 
 data ForLoop a
   where
@@ -116,10 +132,13 @@ instance Render ForLoop
 
 interpretationInstances ''ForLoop
 
+instance Eval ForLoop
+  where
+    evalSym ForLoop = \len init body -> foldl (flip body) init [0 .. len-1]
+
 instance EvalEnv ForLoop env
   where
-    compileSym p ForLoop = compileSymDen p ForLoop $
-        \len init body -> foldl (flip body) init [0 .. len-1]
+    compileSym p ForLoop = compileSymDefault p ForLoop
 
 type FeldDomain
     =   Arithmetic

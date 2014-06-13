@@ -20,11 +20,12 @@ module Data.Syntactic.Functional
     , alphaEq
       -- * Evaluation
     , Denotation
+    , Eval (..)
     , DenotationM
     , liftDenotationM
     , RunEnv
     , EvalEnv (..)
-    , compileSymDen
+    , compileSymDefault
     , evalOpen
     , evalClosed
     , appDen
@@ -363,9 +364,9 @@ class EvalEnv sym env
     compileSym :: proxy env -> sym sig -> DenotationM (Reader env) sig
 
 -- | Simple implementation of `compileSym` from a 'Denotation'
-compileSymDen :: forall env sig proxy1 proxy2 . Signature sig =>
-    proxy1 env -> proxy2 sig -> Denotation sig -> DenotationM (Reader env) sig
-compileSymDen _ p d = liftDenotationM (Proxy :: Proxy (Reader env)) p d
+compileSymDefault :: forall proxy env sym sig . (Eval sym, Signature sig) =>
+    proxy env -> sym sig -> DenotationM (Reader env) sig
+compileSymDefault p s = liftDenotationM (Proxy :: Proxy (Reader env)) s (evalSym s)
 
 instance (EvalEnv sym1 env, EvalEnv sym2 env) => EvalEnv (sym1 :+: sym2) env
   where
@@ -399,6 +400,8 @@ instance EvalEnv BindingT RunEnv
 compile :: EvalEnv sym env => proxy env -> AST sym sig -> DenotationM (Reader env) sig
 compile p (Sym s)  = compileSym p s
 compile p (s :$ a) = compile p s $ compile p a
+  -- This use of the term \"compile\" comes from \"Typing Dynamic Typing\" (Baars and Swierstra,
+  -- ICFP 2002)
 
 -- | Evaluation of open terms
 evalOpen :: EvalEnv sym env => env -> ASTF sym a -> a
