@@ -20,11 +20,11 @@ module Data.Syntactic.Functional
     , alphaEq
       -- * Simple evaluation
     , Denotation
+    , DenotationM2
+    , liftDenotationM2
     , EvalEnv
-    , Sem (..)
-    , evalSem
     , Eval (..)
-    , toSem
+    , compileSymDen
     , evalOpen
     , eval
     , appDen
@@ -50,11 +50,10 @@ module Data.Syntactic.Functional
 
 
 import Control.Monad.Identity
-import Data.Tree
 import Data.Dynamic
+import Data.Tree
 
 import Data.Hash (hashInt)
-import Data.Proxy
 import Safe
 
 import Data.Syntactic
@@ -71,7 +70,7 @@ import Data.Syntactic
 -- function.
 data Construct a
   where
-    Construct :: String -> Denotation sig -> Construct sig
+    Construct :: Signature sig => String -> Denotation sig -> Construct sig
 
 instance Render Construct
   where
@@ -84,10 +83,6 @@ instance Equality Construct
     hash  = hashDefault
 
 instance StringTree Construct
-
-instance Eval Construct
-  where
-    toSemSym (Construct _ d) = Sem d
 
 -- | Variable name
 newtype Name = Name Integer
@@ -191,11 +186,6 @@ instance StringTree BindingT
   where
     stringTreeSym args (VarT v) = stringTreeSym args (Var v)
     stringTreeSym args (LamT v) = stringTreeSym args (Lam v)
-
-instance Eval BindingT
-  where
-    toSemSym (VarT v) = SemVar v
-    toSemSym (LamT v) = SemLam v
 
 -- | Get the highest name bound by the first 'LamT' binders at every path from the root. If the term
 -- has /ordered binders/ \[1\], 'maxLamT' returns the highest name introduced in the whole term.
@@ -328,60 +318,95 @@ type family   Denotation sig
 type instance Denotation (Full a)    = a
 type instance Denotation (a :-> sig) = a -> Denotation sig
 
+-- | Mapping from a symbol signature
+--
+-- > a :-> b :-> Full c
+--
+-- to
+--
+-- > m a -> m b -> m c
+type family   DenotationM2 (m :: * -> *) sig
+type instance DenotationM2 m (Full a)    = m a
+type instance DenotationM2 m (a :-> sig) = m a -> DenotationM2 m sig
+  -- TODO Think about connection to DenotationM, and maybe pick a better name
+
+-- | Lift a 'Denotation' to 'DenotationM'
+liftDenotationM2 :: forall m sig proxy1 proxy2 . (Monad m, Signature sig) =>
+    proxy1 m -> proxy2 sig -> Denotation sig -> DenotationM2 m sig
+liftDenotationM2 _ _ = help2 sig . help1 sig
+  where
+    sig = signature :: SigRep sig
+
+    help1 :: Monad m =>
+        SigRep sig' -> Denotation sig' -> Args (WrapFull m) sig' -> m (DenResult sig')
+    help1 Nil f _ = return f
+    help1 (_ :* sig) f (WrapFull ma :* as) = do
+        a <- ma
+        help1 sig (f a) as
+
+    help2 :: SigRep sig' -> (Args (WrapFull m) sig' -> m (DenResult sig')) -> DenotationM2 m sig'
+    help2 Nil f = f Nil
+    help2 (_ :* sig) f = \a -> help2 sig (\as -> f (WrapFull a :* as))
+
 -- | Variable environment used for evaluation
 type EvalEnv = [(Name, Dynamic)]
   -- TODO Use a more efficient data structure
 
--- | Symbols in a semantic tree
-data Sem a
+class Eval sym env
   where
-    SemVar :: Typeable a => Name -> Sem (Full a)
-    SemLam :: Typeable a => Name -> Sem (b :-> Full (a -> b))
-    Sem    :: Denotation sig -> Sem sig
+    compileSym :: proxy env -> sym sig -> DenotationM2 ((->) env) sig
 
--- | Evaluation of a semantic tree
-evalSem :: EvalEnv -> AST Sem sig -> Denotation sig
-evalSem env (Sym (SemVar v))
-    | d <- fromJustNote (msgVar v) $ lookup v env
-    = fromJustNote msgType $ fromDynamic d
+-- | Simple implementation of `compileSym` from a 'Denotation'
+compileSymDen :: forall env sig proxy1 proxy2 . Signature sig =>
+    proxy1 env -> proxy2 sig -> Denotation sig -> DenotationM2 ((->) env) sig
+compileSymDen _ p d = liftDenotationM2 (Proxy :: Proxy ((->) env)) p d
+
+instance (Eval sym1 env, Eval sym2 env) => Eval (sym1 :+: sym2) env
   where
-    msgVar v = "evalSem: Variable " ++ show v ++ " not in scope"
-    msgType  = "evalSem: type error"  -- TODO Print types
-evalSem env (Sym (SemLam v) :$ body) = \a -> evalSem ((v, toDyn a) : env) body
-evalSem env (Sym (Sem d))            = d
-evalSem env (s :$ a)                 = evalSem env s $ evalSem env a
+    compileSym p (InjL s) = compileSym p s
+    compileSym p (InjR s) = compileSym p s
 
--- | Symbol evaluation
-class Eval sym
+instance Eval Empty env
   where
-    toSemSym :: sym sig -> Sem sig
+    compileSym = error "Not implemented: compileSym for Empty"
 
-instance (Eval sym1, Eval sym2) => Eval (sym1 :+: sym2)
+instance Eval sym env => Eval (sym :&: info) env
   where
-    toSemSym (InjL s) = toSemSym s
-    toSemSym (InjR s) = toSemSym s
+    compileSym p = compileSym p . decorExpr
 
-instance Eval Empty
+instance Eval Construct env
   where
-    toSemSym = error "Not implemented: toSemSym for Empty"
+    compileSym _ s@(Construct _ d :: Construct sig) = liftDenotationM2 p s d
+      where
+        p = Proxy :: Proxy ((->) env)
 
-instance Eval sym => Eval (sym :&: info)
+instance Eval BindingT EvalEnv
   where
-    toSemSym = toSemSym . decorExpr
+    compileSym _ (VarT v) = \env -> case fromJustNote (msgVar v) $ lookup v env of
+        d -> fromJustNote msgType $ fromDynamic d
+      where
+        msgVar v = "evalSem: Variable " ++ show v ++ " not in scope"
+        msgType  = "evalSem: type error"  -- TODO Print types
+    compileSym _ (LamT v) = \body env a -> body ((v, toDyn a) : env)
 
--- | Construct a semantic tree
-toSem :: Eval sym => AST sym sig -> AST Sem sig
-toSem = mapAST toSemSym
+-- | \"Compile\" a term to a Haskell function
+compile :: Eval sym env => proxy env -> AST sym sig -> DenotationM2 ((->) env) sig
+compile p (Sym s)  = compileSym p s
+compile p (s :$ a) = compile p s $ compile p a
 
 -- | Evaluation of open terms
-evalOpen :: Eval sym => EvalEnv -> AST sym sig -> Denotation sig
-evalOpen env = evalSem env . toSem
+evalOpen :: Eval sym EvalEnv => EvalEnv -> ASTF sym a -> a
+evalOpen env a = compile Proxy a env
 
 -- | Evaluation of closed terms
-eval :: Eval sym => AST sym sig -> Denotation sig
-eval = evalSem []. toSem
+--
+-- (Note that there is no guarantee that the term is actually closed.)
+eval :: Eval sym EvalEnv => ASTF sym a -> a
+eval a = compile (Proxy :: Proxy EvalEnv) a []
 
 -- | Apply a semantic function to a list of arguments
+--
+-- Can be useful when using 'fold' to evaluate a term.
 appDen :: Denotation sig -> Args Identity sig -> DenResult sig
 appDen a Nil       = a
 appDen f (a :* as) = appDen (f $ result $ runIdentity a) as
@@ -498,15 +523,15 @@ toSemM :: EvalM sym m => AST sym sig -> AST (SemM m) sig
 toSemM = mapAST toSemSymM
 
 -- | Monadic evaluation of open terms
-evalOpenM :: forall sym m a . (EvalM sym m, Monad m) =>
-    Proxy m -> EvalEnv -> ASTF sym a -> Monadic m a
+evalOpenM :: forall sym m proxy a . (EvalM sym m, Monad m) =>
+    proxy m -> EvalEnv -> ASTF sym a -> Monadic m a
 evalOpenM _ env
     = evalSemM env
     . (id :: ASTF (SemM m) a -> ASTF (SemM m) a)
     . toSemM
 
 -- | Monadic evaluation of closed terms
-evalM :: forall sym m a . (EvalM sym m, Monad m) => Proxy m -> ASTF sym a -> Monadic m a
+evalM :: forall sym m proxy a . (EvalM sym m, Monad m) => proxy m -> ASTF sym a -> Monadic m a
 evalM _
     = evalSemM []
     . (id :: ASTF (SemM m) a -> ASTF (SemM m) a)

@@ -26,7 +26,7 @@ import Data.Typeable
 
 import Data.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAST)
 import qualified Data.Syntactic as Syntactic
-import Data.Syntactic.Functional
+import Data.Syntactic.Functional hiding (eval)
 import qualified Data.Syntactic.Functional as Syntactic
 import Data.Syntactic.Sugar.BindingT
 
@@ -64,11 +64,11 @@ instance Render Arithmetic
 
 interpretationInstances ''Arithmetic
 
-instance Eval Arithmetic
+instance Eval Arithmetic env
   where
-    toSemSym Add = Sem (+)
-    toSemSym Sub = Sem (-)
-    toSemSym Mul = Sem (*)
+    compileSym p Add = compileSymDen p Add (+)
+    compileSym p Sub = compileSymDen p Sub (-)
+    compileSym p Mul = compileSymDen p Mul (*)
 
 data Let a
   where
@@ -89,9 +89,9 @@ instance StringTree Let
         | ("Lam",v) <- splitAt 3 lam = Node ("Let" ++ v) [a,body]
     stringTreeSym [a,f] Let = Node "Let" [a,f]
 
-instance Eval Let
+instance Eval Let env
   where
-    toSemSym Let = Sem (flip ($))
+    compileSym p Let = compileSymDen p Let (flip ($))
 
 data Parallel a
   where
@@ -103,9 +103,9 @@ instance Render Parallel
 
 interpretationInstances ''Parallel
 
-instance Eval Parallel
+instance Eval Parallel env
   where
-    toSemSym Parallel = Sem $ \len ixf -> Prelude.map ixf [0 .. len-1]
+    compileSym p Parallel = compileSymDen p Parallel $ \len ixf -> Prelude.map ixf [0 .. len-1]
 
 data ForLoop a
   where
@@ -117,9 +117,10 @@ instance Render ForLoop
 
 interpretationInstances ''ForLoop
 
-instance Eval ForLoop
+instance Eval ForLoop env
   where
-    toSemSym ForLoop = Sem $ \len init body -> foldl (flip body) init [0 .. len-1]
+    compileSym p ForLoop = compileSymDen p ForLoop $
+        \len init body -> foldl (flip body) init [0 .. len-1]
 
 type FeldDomain
     =   Arithmetic
