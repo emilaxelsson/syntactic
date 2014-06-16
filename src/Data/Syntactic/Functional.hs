@@ -28,7 +28,6 @@ module Data.Syntactic.Functional
     , compileSymDefault
     , evalOpen
     , evalClosed
-    , appDen
     ) where
 
 
@@ -412,11 +411,4 @@ evalOpen env a = runReader (compile Proxy a) env
 -- (Note that there is no guarantee that the term is actually closed.)
 evalClosed :: EvalEnv sym RunEnv => ASTF sym a -> a
 evalClosed a = runReader (compile (Proxy :: Proxy RunEnv) a) []
-
--- | Apply a semantic function to a list of arguments
---
--- Can be useful when using 'fold' to evaluate a term.
-appDen :: Denotation sig -> Args Identity sig -> DenResult sig
-appDen a Nil       = a
-appDen f (a :* as) = appDen (f $ result $ runIdentity a) as
 
