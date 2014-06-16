@@ -21,6 +21,7 @@ module Data.Syntactic.Functional
       -- * Evaluation
     , Denotation
     , Eval (..)
+    , evalDen
     , DenotationM
     , liftDenotationM
     , RunEnv
@@ -324,6 +325,14 @@ instance Eval Construct
   where
     evalSym (Construct _ d) = d
 
+-- | Evaluation
+evalDen :: Eval s => AST s sig -> Denotation sig
+evalDen = go
+  where
+    go :: Eval s => AST s sig -> Denotation sig
+    go (Sym s)  = evalSym s
+    go (s :$ a) = go s $ go a
+
 -- | Monadic denotation; mapping from a symbol signature
 --
 -- > a :-> b :-> Full c
@@ -362,11 +371,6 @@ class EvalEnv sym env
   where
     compileSym :: proxy env -> sym sig -> DenotationM (Reader env) sig
 
--- | Simple implementation of `compileSym` from a 'Denotation'
-compileSymDefault :: forall proxy env sym sig . (Eval sym, Signature sig) =>
-    proxy env -> sym sig -> DenotationM (Reader env) sig
-compileSymDefault p s = liftDenotationM (Proxy :: Proxy (Reader env)) s (evalSym s)
-
 instance (EvalEnv sym1 env, EvalEnv sym2 env) => EvalEnv (sym1 :+: sym2) env
   where
     compileSym p (InjL s) = compileSym p s
@@ -394,6 +398,11 @@ instance EvalEnv BindingT RunEnv
         msgVar v = "compileSym: Variable " ++ show v ++ " not in scope"
         msgType  = "compileSym: type error"  -- TODO Print types
     compileSym _ (LamT v) = \body -> reader $ \env a -> runReader body ((v, toDyn a) : env)
+
+-- | Simple implementation of `compileSym` from a 'Denotation'
+compileSymDefault :: forall proxy env sym sig . (Eval sym, Signature sig) =>
+    proxy env -> sym sig -> DenotationM (Reader env) sig
+compileSymDefault p s = liftDenotationM (Proxy :: Proxy (Reader env)) s (evalSym s)
 
 -- | \"Compile\" a term to a Haskell function
 compile :: EvalEnv sym env => proxy env -> AST sym sig -> DenotationM (Reader env) sig
