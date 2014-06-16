@@ -10,6 +10,7 @@ module Data.Syntactic.Functional
     , Binding (..)
     , maxLam
     , lam
+    , fromDeBruijn
     , BindingT (..)
     , maxLamT
     , lamT
@@ -36,6 +37,7 @@ module Data.Syntactic.Functional
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Data.Dynamic
+import Data.List (genericIndex)
 import Data.Tree
 
 import Data.Hash (hashInt)
@@ -72,7 +74,7 @@ instance StringTree Construct
 
 -- | Variable name
 newtype Name = Name Integer
-  deriving (Eq, Ord, Num, Enum)
+  deriving (Eq, Ord, Num, Enum, Real, Integral)
 
 instance Show Name
   where
@@ -138,7 +140,23 @@ lam :: (Binding :<: s) => (ASTF s a -> ASTF s b) -> ASTF s (a -> b)
 lam f = appSym (Lam v) body
   where
     body = f (appSym (Var v))
-    v    = maxLam body + 1
+    v    = succ $ maxLam body
+
+-- | Convert from a term with De Bruijn indexes to one with explicit names
+--
+-- In the argument term, variable 'Name's are treated as De Bruijn indexes, and lambda 'Name's are
+-- ignored. (Ideally, one should use a different type for De Bruijn terms.)
+fromDeBruijn :: (Binding :<: sym) => ASTF sym a -> ASTF sym a
+fromDeBruijn = go []
+  where
+    go :: (Binding :<: sym) => [Name] -> ASTF sym a -> (ASTF sym a)
+    go vs var           | Just (Var i) <- prj var = inj $ Var $ genericIndex vs i
+    go vs (lam :$ body) | Just (Lam _) <- prj lam = inj (Lam v) :$ body'
+      where
+        body' = go (v:vs) body
+        v     = succ $ maxLam body'
+          -- Same trick as in `lam`
+    go vs a = gmapT (go vs) a
 
 -- | Typed variables and binders
 data BindingT a
@@ -200,7 +218,7 @@ lamT :: forall s a b . (BindingT :<: s, Typeable a) => (ASTF s a -> ASTF s b) ->
 lamT f = appSym (LamT v :: BindingT (b :-> Full (a -> b))) body
   where
     body = f (appSym (VarT v))
-    v    = maxLamT body + 1
+    v    = succ $ maxLamT body
 
 -- | Domains that \"might\" include variables and binders
 class BindingDomain sym
