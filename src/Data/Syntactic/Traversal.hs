@@ -22,9 +22,6 @@ module Data.Syntactic.Traversal
     , mapAST
     , WrapFull (..)
     , toTree
-    , UnitFull (..)
-    , SigRep
-    , Signature (..)
     ) where
 
 
@@ -202,25 +199,4 @@ data WrapFull c a
 -- | Convert an 'AST' to a 'Tree'
 toTree :: forall dom a b . (forall sig . dom sig -> b) -> ASTF dom a -> Tree b
 toTree f = listFold (Node . f)
-
--- | Unit type used in 'SigRep'
-data UnitFull a
-  where
-    UnitFull :: UnitFull (Full a)
-
--- | Witness of the arity of a symbol signature
-type SigRep = Args UnitFull
-
--- | Symbol signatures
-class Signature sig
-  where
-    signature :: SigRep sig
-
-instance Signature (Full a)
-  where
-    signature = Nil
-
-instance Signature sig => Signature (a :-> sig)
-  where
-    signature = UnitFull :* signature
 

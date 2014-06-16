@@ -13,13 +13,19 @@ module Data.Syntactic.Syntax
     , Full (..)
     , (:->) (..)
     , size
-    , ApplySym (..)
     , DenResult
+      -- Smart constructors
+    , SigRep (..)
+    , Signature (..)
+    , SmartFun
+    , SmartSig
+    , SmartSym
+    , smartSym'
       -- * Open symbol domains
     , (:+:) (..)
     , Project (..)
     , (:<:) (..)
-    , appSym
+    , smartSym
     , Empty
       -- * Existential quantification
     , E (..)
@@ -82,23 +88,72 @@ size :: AST sym sig -> Int
 size (Sym _)  = 1
 size (s :$ a) = size s + size a
 
--- | Class for the type-level recursion needed by 'appSym'
-class ApplySym sig f sym | sig sym -> f, f -> sig sym
-  where
-    appSym' :: AST sym sig -> f
-
-instance ApplySym (Full a) (ASTF sym a) sym
-  where
-    appSym' = id
-
-instance ApplySym sig f sym => ApplySym (a :-> sig) (ASTF sym a -> f) sym
-  where
-    appSym' s a = appSym' (s :$ a)
-
 -- | The result type of a symbol with the given signature
 type family   DenResult sig
 type instance DenResult (Full a)    = a
 type instance DenResult (a :-> sig) = DenResult sig
+
+
+
+--------------------------------------------------------------------------------
+-- * Smart constructors
+--------------------------------------------------------------------------------
+
+-- | Witness of the arity of a symbol signature
+data SigRep sig
+  where
+    SigFull :: SigRep (Full a)
+    SigMore :: SigRep sig -> SigRep (a :-> sig)
+
+-- | Symbol signatures
+class Signature sig
+  where
+    signature :: SigRep sig
+
+instance Signature (Full a)
+  where
+    signature = SigFull
+
+instance Signature sig => Signature (a :-> sig)
+  where
+    signature = SigMore signature
+
+-- | Maps a symbol signature to the type of the corresponding smart constructor:
+--
+-- > SmartFun sym (a :-> b :-> ... :-> Full x) = ASTF sym a -> ASTF sym b -> ... -> ASTF sym x
+type family   SmartFun (sym :: * -> *) sig
+type instance SmartFun sym (Full a)    = ASTF sym a
+type instance SmartFun sym (a :-> sig) = ASTF sym a -> SmartFun sym sig
+
+-- | Maps a smart constructor type to the corresponding symbol signature:
+--
+-- > SmartSig (ASTF sym a -> ASTF sym b -> ... -> ASTF sym x) = a :-> b :-> ... :-> Full x
+type family   SmartSig f
+type instance SmartSig (AST sym sig)     = sig
+type instance SmartSig (ASTF sym a -> f) = a :-> SmartSig f
+
+-- | Returns the symbol in the result of a smart constructor
+type family   SmartSym f :: * -> *
+type instance SmartSym (AST sym sig) = sym
+type instance SmartSym (a -> f)      = SmartSym f
+
+-- | Make a smart constructor of a symbol. 'smartSym' has any type of the form:
+--
+-- > smartSym
+-- >     :: sym (a :-> b :-> ... :-> Full x)
+-- >     -> (ASTF sym a -> ASTF sym b -> ... -> ASTF sym x)
+smartSym' :: forall sig f sym
+    .  ( Signature sig
+       , f   ~ SmartFun sym sig
+       , sig ~ SmartSig f
+       , sym ~ SmartSym f
+       )
+    => sym sig -> f
+smartSym' s = go (signature :: SigRep sig) (Sym s)
+  where
+    go :: forall sig . SigRep sig -> AST sym sig -> SmartFun sym sig
+    go SigFull s       = s
+    go (SigMore sig) s = \a -> go sig (s :$ a)
 
 
 
@@ -176,15 +231,20 @@ instance (sym1 :<: sym3) => (sym1 :<: (sym2 :+: sym3))
 -- types that can be instances of the former but not the latter due to type
 -- constraints on the `a` type.
 
--- | Generic symbol application
+-- | Make a smart constructor of a symbol. 'smartSym' has any type of the form:
 --
--- 'appSym' has any type of the form:
---
--- > appSym :: (sub :<: AST sup)
+-- > smartSym :: (sub :<: AST sup)
 -- >     => sub (a :-> b :-> ... :-> Full x)
 -- >     -> (ASTF sup a -> ASTF sup b -> ... -> ASTF sup x)
-appSym :: (sub :<: AST sup, ApplySym sig f sup) => sub sig -> f
-appSym = appSym' . inj
+smartSym
+    :: ( Signature sig
+       , f   ~ SmartFun sup sig
+       , sig ~ SmartSig f
+       , sup ~ SmartSym f
+       , sub :<: sup
+       )
+    => sub sig -> f
+smartSym = smartSym' . inj
 
 -- | Empty symbol type
 --

@@ -137,9 +137,9 @@ maxLam _ = 0
 -- See \"Using Circular Programs for Higher-Order Syntax\"
 -- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>)
 lam :: (Binding :<: s) => (ASTF s a -> ASTF s b) -> ASTF s (a -> b)
-lam f = appSym (Lam v) body
+lam f = smartSym (Lam v) body
   where
-    body = f (appSym (Var v))
+    body = f (smartSym (Var v))
     v    = succ $ maxLam body
 
 -- | Convert from a term with De Bruijn indexes to one with explicit names
@@ -215,9 +215,9 @@ maxLamT _ = 0
 -- See \"Using Circular Programs for Higher-Order Syntax\"
 -- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>)
 lamT :: forall s a b . (BindingT :<: s, Typeable a) => (ASTF s a -> ASTF s b) -> ASTF s (a -> b)
-lamT f = appSym (LamT v :: BindingT (b :-> Full (a -> b))) body
+lamT f = smartSym (LamT v :: BindingT (b :-> Full (a -> b))) body
   where
-    body = f (appSym (VarT v))
+    body = f (smartSym (VarT v))
     v    = succ $ maxLamT body
 
 -- | Domains that \"might\" include variables and binders
@@ -371,14 +371,14 @@ liftDenotationM _ _ = help2 sig . help1 sig
 
     help1 :: Monad m =>
         SigRep sig' -> Denotation sig' -> Args (WrapFull m) sig' -> m (DenResult sig')
-    help1 Nil f _ = return f
-    help1 (_ :* sig) f (WrapFull ma :* as) = do
+    help1 SigFull f _ = return f
+    help1 (SigMore sig) f (WrapFull ma :* as) = do
         a <- ma
         help1 sig (f a) as
 
     help2 :: SigRep sig' -> (Args (WrapFull m) sig' -> m (DenResult sig')) -> DenotationM m sig'
-    help2 Nil f = f Nil
-    help2 (_ :* sig) f = \a -> help2 sig (\as -> f (WrapFull a :* as))
+    help2 SigFull f = f Nil
+    help2 (SigMore sig) f = \a -> help2 sig (\as -> f (WrapFull a :* as))
 
 -- | Runtime environment
 type RunEnv = [(Name, Dynamic)]

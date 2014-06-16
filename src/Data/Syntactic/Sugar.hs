@@ -89,6 +89,14 @@ instance
 -- >     , Domain a ~ Domain b ~ ... ~ Domain x
 -- >     ) => sub (Internal a :-> Internal b :-> ... :-> Full (Internal x))
 -- >       -> (a -> b -> ... -> x)
-sugarSym :: (sub :<: AST sup, ApplySym sig fi sup, SyntacticN f fi) => sub sig -> f
-sugarSym = sugarN . appSym
+sugarSym
+    :: ( Signature sig
+       , fi  ~ SmartFun sup sig
+       , sig ~ SmartSig fi
+       , sup ~ SmartSym fi
+       , SyntacticN f fi
+       , sub :<: sup
+       )
+    => sub sig -> f
+sugarSym = sugarN . smartSym
 
