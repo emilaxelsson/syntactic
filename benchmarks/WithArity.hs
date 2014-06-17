@@ -11,11 +11,11 @@ import Data.Syntactic.Functional
 main :: IO ()
 main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-results/withArity.csv"}) (return ())
          [ bgroup "eval 5"  [ bench "gadt"      $ nf evl (gExpr 5)
-                            , bench "Syntactic" $ nf eval (sExpr 5) ]
+                            , bench "Syntactic" $ nf evalClosed (sExpr 5) ]
          , bgroup "eval 6"  [ bench "gadt"      $ nf evl (gExpr 6)
-                            , bench "Syntactic" $ nf eval (sExpr 6) ]
+                            , bench "Syntactic" $ nf evalClosed (sExpr 6) ]
          , bgroup "eval 7"  [ bench "gadt"      $ nf evl (gExpr 7)
-                            , bench "Syntactic" $ nf eval (sExpr 7) ]
+                            , bench "Syntactic" $ nf evalClosed (sExpr 7) ]
          , bgroup "size 5"  [ bench "gadt"      $ nf gSize (gExpr 5)
                             , bench "Syntactic" $ nf size (sExpr 5) ]
          , bgroup "size 6"  [ bench "gadt"      $ nf gSize (gExpr 6)
@@ -109,10 +109,19 @@ interpretationInstances ''T
 
 instance Eval T
   where
-    toSemSym (T0 a) = Sem a
-    toSemSym T1     = Sem id
-    toSemSym T2     = Sem (+)
-    toSemSym T3     = Sem $ \a b c -> a + b + c
-    toSemSym T5     = Sem $ \a b c d e -> a + b + c + d + e
-    toSemSym T10    = Sem $ \a b c d e f g h i j -> a + b + c + d + e + f + g + h + i + j
+    evalSym (T0 a) = a
+    evalSym T1     = id
+    evalSym T2     = (+)
+    evalSym T3     = \a b c -> a + b + c
+    evalSym T5     = \a b c d e -> a + b + c + d + e
+    evalSym T10    = \a b c d e f g h i j -> a + b + c + d + e + f + g + h + i + j
+
+instance EvalEnv T env
+  where
+    compileSym p (T0 a) = compileSymDefault p (T0 a)
+    compileSym p T1     = compileSymDefault p T1
+    compileSym p T2     = compileSymDefault p T2
+    compileSym p T3     = compileSymDefault p T3
+    compileSym p T5     = compileSymDefault p T5
+    compileSym p T10    = compileSymDefault p T10
 

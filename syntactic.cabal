@@ -39,6 +39,7 @@ extra-source-files:
   tests/*.hs
   tests/gold/*.txt
   extras/*.hs
+  benchmarks/*.hs
 
 source-repository head
   type:     git
