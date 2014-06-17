@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
--- | 'Syntactic' instance for 'Mon' using 'BindingT' to handle variable binding
+-- | 'Syntactic' instance for 'Remon' using 'BindingT' to handle variable binding
 
 module Data.Syntactic.Sugar.MonadT where
 
@@ -16,8 +16,8 @@ import Data.Syntactic.Sugar.BindingT
 
 
 -- | One-layer sugaring of monadic actions
-sugarMonad :: (BindingT :<: sym, Typeable a) => ASTF sym (m a) -> Mon sym m (ASTF sym a)
-sugarMonad ma = Mon $ cont $ sugarSym Bind ma
+sugarMonad :: (BindingT :<: sym, Typeable a) => ASTF sym (m a) -> Remon sym m (ASTF sym a)
+sugarMonad ma = Remon $ cont $ sugarSym Bind ma
 
 instance
     ( Syntactic a
@@ -27,10 +27,10 @@ instance
     , Monad m
     , Typeable (Internal a)
     ) =>
-      Syntactic (Mon sym m a)
+      Syntactic (Remon sym m a)
   where
-    type Domain (Mon sym m a)   = sym
-    type Internal (Mon sym m a) = m (Internal a)
+    type Domain (Remon sym m a)   = sym
+    type Internal (Remon sym m a) = m (Internal a)
     desugar = desugarMonad . fmap desugar
     sugar   = fmap sugar   . sugarMonad
 

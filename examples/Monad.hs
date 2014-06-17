@@ -29,14 +29,14 @@ type Dom = BindingT :+: MONAD IO :+: Construct :+: Arithmetic
 
 type Exp a = ASTF Dom a
 
-type IO' a = Mon Dom IO (Exp a)
+type IO' a = Remon Dom IO (Exp a)
 
 getDigit :: IO' Int
 getDigit = sugarSym $ Construct "getDigit" get
   where
     get = do
         c <- getChar
-        if isDigit c then return (fromEnum c - 48) else get
+        if isDigit c then return (fromEnum c - fromEnum '0') else get
 
 putDigit :: Exp Int -> IO' ()
 putDigit = sugarSym $ Construct "putDigit" print
@@ -60,6 +60,6 @@ ex1 n = iter n $ do
     d <- getDigit
     putDigit (d+d)
 
-test1_1 = evalClosed (desugar ex1) 5
-test1_2 = drawAST $ desugar ex1
+test1 = evalClosed (desugar ex1) 5
+test2 = drawAST $ desugar ex1
 

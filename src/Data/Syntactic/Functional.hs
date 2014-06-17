@@ -16,7 +16,7 @@ module Data.Syntactic.Functional
     , lamT
     , BindingDomain (..)
     , MONAD (..)
-    , Mon (..)
+    , Remon (..)
     , desugarMonad
       -- * Alpha-equivalence
     , AlphaEnv
@@ -286,8 +286,10 @@ instance BindingDomain sym
     prVar _ = Nothing
     prLam _ = Nothing
 
--- | Monadic constructs. See \"Generic Monadic Constructs for Embedded Languages\" (Persson et al.,
--- IFL 2011 <http://www.cse.chalmers.se/~emax/documents/persson2011generic.pdf>).
+-- | Monadic constructs
+--
+-- See \"Generic Monadic Constructs for Embedded Languages\" (Persson et al., IFL 2011
+-- <http://www.cse.chalmers.se/~emax/documents/persson2011generic.pdf>).
 data MONAD m sig
   where
     Return :: MONAD m (a :-> Full (m a))
@@ -306,30 +308,33 @@ instance Equality (MONAD m)
 
 instance StringTree (MONAD m)
 
--- | General EDSL monad. See \"Generic Monadic Constructs for Embedded Languages\" (Persson et al.,
--- IFL 2011 <http://www.cse.chalmers.se/~emax/documents/persson2011generic.pdf>).
+-- | Reifiable monad
+--
+-- See \"Generic Monadic Constructs for Embedded Languages\" (Persson et al., IFL 2011
+-- <http://www.cse.chalmers.se/~emax/documents/persson2011generic.pdf>).
 --
 -- It is advised to convert to/from 'Mon' using the 'Syntactic' instance provided in the modules
 -- @Data.Syntactic.Sugar.Monad@ or @Data.Syntactic.Sugar.MonadT@.
-newtype Mon sym m a
+newtype Remon sym m a
   where
-    Mon :: { unMon :: forall r . (Monad m, MONAD m :<: sym) => Cont (ASTF sym (m r)) a }
-        -> Mon sym m a
+    Remon
+        :: { unRemon :: forall r . (Monad m, MONAD m :<: sym) => Cont (ASTF sym (m r)) a }
+        -> Remon sym m a
   deriving (Functor)
 
-instance (Applicative m) => Applicative (Mon sym m)
+instance (Applicative m) => Applicative (Remon sym m)
   where
-    pure a  = Mon $ pure a
-    f <*> a = Mon $ unMon f <*> unMon a
+    pure a  = Remon $ pure a
+    f <*> a = Remon $ unRemon f <*> unRemon a
 
-instance (Monad m) => Monad (Mon dom m)
+instance (Monad m) => Monad (Remon dom m)
   where
-    return a = Mon $ return a
-    ma >>= f = Mon $ unMon ma >>= unMon . f
+    return a = Remon $ return a
+    ma >>= f = Remon $ unRemon ma >>= unRemon . f
 
 -- | One-layer desugaring of monadic actions
-desugarMonad :: (MONAD m :<: sym, Monad m) => Mon sym m (ASTF sym a) -> ASTF sym (m a)
-desugarMonad = flip runCont (sugarSym Return) . unMon
+desugarMonad :: (MONAD m :<: sym, Monad m) => Remon sym m (ASTF sym a) -> ASTF sym (m a)
+desugarMonad = flip runCont (sugarSym Return) . unRemon
 
 
 
@@ -642,8 +647,7 @@ fromWS = fromDeBruijn . go
 -- | Make a smart constructor for well-scoped terms. 'smartWS' has any type of the form:
 --
 -- > smartWS :: (sub :<: sup, bsym ~ (BindingWS :+: ReaderSym sup))
--- >     => Proxy env
--- >     -> sub (a :-> b :-> ... :-> Full x)
+-- >     => sub (a :-> b :-> ... :-> Full x)
 -- >     -> ASTF bsym (Reader env a) -> ASTF bsym (Reader env b) -> ... -> ASTF bsym (Reader env x)
 smartWS :: forall sig sig' bsym f sub sup env a
     .  ( Signature sig
