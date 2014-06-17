@@ -57,6 +57,8 @@ library
     Data.Syntactic.Functional
     Data.Syntactic.Sugar.Binding
     Data.Syntactic.Sugar.BindingT
+    Data.Syntactic.Sugar.Monad
+    Data.Syntactic.Sugar.MonadT
 
   other-modules:
     Data.Syntactic.TypeUniverse.TypeUniverse

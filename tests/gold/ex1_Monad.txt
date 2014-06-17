@@ -1,0 +1,18 @@
+Lam v3
+ └╴(>>=)
+    ├╴iter
+    │  ├╴v3
+    │  └╴(>>=)
+    │     ├╴getDigit
+    │     └╴Lam v2
+    │        └╴(>>=)
+    │           ├╴putDigit
+    │           │  └╴(+)
+    │           │     ├╴v2
+    │           │     └╴v2
+    │           └╴Lam v1
+    │              └╴return
+    │                 └╴v1
+    └╴Lam v1
+       └╴return
+          └╴v1

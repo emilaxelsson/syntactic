@@ -15,6 +15,9 @@ module Data.Syntactic.Functional
     , maxLamT
     , lamT
     , BindingDomain (..)
+    , MONAD (..)
+    , Mon (..)
+    , desugarMonad
       -- * Alpha-equivalence
     , AlphaEnv
     , alphaEq'
@@ -48,6 +51,8 @@ module Data.Syntactic.Functional
 
 
 
+import Control.Applicative
+import Control.Monad.Cont
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Data.Dynamic
@@ -149,7 +154,7 @@ maxLam _ = 0
 -- the root.
 --
 -- See \"Using Circular Programs for Higher-Order Syntax\"
--- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>)
+-- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>).
 lam :: (Binding :<: s) => (ASTF s a -> ASTF s b) -> ASTF s (a -> b)
 lam f = smartSym (Lam v) body
   where
@@ -227,7 +232,7 @@ maxLamT _ = 0
 -- the root.
 --
 -- See \"Using Circular Programs for Higher-Order Syntax\"
--- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>)
+-- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>).
 lamT :: forall s a b . (BindingT :<: s, Typeable a) => (ASTF s a -> ASTF s b) -> ASTF s (a -> b)
 lamT f = smartSym (LamT v :: BindingT (b :-> Full (a -> b))) body
   where
@@ -280,6 +285,51 @@ instance BindingDomain sym
   where
     prVar _ = Nothing
     prLam _ = Nothing
+
+-- | Monadic constructs. See \"Generic Monadic Constructs for Embedded Languages\" (Persson et al.,
+-- IFL 2011 <http://www.cse.chalmers.se/~emax/documents/persson2011generic.pdf>).
+data MONAD m sig
+  where
+    Return :: MONAD m (a :-> Full (m a))
+    Bind   :: MONAD m (m a :-> (a -> m b) :-> Full (m b))
+
+instance Render (MONAD m)
+  where
+    renderSym Return = "return"
+    renderSym Bind   = "(>>=)"
+    renderArgs = renderArgsSmart
+
+instance Equality (MONAD m)
+  where
+    equal = equalDefault
+    hash  = hashDefault
+
+instance StringTree (MONAD m)
+
+-- | General EDSL monad. See \"Generic Monadic Constructs for Embedded Languages\" (Persson et al.,
+-- IFL 2011 <http://www.cse.chalmers.se/~emax/documents/persson2011generic.pdf>).
+--
+-- It is advised to convert to/from 'Mon' using the 'Syntactic' instance provided in the modules
+-- @Data.Syntactic.Sugar.Monad@ or @Data.Syntactic.Sugar.MonadT@.
+newtype Mon sym m a
+  where
+    Mon :: { unMon :: forall r . (Monad m, MONAD m :<: sym) => Cont (ASTF sym (m r)) a }
+        -> Mon sym m a
+  deriving (Functor)
+
+instance (Applicative m) => Applicative (Mon sym m)
+  where
+    pure a  = Mon $ pure a
+    f <*> a = Mon $ unMon f <*> unMon a
+
+instance (Monad m) => Monad (Mon dom m)
+  where
+    return a = Mon $ return a
+    ma >>= f = Mon $ unMon ma >>= unMon . f
+
+-- | One-layer desugaring of monadic actions
+desugarMonad :: (MONAD m :<: sym, Monad m) => Mon sym m (ASTF sym a) -> ASTF sym (m a)
+desugarMonad = flip runCont (sugarSym Return) . unMon
 
 
 
@@ -357,6 +407,11 @@ instance Eval Construct
   where
     evalSym (Construct _ d) = d
 
+instance Monad m => Eval (MONAD m)
+  where
+    evalSym Return = return
+    evalSym Bind   = (>>=)
+
 -- | Evaluation
 evalDen :: Eval s => AST s sig -> Denotation sig
 evalDen = go
@@ -421,6 +476,13 @@ instance EvalEnv Construct env
     compileSym _ s@(Construct _ d :: Construct sig) = liftDenotationM p s d
       where
         p = Proxy :: Proxy (Reader env)
+
+instance Monad m => EvalEnv (MONAD m) env
+  where
+    compileSym p Return = compileSymDefault p Return
+    compileSym p Bind   = compileSymDefault p Bind
+      -- Pattern matching on the individual constructors is needed in order to fulfill the
+      -- 'Signature' constraint required by the right-hand side.
 
 instance EvalEnv BindingT RunEnv
   where
