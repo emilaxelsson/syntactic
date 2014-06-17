@@ -125,6 +125,7 @@ test-suite examples
     base,
     containers,
     QuickCheck,
+    tagged,
     tasty,
     tasty-golden,
     tasty-quickcheck,
