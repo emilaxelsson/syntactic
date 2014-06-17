@@ -210,21 +210,22 @@ syntacticExpr4J n = (add4 (syntacticExpr4J (n-1)) (syntacticExpr4J (n-1)))
 
 main :: IO ()
 main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-results/joiningTypes.csv"}) (return ())
-         [ bgroup "eval 10" [ bench "syntactic 0 joins" $ nf evalClosed (syntacticExpr 10)
-                            , bench "syntactic 1 join"  $ nf evalClosed (syntacticExprJ 10)
-                            , bench "syntactic 4 joins" $ nf evalClosed (syntacticExpr4J 10)]
-         , bgroup "eval 15" [ bench "syntactic 0 joins" $ nf evalClosed (syntacticExpr 15)
-                            , bench "syntactic 1 join"  $ nf evalClosed (syntacticExprJ 15)
-                            , bench "syntactic 4 joins" $ nf evalClosed (syntacticExpr4J 15)]
-         , bgroup "eval 20" [ bench "syntactic 0 joins" $ nf evalClosed (syntacticExpr 20)
-                            , bench "syntactic 1 join"  $ nf evalClosed (syntacticExprJ 20)
-                            , bench "syntactic 4 joins" $ nf evalClosed (syntacticExpr4J 20)]
+         [ bgroup "eval 10" [ bench "syntactic 0 joins" $ nf evalDen (syntacticExpr 10)
+                            , bench "syntactic 1 join"  $ nf evalDen (syntacticExprJ 10)
+                            , bench "syntactic 4 joins" $ nf evalDen (syntacticExpr4J 10)]
+         , bgroup "eval 15" [ bench "syntactic 0 joins" $ nf evalDen (syntacticExpr 15)
+                            , bench "syntactic 1 join"  $ nf evalDen (syntacticExprJ 15)
+                            , bench "syntactic 4 joins" $ nf evalDen (syntacticExpr4J 15)]
+         , bgroup "eval 20" [ bench "syntactic 0 joins" $ nf evalDen (syntacticExpr 20)
+                            , bench "syntactic 1 join"  $ nf evalDen (syntacticExprJ 20)
+                            , bench "syntactic 4 joins" $ nf evalDen (syntacticExpr4J 20)]
          , bgroup "size 10" [ bench "syntactic 0 joins" $ nf size (syntacticExpr 10)
                             , bench "syntactic 1 join"  $ nf size (syntacticExprJ 10)
-                            , bench "syntactic 4 joins" $ nf evalClosed (syntacticExpr4J 10)]
+                            , bench "syntactic 4 joins" $ nf evalDen (syntacticExpr4J 10)]
          , bgroup "size 15" [ bench "syntactic 0 joins" $ nf size (syntacticExpr 15)
                             , bench "syntactic 1 join"  $ nf size (syntacticExprJ 15)
-                            , bench "syntactic 4 joins" $ nf evalClosed (syntacticExpr4J 15)]
+                            , bench "syntactic 4 joins" $ nf evalDen (syntacticExpr4J 15)]
          , bgroup "size 20" [ bench "syntactic 0 joins" $ nf size (syntacticExpr 20)
                             , bench "syntactic 1 join"  $ nf size (syntacticExprJ 20)
-                            , bench "syntactic 4 joins" $ nf evalClosed (syntacticExpr4J 20)]]
+                            , bench "syntactic 4 joins" $ nf evalDen (syntacticExpr4J 20)]]
+

@@ -11,11 +11,11 @@ import Data.Syntactic.Functional
 main :: IO ()
 main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-results/withArity.csv"}) (return ())
          [ bgroup "eval 5"  [ bench "gadt"      $ nf evl (gExpr 5)
-                            , bench "Syntactic" $ nf evalClosed (sExpr 5) ]
+                            , bench "Syntactic" $ nf evalDen (sExpr 5) ]
          , bgroup "eval 6"  [ bench "gadt"      $ nf evl (gExpr 6)
-                            , bench "Syntactic" $ nf evalClosed (sExpr 6) ]
+                            , bench "Syntactic" $ nf evalDen (sExpr 6) ]
          , bgroup "eval 7"  [ bench "gadt"      $ nf evl (gExpr 7)
-                            , bench "Syntactic" $ nf evalClosed (sExpr 7) ]
+                            , bench "Syntactic" $ nf evalDen (sExpr 7) ]
          , bgroup "size 5"  [ bench "gadt"      $ nf gSize (gExpr 5)
                             , bench "Syntactic" $ nf size (sExpr 5) ]
          , bgroup "size 6"  [ bench "gadt"      $ nf gSize (gExpr 6)
