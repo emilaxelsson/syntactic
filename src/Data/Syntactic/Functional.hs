@@ -441,7 +441,7 @@ compile :: EvalEnv sym env => proxy env -> AST sym sig -> DenotationM (Reader en
 compile p (Sym s)  = compileSym p s
 compile p (s :$ a) = compile p s $ compile p a
   -- This use of the term \"compile\" comes from \"Typing Dynamic Typing\" (Baars and Swierstra,
-  -- ICFP 2002)
+  -- ICFP 2002, <http://doi.acm.org/10.1145/581478.581494>)
 
 -- | Evaluation of open terms
 evalOpen :: EvalEnv sym env => env -> ASTF sym a -> a
@@ -484,11 +484,12 @@ lookEnv _ = reader $ \env -> let (a, e :: e) = unext env in a
 -- | Well-scoped variable binding
 --
 -- Well-scoped terms are introduced to be able to evaluate without type casting. The implementation
--- is inspired by \"Typing Dynamic Typing\" (Baars and Swierstra, ICFP 2002) where expressions are
--- represented as (essentially) @Reader env a@ after \"compilation\". However, a major difference is
--- that \"Typing Dynamic Typing\" starts from an untyped term, and thus needs (safe) dynamic type
--- casting during compilation. In contrast, the denotational semantics of 'BindingWS' (the 'Eval'
--- instance) uses no type casting.
+-- is inspired by \"Typing Dynamic Typing\" (Baars and Swierstra, ICFP 2002,
+-- <http://doi.acm.org/10.1145/581478.581494>) where expressions are represented as (essentially)
+-- @`Reader` env a@ after \"compilation\". However, a major difference is that
+-- \"Typing Dynamic Typing\" starts from an untyped term, and thus needs (safe) dynamic type casting
+-- during compilation. In contrast, the denotational semantics of 'BindingWS' (the 'Eval' instance)
+-- uses no type casting.
 data BindingWS a
   where
     VarWS :: Ext env (a,e) => Proxy e -> BindingWS (Full (Reader env a))
@@ -502,7 +503,7 @@ instance Eval BindingWS
 -- | Higher-order interface for well-scoped variable binding
 --
 -- Inspired by Conor McBride's "I am not a number, I am a classy hack"
--- http://mazzo.li/epilogue/index.html%3Fp=773.html
+-- (<http://mazzo.li/epilogue/index.html%3Fp=773.html>).
 lamWS :: forall a e sym b . (BindingWS :<: sym)
     => ((forall env . (Ext env (a,e)) => ASTF sym (Reader env a)) -> ASTF sym (Reader (a,e) b))
     -> ASTF sym (Reader e (a -> b))
