@@ -10,9 +10,8 @@
 
 {-# OPTIONS_GHC -fno-warn-missing-methods #-}
 
--- | A minimal Feldspar core language implementation. The intention of this
--- module is to demonstrate how to quickly make a language prototype using
--- syntactic.
+-- | A minimal Feldspar core language implementation. The intention of this module is to demonstrate
+-- how to quickly make a language prototype using Syntactic.
 
 module NanoFeldspar where
 
@@ -345,12 +344,13 @@ transpose a = indexed (length (a!0)) $ \k -> indexed (length a) $ \l -> a ! l ! 
 -- * Examples
 --------------------------------------------------------------------------------
 
+-- | Scalar product
 scProd :: Vector (Data Float) -> Vector (Data Float) -> Data Float
 scProd a b = sum (zipWith (*) a b)
 
 forEach = flip map
 
--- Matrix multiplication
+-- | Matrix multiplication
 matMul :: Matrix Float -> Matrix Float -> Matrix Float
 matMul a b = forEach a $ \a' ->
                forEach (transpose b) $ \b' ->
