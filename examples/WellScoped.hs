@@ -28,13 +28,13 @@ type Exp e a = WS (Let :+: Construct) e a
 
 instance (Num a, Show a) => Num (Exp e a)
   where
-    fromInteger i = smartWS Proxy $ Construct (show i') i'
+    fromInteger i = smartWS $ Construct (show i') i'
       where i' = fromInteger i
-    (+) = smartWS Proxy $ Construct "(+)" (+)
+    (+) = smartWS $ Construct "(+)" (+)
 
 share :: forall e a b .
     Exp e a -> ((forall e' . Ext e' (a,e) => Exp e' a) -> Exp (a,e) b) -> Exp e b
-share a f = smartWS Proxy Let a $ lamWS f
+share a f = smartWS Let a $ lamWS f
 
 ex1 :: Exp e (Int -> Int)
 ex1 = lamWS $ \a -> share (a + 4) $ \b -> share (a+b) $ \c -> a+b+c

@@ -645,7 +645,7 @@ fromWS = fromDeBruijn . go
 -- >     => Proxy env
 -- >     -> sub (a :-> b :-> ... :-> Full x)
 -- >     -> ASTF bsym (Reader env a) -> ASTF bsym (Reader env b) -> ... -> ASTF bsym (Reader env x)
-smartWS :: forall sig sig' bsym f sub sup env
+smartWS :: forall sig sig' bsym f sub sup env a
     .  ( Signature sig
        , Signature sig'
        , sub :<: sup
@@ -656,7 +656,8 @@ smartWS :: forall sig sig' bsym f sub sup env
        , sig' ~ LiftReader env sig
        , Denotation (LiftReader env sig) ~ DenotationM (Reader env) sig
        , LowerReader (LiftReader env sig) ~ sig
+       , Reader env a ~ DenResult sig'
        )
-    => Proxy env -> sub sig -> f
-smartWS p s = smartSym' $ InjR $ ReaderSym p $ inj s
+    => sub sig -> f
+smartWS s = smartSym' $ InjR $ ReaderSym (Proxy :: Proxy env) $ inj s
 
