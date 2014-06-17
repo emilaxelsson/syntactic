@@ -11,11 +11,11 @@ import Data.Syntactic.Functional
 main :: IO ()
 main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-results/normal.csv"}) (return ())
          [ bgroup "Eval Tree 10"   [ bench "gadt"      $ nf evl (gadtExpr 10)
-                                   , bench "syntactic" $ nf eval (syntacticExpr 10)]
+                                   , bench "syntactic" $ nf evalDen (syntacticExpr 10)]
          , bgroup "Eval Tree 15"   [ bench "gadt"      $ nf evl (gadtExpr 15)
-                                   , bench "syntactic" $ nf eval (syntacticExpr 15)]
+                                   , bench "syntactic" $ nf evalDen(syntacticExpr 15)]
          , bgroup "Eval Tree 20"   [ bench "gadt"      $ nf evl (gadtExpr 20)
-                                   , bench "syntactic" $ nf eval (syntacticExpr 20) ]
+                                   , bench "syntactic" $ nf evalDen(syntacticExpr 20) ]
          , bgroup "Size Tree 10"   [ bench "gadt"      $ nf gSize (gadtExpr 10)
                                    , bench "syntactic" $ nf size (syntacticExpr 10)]
          , bgroup "Size Tree 15"   [ bench "gadt"      $ nf gSize (gadtExpr 15)
@@ -23,17 +23,17 @@ main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-resul
          , bgroup "Size Tree 20"   [ bench "gadt"      $ nf gSize (gadtExpr 20)
                                    , bench "syntactic" $ nf size (syntacticExpr 20)]
          , bgroup "Eval IFTree 10" [ bench "if gadt"   $ nf evl (gadtExpr 10)
-                                   , bench "syntactic" $ nf eval (syntacticExpr 10)]
+                                   , bench "syntactic" $ nf evalDen(syntacticExpr 10)]
          , bgroup "Eval IFTree 15" [ bench "gadt"      $ nf evl (gadtExpr 15)
-                                   , bench "syntactic" $ nf eval (syntacticExpr 15)]
+                                   , bench "syntactic" $ nf evalDen(syntacticExpr 15)]
          , bgroup "Eval IFTree 20" [ bench "gadt"      $ nf evl (gadtExpr 20)
-                                   , bench "syntactic" $ nf eval (syntacticExpr 20) ]
+                                   , bench "syntactic" $ nf evalDen(syntacticExpr 20) ]
          , bgroup "Size IFTree 10" [ bench "gadt"      $ nf gSize (gadtExpr 10)
-                                   , bench "syntactic" $ nf eval (syntacticExpr 10)]
+                                   , bench "syntactic" $ nf evalDen(syntacticExpr 10)]
          , bgroup "Size IFTree 15" [ bench "gadt"      $ nf gSize (gadtExpr 15)
-                                   , bench "syntactic" $ nf eval (syntacticExpr 15)]
+                                   , bench "syntactic" $ nf evalDen(syntacticExpr 15)]
          , bgroup "Size IFTree 20" [ bench "gadt"      $ nf gSize (gadtExpr 20)
-                                   , bench "syntactic" $ nf eval (syntacticExpr 20) ]]
+                                   , bench "syntactic" $ nf evalDen(syntacticExpr 20) ]]
 
 -- Expressions
 gadtExpr :: Int -> Expr Int
@@ -107,16 +107,23 @@ if' c a b = Sym EIf :$ c :$ a :$ b
 instance Render ExprS where
   renderSym (EI n) = "EI"
   renderSym (EB b) = "EB"
-  renderSym (EAdd) = "EAdd"
-  renderSym (EEq)  = "EEq"
-  renderSym (EIf)  = "EIf"
+  renderSym EAdd   = "EAdd"
+  renderSym EEq    = "EEq"
+  renderSym EIf    = "EIf"
 
 interpretationInstances ''ExprS
 
 instance Eval ExprS where
-  toSemSym (EI n) = Sem n
-  toSemSym (EB b) = Sem b
-  toSemSym (EAdd) = Sem (+)
-  toSemSym (EEq)  = Sem (==)
-  toSemSym (EIf)  = Sem $ \c a b -> if c then a else b
+  evalSym (EI n) = n
+  evalSym (EB b) = b
+  evalSym EAdd   = (+)
+  evalSym EEq    = (==)
+  evalSym EIf    = \c a b -> if c then a else b
+
+instance EvalEnv ExprS env where
+  compileSym p (EI n) = compileSymDefault p (EI n)
+  compileSym p (EB b) = compileSymDefault p (EB b)
+  compileSym p EAdd   = compileSymDefault p EAdd
+  compileSym p EEq    = compileSymDefault p EEq
+  compileSym p EIf    = compileSymDefault p EIf
 
