@@ -35,6 +35,8 @@ Tested-with:    GHC==7.6.2, GHC==7.8.2
 
 extra-source-files:
   CONTRIBUTORS
+  examples/*.hs
+  tests/*.hs
   tests/gold/*.txt
   extras/*.hs
 
@@ -95,12 +97,12 @@ library
     TemplateHaskell
     UndecidableInstances
 
-test-suite NanoFeldspar
+test-suite examples
   type: exitcode-stdio-1.0
 
   hs-source-dirs: tests examples
 
-  main-is: NanoFeldsparTests.hs
+  main-is: Tests.hs
 
   default-language: Haskell2010
 
@@ -125,6 +127,7 @@ test-suite NanoFeldspar
     tasty,
     tasty-golden,
     tasty-quickcheck,
+    tasty-th,
     utf8-string
 
 benchmark syntactic-bench
