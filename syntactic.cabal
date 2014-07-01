@@ -53,16 +53,11 @@ library
     Data.Syntactic.Interpretation
     Data.Syntactic.Sugar
     Data.Syntactic.Decoration
-    Data.Syntactic.TypeUniverse
     Data.Syntactic.Functional
     Data.Syntactic.Sugar.Binding
     Data.Syntactic.Sugar.BindingT
     Data.Syntactic.Sugar.Monad
     Data.Syntactic.Sugar.MonadT
-
-  other-modules:
-    Data.Syntactic.TypeUniverse.TypeUniverse
-    Data.Syntactic.TypeUniverse.Sub
 
   build-depends:
     base >= 4 && < 5,
@@ -80,7 +75,6 @@ library
   default-language: Haskell2010
 
   default-extensions:
-    ConstraintKinds
     DeriveDataTypeable
     DeriveFunctor
     DeriveFoldable
