@@ -5,6 +5,7 @@ module Language.Syntactic.Sharing.CodeMotion2
     , reifySmart2
     ) where
 
+import Control.Arrow
 import Control.Monad.State
 import Control.Monad.Reader
 import Control.Monad.Writer
@@ -22,8 +23,6 @@ import Language.Syntactic
 import Language.Syntactic.Constructs.Binding
 import Language.Syntactic.Constructs.Binding.HigherOrder
 import Language.Syntactic.Sharing.SimpleCodeMotion
-
-
 
 isVariable :: PrjDict dom -> ASTF (NodeDomain dom) a -> Bool
 isVariable pd (Sym (C' (InjR (prjVariable pd -> Just _)))) = True
@@ -59,6 +58,9 @@ instance Equality Node
 data Node a
   where
     Node :: NodeId -> Node (Full a)
+
+instance Render Node where
+  renderSym (Node n) = showNode n
 
 
 type NodeDomain dom = (Node :+: dom) :|| Sat dom
@@ -205,11 +207,6 @@ codeMotion2 hoistOver pd mkId a = rebuild pd mkId garr a'
  
 type ShareInfo dom = (NodeId, ASTSAT (NodeDomain dom), GatherInfo)
 
-data ShareMaybe dom a
-  where
-    Share :: Sat dom b => VarId -> InjDict dom b a -> ASTF dom b -> ShareMaybe dom a
-    Not :: Sat dom b => ASTF dom b -> ShareMaybe dom a
-
 rebuild :: forall dom a
     .  ( ConstrainedBy dom Typeable
        , AlphaEq dom dom (NodeDomain dom) [(VarId,VarId)]
@@ -220,7 +217,7 @@ rebuild :: forall dom a
     -> Array NodeId (Gathered dom)
     -> ASTF (NodeDomain dom) a
     -> State VarId (ASTF dom a)
-rebuild pd mkId nodes (Sym (C' (InjL _))) = error ""
+rebuild pd mkId nodes (Sym (C' (InjL _))) = error "rebuild: root is a node"
 rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
   where
     nodeExpr :: NodeId -> ASTSAT (NodeDomain dom)
@@ -249,67 +246,96 @@ rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
     -- not already been considered at a parent node. Otherwise we will not know
     -- what to do with that node.
     -- Implementation is pretty bizarre right now, but it should be replaced anyway.
-    nodesToConsider :: (NodeId -> Bool) -> Set.Set VarId -> [NodeId] -> [ShareInfo dom]
-    nodesToConsider f bv seenNodes = concatMap mkShareInfo (assocs nodes)
+    nodesToConsider :: NodeId -> (NodeId -> Bool) -> Set.Set VarId -> [NodeId] -> [ShareInfo dom]
+    nodesToConsider n f bv seenNodes = concatMap mkShareInfo (map (\n -> (n, nodes ! n)) (Set.elems (nodeDeps ! n)))
       where
         maximumBy' f [] = []
         maximumBy' f xs = [maximumBy f xs]
-        mkShareInfo (n,g) = map snd $ maximumBy' (compare `on` fst) $ map (\(Just i,x) -> (i,x)) $ filter ((/=Nothing) . fst)
+
+        mkShareInfo (n,g) = map snd $ filter ((/=Nothing) . fst) $ maximumBy' (compare `on` fst)
             [ (elemIndex il seenNodes, (n, geExpr g, gi))
             | (il,gi) <- geInfo g
-            --, i <- elemIndex il seenNodes
-                -- must be shared inside `il`
             , Set.null (freeVars n `Set.difference` bv)
                 -- any free variables in the sub-expression must be bound
+            , il /= n
+                -- this case handled separately
             , f n
             ]
+
+    -- Nodes which has the given node as its inner limit.
+    unshareableNodes :: NodeId -> AST (NodeDomain dom) b -> [ShareInfo dom]
+    unshareableNodes n (Sym s) = []
+    unshareableNodes n (s :$ Sym (C' (InjL (Node n')))) = 
+        case lookup n (geInfo (nodes ! n')) of
+            Just gi -> (n', geExpr (nodes ! n'), gi) : unshareableNodes n s
+            Nothing -> unshareableNodes n s
+
+    unshareable2Nodes :: Maybe VarId -> ASTF (NodeDomain dom) b -> [ShareInfo dom]
+    unshareable2Nodes Nothing  _ = []
+    unshareable2Nodes (Just v) a = go a []
+      where
+        go :: AST (NodeDomain dom) c -> [ShareInfo dom] -> [ShareInfo dom]
+        go (Sym s) l = l
+        go (s :$ Sym (C' (InjL (Node n')))) l
+            | Set.member v (freeVars n') = go s ((n', geExpr (nodes ! n'), undefined):l)
+            | otherwise                  = go s l
 
     rebuild' :: forall b
         .  NodeId
         -> ASTF (NodeDomain dom) b
         -> RebuildMonad dom (ASTF dom b)
-    rebuild' n (Sym (C' (InjR lam)) :$ ns@(Sym (C' (InjL (Node nb)))))
+    rebuild' n a@(Sym (C' (InjR lam)) :$ ns@(Sym (C' (InjL (Node nb)))))
         | Just v <- prjLambda pd lam
-        = case geExpr (nodes ! nb) of
-            ASTB a
-              | Dict <- exprDictSub pTypeable ns
-              , Dict <- exprDictSub pTypeable a
-              -> case gcast a of
-                Nothing -> error "rebuild: type mistmatch"
-                Just a -> do
-                    a' <- addBoundVar v $ addSeenNode n $ rebuild' nb a
-                    return (Sym lam :$ a')
+        = addSeenNode n $ shareExprsIn (Just v) n a
     rebuild' n (Sym (C' (InjR s))) = return $ Sym s
-    rebuild' n a = addSeenNode n $ shareExprsIn n a
+    rebuild' n a = addSeenNode n $ shareExprsIn Nothing n a
 
     shareExprsIn :: forall b
-        .  NodeId
+        .  Maybe VarId -- if the last argument is a lambda, this contains the lambda VarId, otherwise Nothing.
+        -> NodeId
         -> ASTF (NodeDomain dom) b
         -> RebuildMonad dom (ASTF dom b)
-    shareExprsIn n a = do
+    shareExprsIn mlv n a = do
         bv <- getBoundVars
         seenNodes <- getSeenNodes
         nodeMap <- getNodeExprMap
-        let considered = nodesToConsider (\n' -> n' /= n && not (Map.member n' nodeMap) && Set.member n' (nodeDeps ! n)) bv seenNodes
+        let considered = nodesToConsider n (\n' -> n' /= n && not (Map.member n' nodeMap) && Set.member n' (nodeDeps ! n)) bv seenNodes
         let sorted = sortBy (compare `on` (\(n,_,_) -> n)) considered
-        shareEm sorted a
+        let unshareable = unshareableNodes n a ++ unshareable2Nodes mlv a
+        unshare mlv unshareable $ shareEm mlv sorted a
+
+    unshare :: Maybe VarId -> [ShareInfo dom] -> RebuildMonad dom b -> RebuildMonad dom b
+    unshare mlv []     m = m
+    unshare mlv ((n, ASTB b, gi):sis) m = do
+          b' <- rebuildMaybeUnderLambda mlv n b
+          addNodeExpr n (ASTB b') $ unshare mlv sis m
 
     shareEm
-        :: [ShareInfo dom]
+        :: Maybe VarId
+        -> [ShareInfo dom]
         -> ASTF (NodeDomain dom) b
         -> RebuildMonad dom (ASTF dom b)
-    shareEm [] a = fixNodeExprSub a
-    shareEm ((n, be@(ASTB b), gi) : sis) a = do
-        b' <- rebuild' n b
+    shareEm mlv [] a = fixNodeExprSub a
+    shareEm mlv ((n, ASTB b, gi) : sis) a = do
         bv <- getBoundVars
-        case mkId b' (inlineAll nodeExpr a) of
+        case mkId (inlineAll nodeExpr b) (inlineAll nodeExpr a) of
             Just id | heuristic bv gi a -> do
+                b' <- rebuild' n b
                 v <- get; put (v+1)
-                a' <- addNodeExpr n (ASTB (Sym (injVariable id v))) $ shareEm sis a
+                a' <- addNodeExpr n (ASTB (Sym (injVariable id v))) $ shareEm mlv sis a
                 return $ Sym (injLet id) :$ b' :$ (Sym (injLambda id v) :$ a')
             _ -> do
-                a' <- addNodeExpr n (ASTB b') $ shareEm sis a
+                b' <- rebuildMaybeUnderLambda mlv n b
+                a' <- addNodeExpr n (ASTB b') $ shareEm mlv sis a
                 return a'
+
+    rebuildMaybeUnderLambda 
+        :: Maybe VarId
+        -> NodeId
+        -> ASTF (NodeDomain dom) b
+        -> RebuildMonad dom (ASTF dom b)
+    rebuildMaybeUnderLambda (Just lv) n a = addBoundVar lv $ rebuild' n a
+    rebuildMaybeUnderLambda Nothing   n a = rebuild' n a
 
     fixNodeExprSub :: forall b
         .  ( ConstrainedBy dom Typeable
@@ -337,7 +363,7 @@ rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
                 -> case gcast a of
                     Nothing -> error "rebuild: type mismatch"
                     Just a -> a
-            Nothing -> error "rebuild: lost node"
+            Nothing -> error ("rebuild: lost node: " ++ show n)
 
     heuristic :: Set.Set VarId -> GatherInfo -> ASTF (NodeDomain dom) b -> Bool
     heuristic bv gi b = not (isVariable pd b) && (giCount gi > 1 || not (Set.null (giScopes gi `Set.difference` bv)))
@@ -459,7 +485,13 @@ gather :: forall dom a
 gather hoistOver pd a@(Sym s) | Dict <- exprDict a = (array (1,0) [], Sym (C' (InjR s)))
 gather hoistOver pd a = (gatheredArr, a')
   where
-    (st,a') | Dict <- exprDict a = runGather (gatherRec (hoistOver a) a)
+    (st,a') | Dict <- exprDict a = runGather (gatherRoot a)
+
+    gatherRoot :: ASTF dom b -> GatherMonad dom (ASTF (NodeDomain dom) b)
+    gatherRoot a@(Sym lam :$ _) | Just v <- prjLambda pd lam
+                                , Dict <- exprDict a 
+                                = addScopeVar v $ gatherRec (hoistOver a) a
+    gatherRoot a | Dict <- exprDict a = gatherRec (hoistOver a) a
 
     gths = toListGS (gatherSet st)
 
@@ -509,7 +541,10 @@ gather hoistOver pd a = (gatheredArr, a')
     varHash :: Map.Map VarId Hash
     varHash = lambdaHashes pd a
 
-    gather' :: Bool -> ASTF dom b -> GatherMonad dom (ASTF (NodeDomain dom) b)
+    gather' 
+        :: Bool
+        -> ASTF dom b
+        -> GatherMonad dom (ASTF (NodeDomain dom) b)
     gather' h a@(Sym lam :$ _) | Just v <- prjLambda pd lam
                                , Dict <- exprDict a = do
         lt <- getLambdaTable
@@ -521,13 +556,13 @@ gather hoistOver pd a = (gatheredArr, a')
             Nothing -> do
                 rec
                     (a',fv) <- listen $ addInnerLimitIf (not h) n $ addScopeVar v $ gatherRec (hoistOver a) a
-                    n <- recordExpr fv a'
+                    n <- addInnerLimitIf (not h) n $ recordExpr fv a'
                 putLambdaTable (insertLT hash a n lt)
                 return $ Sym $ C' $ InjL $ Node n
     gather' h a | Dict <- exprDict a = do
         rec
             (a',fv) <- listen $ addInnerLimitIf (not h) n $ gatherRec (hoistOver a) a
-            n <- recordExpr fv a'
+            n <- addInnerLimitIf (not h) n $ recordExpr fv a'
         return $ Sym $ C' $ InjL $ Node n
 
     addInnerLimitIf True n m = addInnerLimit n m
