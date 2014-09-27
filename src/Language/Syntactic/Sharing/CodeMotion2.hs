@@ -109,6 +109,7 @@ type GatherSet dom = HashySet (Gathered dom)
 
 lookupGS :: forall dom a
     .  ( AlphaEq dom dom (NodeDomain dom) [(VarId,VarId)]
+       , ConstrainedBy (NodeDomain dom) Typeable
        , Equality dom)
     => GatherSet dom
     -> ASTF (NodeDomain dom) a
@@ -118,12 +119,16 @@ lookupGS hs e = lookupWithHS look (exprHash e) hs
     look :: [Gathered dom] -> Maybe (Gathered dom)
     look [] = Nothing
     look (g:gs) | ASTB ge <- geExpr g
+                , Dict <- exprDictSub pTypeable ge
+                , Dict <- exprDictSub pTypeable e
                 , alphaEq ge e
+                , typeRep ge == typeRep e
                 = Just g
     look (g:gs) = look gs
 
 updateGS :: forall dom
     .  ( AlphaEq dom dom (NodeDomain dom) [(VarId,VarId)]
+       , ConstrainedBy (NodeDomain dom) Typeable
        , Equality dom)
     => GatherSet dom
     -> Gathered dom
@@ -138,9 +143,12 @@ updateGS hs g
     ins :: [Gathered dom] -> [Gathered dom]
     ins [] = [g]
     ins (x:xs) | ASTB xe <- geExpr x
-                , ASTB ge <- geExpr g
-                , alphaEq xe ge
-                = g : xs
+               , ASTB ge <- geExpr g
+               , Dict <- exprDictSub pTypeable xe
+               , Dict <- exprDictSub pTypeable ge
+               , alphaEq xe ge
+               , typeRep xe == typeRep ge
+               = g : xs
     ins (x:xs) = x : ins xs
 
 emptyGS :: GatherSet dom
