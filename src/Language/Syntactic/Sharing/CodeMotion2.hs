@@ -24,6 +24,10 @@ import Language.Syntactic.Constructs.Binding
 import Language.Syntactic.Constructs.Binding.HigherOrder
 import Language.Syntactic.Sharing.SimpleCodeMotion
 
+typeEq :: forall dom a b. (Typeable a, Typeable b) => ASTF dom a -> ASTF dom b -> Bool 
+typeEq a b | Just _ <- (gcast b :: Maybe (ASTF dom a)) = True
+typeEq _ _ = False
+
 isVariable :: PrjDict dom -> ASTF (NodeDomain dom) a -> Bool
 isVariable pd (Sym (C' (InjR (prjVariable pd -> Just _)))) = True
 isVariable pd _ = False
@@ -122,7 +126,7 @@ lookupGS hs e = lookupWithHS look (exprHash e) hs
                 , Dict <- exprDictSub pTypeable ge
                 , Dict <- exprDictSub pTypeable e
                 , alphaEq ge e
-                , typeRep ge == typeRep e
+                , typeEq ge e
                 = Just g
     look (g:gs) = look gs
 
@@ -147,7 +151,7 @@ updateGS hs g
                , Dict <- exprDictSub pTypeable xe
                , Dict <- exprDictSub pTypeable ge
                , alphaEq xe ge
-               , typeRep xe == typeRep ge
+               , typeEq xe ge
                = g : xs
     ins (x:xs) = x : ins xs
 
