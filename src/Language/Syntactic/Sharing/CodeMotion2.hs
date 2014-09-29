@@ -24,6 +24,10 @@ import Language.Syntactic.Constructs.Binding
 import Language.Syntactic.Constructs.Binding.HigherOrder
 import Language.Syntactic.Sharing.SimpleCodeMotion
 
+typeEq :: forall dom a b. (Typeable a, Typeable b) => ASTF dom a -> ASTF dom b -> Bool 
+typeEq a b | Just _ <- (gcast b :: Maybe (ASTF dom a)) = True
+typeEq _ _ = False
+
 isVariable :: PrjDict dom -> ASTF (NodeDomain dom) a -> Bool
 isVariable pd (Sym (C' (InjR (prjVariable pd -> Just _)))) = True
 isVariable pd _ = False
@@ -109,6 +113,7 @@ type GatherSet dom = HashySet (Gathered dom)
 
 lookupGS :: forall dom a
     .  ( AlphaEq dom dom (NodeDomain dom) [(VarId,VarId)]
+       , ConstrainedBy (NodeDomain dom) Typeable
        , Equality dom)
     => GatherSet dom
     -> ASTF (NodeDomain dom) a
@@ -118,12 +123,16 @@ lookupGS hs e = lookupWithHS look (exprHash e) hs
     look :: [Gathered dom] -> Maybe (Gathered dom)
     look [] = Nothing
     look (g:gs) | ASTB ge <- geExpr g
+                , Dict <- exprDictSub pTypeable ge
+                , Dict <- exprDictSub pTypeable e
                 , alphaEq ge e
+                , typeEq ge e
                 = Just g
     look (g:gs) = look gs
 
 updateGS :: forall dom
     .  ( AlphaEq dom dom (NodeDomain dom) [(VarId,VarId)]
+       , ConstrainedBy (NodeDomain dom) Typeable
        , Equality dom)
     => GatherSet dom
     -> Gathered dom
@@ -138,9 +147,12 @@ updateGS hs g
     ins :: [Gathered dom] -> [Gathered dom]
     ins [] = [g]
     ins (x:xs) | ASTB xe <- geExpr x
-                , ASTB ge <- geExpr g
-                , alphaEq xe ge
-                = g : xs
+               , ASTB ge <- geExpr g
+               , Dict <- exprDictSub pTypeable xe
+               , Dict <- exprDictSub pTypeable ge
+               , alphaEq xe ge
+               , typeEq xe ge
+               = g : xs
     ins (x:xs) = x : ins xs
 
 emptyGS :: GatherSet dom
