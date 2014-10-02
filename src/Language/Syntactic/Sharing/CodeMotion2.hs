@@ -277,10 +277,12 @@ rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
     -- Nodes which has the given node as its inner limit.
     unshareableNodes :: NodeId -> AST (NodeDomain dom) b -> [ShareInfo dom]
     unshareableNodes n (Sym s) = []
-    unshareableNodes n (s :$ Sym (C' (InjL (Node n')))) = 
-        case lookup n (geInfo (nodes ! n')) of
-            Just gi -> (n', geExpr (nodes ! n'), gi) : unshareableNodes n s
-            Nothing -> unshareableNodes n s
+    unshareableNodes n (s :$ Sym (C' (InjL (Node n'))))
+        | Just gi <- lookup n (geInfo (nodes ! n'))
+        = (n', geExpr (nodes ! n'), gi) : unshareableNodes n s
+        | Just gi <- lookup n' (geInfo (nodes ! n'))
+        = (n', geExpr (nodes ! n'), gi) : unshareableNodes n s
+    unshareableNodes n (b :$ s) = unshareableNodes n b
 
     unshareable2Nodes :: Maybe VarId -> ASTF (NodeDomain dom) b -> [ShareInfo dom]
     unshareable2Nodes Nothing  _ = []
