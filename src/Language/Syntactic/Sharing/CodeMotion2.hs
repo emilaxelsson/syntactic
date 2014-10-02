@@ -331,7 +331,7 @@ rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
     shareEm mlv ((n, ASTB b, gi) : sis) a = do
         bv <- getBoundVars
         case mkId (inlineAll nodeExpr b) (inlineAll nodeExpr a) of
-            Just id | heuristic bv gi a -> do
+            Just id | heuristic bv gi b -> do
                 b' <- rebuild' n b
                 v <- get; put (v+1)
                 a' <- addNodeExpr n (ASTB (Sym (injVariable id v))) $ shareEm mlv sis a
