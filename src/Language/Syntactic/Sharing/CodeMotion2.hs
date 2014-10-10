@@ -174,7 +174,7 @@ type RebuildMonad dom a = ReaderT (RebuildEnv dom) (State VarId) a
 
 
 runRebuild :: RebuildMonad dom a -> State VarId a
-runRebuild m = runReaderT m (Map.empty, Set.empty, [0])
+runRebuild m = runReaderT m (Map.empty, Set.empty, [])
 
 addBoundVar :: VarId -> RebuildMonad dom a -> RebuildMonad dom a
 addBoundVar v =  local (\(nm,vs,sn) -> (nm, Set.insert v vs, sn))
@@ -315,8 +315,8 @@ rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
         nodeMap <- getNodeExprMap
         let considered = nodesToConsider n (\n' -> n' /= n && not (Map.member n' nodeMap) && Set.member n' (nodeDeps ! n)) bv seenNodes
         let sorted = sortBy (compare `on` (\(n,_,_) -> n)) considered
-        let unshareable = unshareableNodes n a ++ unshareable2Nodes mlv a
         unshare mlv unshareable $ shareEm mlv sorted a
+        let unshareable = nubBy ((==) `on` (\(n,_,_) -> n)) $ unshareableNodes n a ++ unshareable2Nodes mlv a
 
     unshare :: Maybe VarId -> [ShareInfo dom] -> RebuildMonad dom b -> RebuildMonad dom b
     unshare mlv []     m = m
@@ -420,6 +420,7 @@ data GatherState dom = GatherState
 data LambdaInfo dom = LambdaInfo
     { liExpr :: ASTSAT dom
     , liLambdaNodeId :: NodeId
+    , liFreeVars :: Set.Set VarId
     }
 
 type GatherMonad dom a = RWS GatherEnv (Set.Set VarId) (GatherState dom) a
@@ -454,13 +455,14 @@ insertLT :: forall dom a
     => Hash
     -> ASTF dom a
     -> NodeId
+    -> Set.Set VarId
     -> LambdaTable dom
     -> LambdaTable dom
-insertLT h e n t = updateWithHS ins h t
+insertLT h e n fv t = updateWithHS ins h t
   where
     ins :: Maybe [LambdaInfo dom] -> Maybe [LambdaInfo dom]
-    ins (Just xs) = Just (LambdaInfo (ASTB e) n : xs)
-    ins Nothing = Just [LambdaInfo (ASTB e) n]
+    ins (Just xs) = Just (LambdaInfo (ASTB e) n fv : xs)
+    ins Nothing = Just [LambdaInfo (ASTB e) n fv]
 
 
 getInnerLimit :: GatherMonad dom NodeId
@@ -565,13 +567,15 @@ gather hoistOver pd a = (gatheredArr, a')
         let hash = fromJust (Map.lookup v varHash)
         case lookupLT hash a lt of
             Just li -> do
-                anotherCopyOf (liLambdaNodeId li)
-                return $ Sym $ C' $ InjL $ Node $ liLambdaNodeId li
+                let n = liLambdaNodeId li
+                anotherCopyOf n
+                tell (liFreeVars li)
+                return $ Sym $ C' $ InjL $ Node $ n
             Nothing -> do
                 rec
                     (a',fv) <- listen $ addInnerLimitIf (not h) n $ addScopeVar v $ gatherRec (hoistOver a) a
                     n <- addInnerLimitIf (not h) n $ recordExpr fv a'
-                putLambdaTable (insertLT hash a n lt)
+                putLambdaTable (insertLT hash a n fv lt)
                 return $ Sym $ C' $ InjL $ Node n
     gather' h a | Dict <- exprDict a = do
         rec
