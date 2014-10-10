@@ -315,8 +315,8 @@ rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
         nodeMap <- getNodeExprMap
         let considered = nodesToConsider n (\n' -> n' /= n && not (Map.member n' nodeMap) && Set.member n' (nodeDeps ! n)) bv seenNodes
         let sorted = sortBy (compare `on` (\(n,_,_) -> n)) considered
-        unshare mlv unshareable $ shareEm mlv sorted a
         let unshareable = nubBy ((==) `on` (\(n,_,_) -> n)) $ unshareableNodes n a ++ unshareable2Nodes mlv a
+        unshare mlv unshareable $ shareEm mlv sorted a
 
     unshare :: Maybe VarId -> [ShareInfo dom] -> RebuildMonad dom b -> RebuildMonad dom b
     unshare mlv []     m = m
