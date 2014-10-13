@@ -174,7 +174,7 @@ type RebuildMonad dom a = ReaderT (RebuildEnv dom) (State VarId) a
 
 
 runRebuild :: RebuildMonad dom a -> State VarId a
-runRebuild m = runReaderT m (Map.empty, Set.empty, [0])
+runRebuild m = runReaderT m (Map.empty, Set.empty, [])
 
 addBoundVar :: VarId -> RebuildMonad dom a -> RebuildMonad dom a
 addBoundVar v =  local (\(nm,vs,sn) -> (nm, Set.insert v vs, sn))
@@ -277,10 +277,12 @@ rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
     -- Nodes which has the given node as its inner limit.
     unshareableNodes :: NodeId -> AST (NodeDomain dom) b -> [ShareInfo dom]
     unshareableNodes n (Sym s) = []
-    unshareableNodes n (s :$ Sym (C' (InjL (Node n')))) = 
-        case lookup n (geInfo (nodes ! n')) of
-            Just gi -> (n', geExpr (nodes ! n'), gi) : unshareableNodes n s
-            Nothing -> unshareableNodes n s
+    unshareableNodes n (s :$ Sym (C' (InjL (Node n'))))
+        | Just gi <- lookup n (geInfo (nodes ! n'))
+        = (n', geExpr (nodes ! n'), gi) : unshareableNodes n s
+        | Just gi <- lookup n' (geInfo (nodes ! n'))
+        = (n', geExpr (nodes ! n'), gi) : unshareableNodes n s
+    unshareableNodes n (b :$ s) = unshareableNodes n b
 
     unshareable2Nodes :: Maybe VarId -> ASTF (NodeDomain dom) b -> [ShareInfo dom]
     unshareable2Nodes Nothing  _ = []
@@ -313,7 +315,7 @@ rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
         nodeMap <- getNodeExprMap
         let considered = nodesToConsider n (\n' -> n' /= n && not (Map.member n' nodeMap) && Set.member n' (nodeDeps ! n)) bv seenNodes
         let sorted = sortBy (compare `on` (\(n,_,_) -> n)) considered
-        let unshareable = unshareableNodes n a ++ unshareable2Nodes mlv a
+        let unshareable = nubBy ((==) `on` (\(n,_,_) -> n)) $ unshareableNodes n a ++ unshareable2Nodes mlv a
         unshare mlv unshareable $ shareEm mlv sorted a
 
     unshare :: Maybe VarId -> [ShareInfo dom] -> RebuildMonad dom b -> RebuildMonad dom b
@@ -331,7 +333,7 @@ rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
     shareEm mlv ((n, ASTB b, gi) : sis) a = do
         bv <- getBoundVars
         case mkId (inlineAll nodeExpr b) (inlineAll nodeExpr a) of
-            Just id | heuristic bv gi a -> do
+            Just id | heuristic bv gi b -> do
                 b' <- rebuild' n b
                 v <- get; put (v+1)
                 a' <- addNodeExpr n (ASTB (Sym (injVariable id v))) $ shareEm mlv sis a
@@ -418,6 +420,7 @@ data GatherState dom = GatherState
 data LambdaInfo dom = LambdaInfo
     { liExpr :: ASTSAT dom
     , liLambdaNodeId :: NodeId
+    , liFreeVars :: Set.Set VarId
     }
 
 type GatherMonad dom a = RWS GatherEnv (Set.Set VarId) (GatherState dom) a
@@ -452,13 +455,14 @@ insertLT :: forall dom a
     => Hash
     -> ASTF dom a
     -> NodeId
+    -> Set.Set VarId
     -> LambdaTable dom
     -> LambdaTable dom
-insertLT h e n t = updateWithHS ins h t
+insertLT h e n fv t = updateWithHS ins h t
   where
     ins :: Maybe [LambdaInfo dom] -> Maybe [LambdaInfo dom]
-    ins (Just xs) = Just (LambdaInfo (ASTB e) n : xs)
-    ins Nothing = Just [LambdaInfo (ASTB e) n]
+    ins (Just xs) = Just (LambdaInfo (ASTB e) n fv : xs)
+    ins Nothing = Just [LambdaInfo (ASTB e) n fv]
 
 
 getInnerLimit :: GatherMonad dom NodeId
@@ -563,13 +567,15 @@ gather hoistOver pd a = (gatheredArr, a')
         let hash = fromJust (Map.lookup v varHash)
         case lookupLT hash a lt of
             Just li -> do
-                anotherCopyOf (liLambdaNodeId li)
-                return $ Sym $ C' $ InjL $ Node $ liLambdaNodeId li
+                let n = liLambdaNodeId li
+                anotherCopyOf n
+                tell (liFreeVars li)
+                return $ Sym $ C' $ InjL $ Node $ n
             Nothing -> do
                 rec
                     (a',fv) <- listen $ addInnerLimitIf (not h) n $ addScopeVar v $ gatherRec (hoistOver a) a
                     n <- addInnerLimitIf (not h) n $ recordExpr fv a'
-                putLambdaTable (insertLT hash a n lt)
+                putLambdaTable (insertLT hash a n fv lt)
                 return $ Sym $ C' $ InjL $ Node n
     gather' h a | Dict <- exprDict a = do
         rec
