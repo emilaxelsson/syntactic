@@ -15,7 +15,7 @@ Description:    The library provides a generic representation of type-indexed ab
                   * Slides:
                     <http://www.cse.chalmers.se/~emax/documents/axelsson2012generic-slides.pdf>
                 .
-                Example EDSL can be found in the @examples@ folder.
+                Example EDSLs can be found in the @examples@ folder.
                 .
                 \[1\] W. Swierstra. Data Types à la Carte.
                 /Journal of Functional Programming/, 18(4):423-436, 2008,
