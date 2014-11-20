@@ -3,13 +3,13 @@
 module WithArity (main) where
 
 import Criterion.Main
-import Criterion.Config
+import Criterion.Types
 import Data.Monoid
 import Data.Syntactic hiding (E)
 import Data.Syntactic.Functional
 
 main :: IO ()
-main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-results/withArity.csv"}) (return ())
+main = defaultMainWith (defaultConfig {csvFile = Just "bench-results/withArity.csv"})
          [ bgroup "eval 5"  [ bench "gadt"      $ nf evl (gExpr 5)
                             , bench "Syntactic" $ nf evalDen (sExpr 5) ]
          , bgroup "eval 6"  [ bench "gadt"      $ nf evl (gExpr 6)

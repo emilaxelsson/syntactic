@@ -3,13 +3,13 @@
 module Normal (main) where
 
 import Criterion.Main
-import Criterion.Config
+import Criterion.Types
 import Data.Monoid
 import Data.Syntactic
 import Data.Syntactic.Functional
 
 main :: IO ()
-main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-results/normal.csv"}) (return ())
+main = defaultMainWith (defaultConfig {csvFile = Just "bench-results/normal.csv"})
          [ bgroup "Eval Tree 10"   [ bench "gadt"      $ nf evl (gadtExpr 10)
                                    , bench "syntactic" $ nf evalDen (syntacticExpr 10)]
          , bgroup "Eval Tree 15"   [ bench "gadt"      $ nf evl (gadtExpr 15)

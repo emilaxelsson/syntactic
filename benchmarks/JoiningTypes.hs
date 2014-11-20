@@ -3,7 +3,7 @@
 module JoiningTypes (main) where
 
 import Criterion.Main
-import Criterion.Config
+import Criterion.Types
 import Data.Monoid
 import Data.Syntactic
 import Data.Syntactic.Functional
@@ -209,7 +209,7 @@ syntacticExpr4J 0 = if4 (eq4 (int4 5) (int4 4)) (int4 5) (int4 0)
 syntacticExpr4J n = (add4 (syntacticExpr4J (n-1)) (syntacticExpr4J (n-1)))
 
 main :: IO ()
-main = defaultMainWith (defaultConfig {cfgSummaryFile = Last $ Just "bench-results/joiningTypes.csv"}) (return ())
+main = defaultMainWith (defaultConfig {csvFile = Just "bench-results/joiningTypes.csv"})
          [ bgroup "eval 10" [ bench "syntactic 0 joins" $ nf evalDen (syntacticExpr 10)
                             , bench "syntactic 1 join"  $ nf evalDen (syntacticExprJ 10)
                             , bench "syntactic 4 joins" $ nf evalDen (syntacticExpr4J 10)]

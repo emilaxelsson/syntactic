@@ -136,7 +136,7 @@ benchmark syntactic-bench
 
   build-depends:
     base,
-    criterion,
+    criterion >= 1,
     syntactic
 
   default-language: Haskell2010
