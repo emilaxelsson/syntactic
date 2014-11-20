@@ -53,7 +53,6 @@ module Data.Syntactic.Functional
 
 import Control.Applicative
 import Control.Monad.Cont
-import Control.Monad.Identity
 import Control.Monad.Reader
 import Data.Dynamic
 import Data.List (genericIndex)
@@ -349,9 +348,12 @@ alphaEq' :: (Equality sym, BindingDomain sym) => AlphaEnv -> ASTF sym a -> ASTF 
 alphaEq' env var1 var2
     | Just v1 <- prVar var1
     , Just v2 <- prVar var2
-    = case lookup v1 env of
-        Nothing  -> v1==v2   -- Free variables
-        Just v2' -> v2==v2'
+    = case (lookup v1 env, lookup v2 env') of
+        (Nothing, Nothing)   -> v1==v2  -- Free variables
+        (Just v2', Just v1') -> v1==v1' && v2==v2'
+        _                    -> False
+  where
+    env' = [(v2,v1) | (v1,v2) <- env]
 alphaEq' env (lam1 :$ body1) (lam2 :$ body2)
     | Just v1 <- prLam lam1
     , Just v2 <- prLam lam2
