@@ -1,7 +1,6 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
-
-{-# OPTIONS_GHC -cpp #-}
 
 -- | Generic representation of typed syntax trees
 --
