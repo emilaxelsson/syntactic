@@ -464,12 +464,10 @@ type instance DenotationM m (Full a)    = m a
 type instance DenotationM m (a :-> sig) = m a -> DenotationM m sig
 
 -- | Lift a 'Denotation' to 'DenotationM'
-liftDenotationM :: forall m sig proxy1 proxy2 . (Monad m, Signature sig) =>
-    proxy1 m -> proxy2 sig -> Denotation sig -> DenotationM m sig
-liftDenotationM _ _ = help2 sig . help1 sig
+liftDenotationM :: forall m sig proxy1 proxy2 . Monad m =>
+    SigRep sig -> proxy1 m -> proxy2 sig -> Denotation sig -> DenotationM m sig
+liftDenotationM sig _ _ = help2 sig . help1 sig
   where
-    sig = signature :: SigRep sig
-
     help1 :: Monad m =>
         SigRep sig' -> Denotation sig' -> Args (WrapFull m) sig' -> m (DenResult sig')
     help1 SigFull f _ = return f
@@ -488,7 +486,16 @@ type RunEnv = [(Name, Dynamic)]
 -- | Evaluation
 class EvalEnv sym env
   where
+    default compileSym :: (Symbol sym, Eval sym) =>
+        proxy env -> sym sig -> DenotationM (Reader env) sig
+
     compileSym :: proxy env -> sym sig -> DenotationM (Reader env) sig
+    compileSym p s = compileSymDefault (symSig s) p s
+
+-- | Simple implementation of `compileSym` from a 'Denotation'
+compileSymDefault :: forall proxy env sym sig . Eval sym =>
+    SigRep sig -> proxy env -> sym sig -> DenotationM (Reader env) sig
+compileSymDefault sig p s = liftDenotationM sig (Proxy :: Proxy (Reader env)) s (evalSym s)
 
 instance (EvalEnv sym1 env, EvalEnv sym2 env) => EvalEnv (sym1 :+: sym2) env
   where
@@ -505,16 +512,11 @@ instance EvalEnv sym env => EvalEnv (sym :&: info) env
 
 instance EvalEnv Construct env
   where
-    compileSym _ s@(Construct _ d :: Construct sig) = liftDenotationM p s d
+    compileSym _ s@(Construct _ d) = liftDenotationM signature p s d
       where
         p = Proxy :: Proxy (Reader env)
 
 instance Monad m => EvalEnv (MONAD m) env
-  where
-    compileSym p Return = compileSymDefault p Return
-    compileSym p Bind   = compileSymDefault p Bind
-      -- Pattern matching on the individual constructors is needed in order to fulfill the
-      -- 'Signature' constraint required by the right-hand side.
 
 instance EvalEnv BindingT RunEnv
   where
@@ -524,11 +526,6 @@ instance EvalEnv BindingT RunEnv
         msgVar v = "compileSym: Variable " ++ show v ++ " not in scope"
         msgType  = "compileSym: type error"  -- TODO Print types
     compileSym _ (LamT v) = \body -> reader $ \env a -> runReader body ((v, toDyn a) : env)
-
--- | Simple implementation of `compileSym` from a 'Denotation'
-compileSymDefault :: forall proxy env sym sig . (Eval sym, Signature sig) =>
-    proxy env -> sym sig -> DenotationM (Reader env) sig
-compileSymDefault p s = liftDenotationM (Proxy :: Proxy (Reader env)) s (evalSym s)
 
 -- | \"Compile\" a term to a Haskell function
 compile :: EvalEnv sym env => proxy env -> AST sym sig -> DenotationM (Reader env) sig
@@ -657,7 +654,7 @@ data ReaderSym sym sig
 
 instance Eval sym => Eval (ReaderSym sym)
   where
-    evalSym (ReaderSym (_ :: Proxy env) s) = liftDenotationM p s $ evalSym s
+    evalSym (ReaderSym (_ :: Proxy env) s) = liftDenotationM signature p s $ evalSym s
       where
         p = Proxy :: Proxy (Reader env)
 

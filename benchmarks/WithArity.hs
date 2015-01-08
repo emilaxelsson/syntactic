@@ -118,10 +118,10 @@ instance Eval T
 
 instance EvalEnv T env
   where
-    compileSym p (T0 a) = compileSymDefault p (T0 a)
-    compileSym p T1     = compileSymDefault p T1
-    compileSym p T2     = compileSymDefault p T2
-    compileSym p T3     = compileSymDefault p T3
-    compileSym p T5     = compileSymDefault p T5
-    compileSym p T10    = compileSymDefault p T10
+    compileSym p (T0 a) = compileSymDefault signature p (T0 a)
+    compileSym p T1     = compileSymDefault signature p T1
+    compileSym p T2     = compileSymDefault signature p T2
+    compileSym p T3     = compileSymDefault signature p T3
+    compileSym p T5     = compileSymDefault signature p T5
+    compileSym p T10    = compileSymDefault signature p T10
 

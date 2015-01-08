@@ -50,11 +50,11 @@ instance Eval Expr1 where
   evalSym EIf     = \c a b -> if c then a else b
 
 instance EvalEnv Expr1 env where
-  compileSym p (EI n) = compileSymDefault p (EI n)
-  compileSym p (EB b) = compileSymDefault p (EB b)
-  compileSym p EAdd   = compileSymDefault p EAdd
-  compileSym p EEq    = compileSymDefault p EEq
-  compileSym p EIf    = compileSymDefault p EIf
+  compileSym p (EI n) = compileSymDefault signature p (EI n)
+  compileSym p (EB b) = compileSymDefault signature p (EB b)
+  compileSym p EAdd   = compileSymDefault signature p EAdd
+  compileSym p EEq    = compileSymDefault signature p EEq
+  compileSym p EIf    = compileSymDefault signature p EIf
 
 -- Joined types
 data ExprI t where
@@ -105,13 +105,13 @@ instance Eval ExprB where
   evalSym EIfJ    = \c a b -> if c then a else b
 
 instance EvalEnv ExprI env where
-  compileSym p (EIJ n) = compileSymDefault p (EIJ n)
-  compileSym p EAddJ   = compileSymDefault p EAddJ
+  compileSym p (EIJ n) = compileSymDefault signature p (EIJ n)
+  compileSym p EAddJ   = compileSymDefault signature p EAddJ
 
 instance EvalEnv ExprB env where
-  compileSym p (EBJ b) = compileSymDefault p (EBJ b)
-  compileSym p EEqJ    = compileSymDefault p EEqJ
-  compileSym p EIfJ    = compileSymDefault p EIfJ
+  compileSym p (EBJ b) = compileSymDefault signature p (EBJ b)
+  compileSym p EEqJ    = compileSymDefault signature p EEqJ
+  compileSym p EIfJ    = compileSymDefault signature p EIfJ
 
 -- Joined types (4 joins)
 
@@ -181,19 +181,19 @@ instance Eval Expr4J5 where
   evalSym E4JIf     = \c a b -> if c then a else b
 
 instance EvalEnv Expr4J1 env where
-  compileSym p (E4JI n)  = compileSymDefault p (E4JI n)
+  compileSym p (E4JI n)  = compileSymDefault signature p (E4JI n)
 
 instance EvalEnv Expr4J2 env where
-  compileSym p (E4JB b)  = compileSymDefault p (E4JB b)
+  compileSym p (E4JB b)  = compileSymDefault signature p (E4JB b)
 
 instance EvalEnv Expr4J3 env where
-  compileSym p E4JAdd    = compileSymDefault p E4JAdd
+  compileSym p E4JAdd    = compileSymDefault signature p E4JAdd
 
 instance EvalEnv Expr4J4 env where
-  compileSym p E4JEq     = compileSymDefault p E4JEq
+  compileSym p E4JEq     = compileSymDefault signature p E4JEq
 
 instance EvalEnv Expr4J5 env where
-  compileSym p E4JIf     = compileSymDefault p E4JIf
+  compileSym p E4JIf     = compileSymDefault signature p E4JIf
 
 -- Expressions
 syntacticExpr :: Int -> Expr1' Int

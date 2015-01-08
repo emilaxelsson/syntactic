@@ -75,12 +75,6 @@ instance Eval Arithmetic
     evalSym Mul = (*)
 
 instance EvalEnv Arithmetic env
-  where
-    compileSym p Add = compileSymDefault p Add
-    compileSym p Sub = compileSymDefault p Sub
-    compileSym p Mul = compileSymDefault p Mul
-      -- Pattern matching on the individual constructors is needed in order to fulfill the
-      -- 'Signature' constraint required by the right-hand side.
 
 data Let sig
   where
@@ -110,8 +104,6 @@ instance Eval Let
     evalSym Let = flip ($)
 
 instance EvalEnv Let env
-  where
-    compileSym p Let = compileSymDefault p Let
 
 data Parallel sig
   where
@@ -132,8 +124,6 @@ instance Eval Parallel
     evalSym Parallel = \len ixf -> Prelude.map ixf [0 .. len-1]
 
 instance EvalEnv Parallel env
-  where
-    compileSym p Parallel = compileSymDefault p Parallel
 
 data ForLoop sig
   where
@@ -154,8 +144,6 @@ instance Eval ForLoop
     evalSym ForLoop = \len init body -> foldl (flip body) init [0 .. len-1]
 
 instance EvalEnv ForLoop env
-  where
-    compileSym p ForLoop = compileSymDefault p ForLoop
 
 type FeldDomain
     =   Arithmetic

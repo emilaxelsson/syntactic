@@ -121,9 +121,9 @@ instance Eval ExprS where
   evalSym EIf    = \c a b -> if c then a else b
 
 instance EvalEnv ExprS env where
-  compileSym p (EI n) = compileSymDefault p (EI n)
-  compileSym p (EB b) = compileSymDefault p (EB b)
-  compileSym p EAdd   = compileSymDefault p EAdd
-  compileSym p EEq    = compileSymDefault p EEq
-  compileSym p EIf    = compileSymDefault p EIf
+  compileSym p (EI n) = compileSymDefault signature p (EI n)
+  compileSym p (EB b) = compileSymDefault signature p (EB b)
+  compileSym p EAdd   = compileSymDefault signature p EAdd
+  compileSym p EEq    = compileSymDefault signature p EEq
+  compileSym p EIf    = compileSymDefault signature p EIf
 
