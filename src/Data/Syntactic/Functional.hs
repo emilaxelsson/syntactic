@@ -52,6 +52,7 @@ module Data.Syntactic.Functional
 
 
 import Control.Applicative
+import Control.DeepSeq
 import Control.Monad.Cont
 import Control.Monad.Reader
 import Data.Dynamic
@@ -74,9 +75,14 @@ import Data.Syntactic
 --
 -- 'Construct' gives a quick way to introduce a syntactic construct by giving its name and semantic
 -- function.
-data Construct a
+data Construct sig
   where
     Construct :: Signature sig => String -> Denotation sig -> Construct sig
+
+instance Symbol Construct
+  where
+    rnfSym (Construct name den) = rnf name `seq` den `seq` ()
+    symSig (Construct _ _)      = signature
 
 instance Render Construct
   where
@@ -92,17 +98,24 @@ instance StringTree Construct
 
 -- | Variable name
 newtype Name = Name Integer
-  deriving (Eq, Ord, Num, Enum, Real, Integral)
+  deriving (Eq, Ord, Num, Enum, Real, Integral, NFData)
 
 instance Show Name
   where
     show (Name n) = show n
 
 -- | Variables and binders
-data Binding a
+data Binding sig
   where
     Var :: Name -> Binding (Full a)
     Lam :: Name -> Binding (b :-> Full (a -> b))
+
+instance Symbol Binding
+  where
+    rnfSym (Var v) = rnf v
+    rnfSym (Lam v) = rnf v
+    symSig (Var _) = signature
+    symSig (Lam _) = signature
 
 -- | 'equal' does strict identifier comparison; i.e. no alpha equivalence.
 --
@@ -177,10 +190,17 @@ fromDeBruijn = go []
     go vs a = gmapT (go vs) a
 
 -- | Typed variables and binders
-data BindingT a
+data BindingT sig
   where
     VarT :: Typeable a => Name -> BindingT (Full a)
     LamT :: Typeable a => Name -> BindingT (b :-> Full (a -> b))
+
+instance Symbol BindingT
+  where
+    rnfSym (VarT v) = rnf v
+    rnfSym (LamT v) = rnf v
+    symSig (VarT _) = signature
+    symSig (LamT _) = signature
 
 -- | 'equal' does strict identifier comparison; i.e. no alpha equivalence.
 --
@@ -293,6 +313,11 @@ data MONAD m sig
   where
     Return :: MONAD m (a :-> Full (m a))
     Bind   :: MONAD m (m a :-> (a -> m b) :-> Full (m b))
+
+instance Symbol (MONAD m)
+  where
+    symSig Return = signature
+    symSig Bind   = signature
 
 instance Render (MONAD m)
   where
@@ -559,10 +584,17 @@ lookEnv _ = reader $ \env -> let (a, e :: e) = unext env in a
 -- \"Typing Dynamic Typing\" starts from an untyped term, and thus needs (safe) dynamic type casting
 -- during compilation. In contrast, the denotational semantics of 'BindingWS' (the 'Eval' instance)
 -- uses no type casting.
-data BindingWS a
+data BindingWS sig
   where
     VarWS :: Ext env (a,e) => Proxy e -> BindingWS (Full (Reader env a))
     LamWS :: BindingWS (Reader (a,e) b :-> Full (Reader e (a -> b)))
+
+instance Symbol BindingWS
+  where
+    rnfSym (VarWS Proxy) = ()
+    rnfSym LamWS         = ()
+    symSig (VarWS _)     = signature
+    symSig LamWS         = signature
 
 instance Eval BindingWS
   where
@@ -612,7 +644,7 @@ type instance LowerReader (Full a)    = Full (UnReader a)
 type instance LowerReader (a :-> sig) = UnReader a :-> LowerReader sig
 
 -- | Wrap a symbol to give it a 'LiftReader' signature
-data ReaderSym sym a
+data ReaderSym sym sig
   where
     ReaderSym
         :: ( Signature sig

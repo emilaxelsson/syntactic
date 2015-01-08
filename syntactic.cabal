@@ -63,6 +63,7 @@ library
     containers,
     constraints,
     data-hash,
+    deepseq,
     mtl >= 2 && < 3,
     safe,
     tagged,

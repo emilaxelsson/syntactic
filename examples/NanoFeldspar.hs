@@ -47,11 +47,17 @@ type Index  = Int
 -- * Abstract syntax
 --------------------------------------------------------------------------------
 
-data Arithmetic a
+data Arithmetic sig
   where
     Add :: (Type a, Num a) => Arithmetic (a :-> a :-> Full a)
     Sub :: (Type a, Num a) => Arithmetic (a :-> a :-> Full a)
     Mul :: (Type a, Num a) => Arithmetic (a :-> a :-> Full a)
+
+instance Symbol Arithmetic
+  where
+    symSig Add = signature
+    symSig Sub = signature
+    symSig Mul = signature
 
 instance Render Arithmetic
   where
@@ -76,9 +82,13 @@ instance EvalEnv Arithmetic env
       -- Pattern matching on the individual constructors is needed in order to fulfill the
       -- 'Signature' constraint required by the right-hand side.
 
-data Let a
+data Let sig
   where
     Let :: Let (a :-> (a -> b) :-> Full b)
+
+instance Symbol Let
+  where
+    symSig Let = signature
 
 instance Equality Let
   where
@@ -103,9 +113,13 @@ instance EvalEnv Let env
   where
     compileSym p Let = compileSymDefault p Let
 
-data Parallel a
+data Parallel sig
   where
     Parallel :: Type a => Parallel (Length :-> (Index -> a) :-> Full [a])
+
+instance Symbol Parallel
+  where
+    symSig Parallel = signature
 
 instance Render Parallel
   where
@@ -121,9 +135,13 @@ instance EvalEnv Parallel env
   where
     compileSym p Parallel = compileSymDefault p Parallel
 
-data ForLoop a
+data ForLoop sig
   where
     ForLoop :: Type st => ForLoop (Length :-> st :-> (Index -> st -> st) :-> Full st)
+
+instance Symbol ForLoop
+  where
+    symSig ForLoop = signature
 
 instance Render ForLoop
   where

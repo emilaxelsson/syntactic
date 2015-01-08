@@ -12,11 +12,12 @@ module Data.Syntactic.Syntax
     , ASTF
     , Full (..)
     , (:->) (..)
-    , size
-    , DenResult
-      -- Smart constructors
     , SigRep (..)
     , Signature (..)
+    , DenResult
+    , Symbol (..)
+    , size
+      -- Smart constructors
     , SmartFun
     , SmartSig
     , SmartSym
@@ -46,6 +47,8 @@ import Data.Traversable (Traversable)
 import Data.Typeable
 
 import Data.Proxy
+
+import Control.DeepSeq
 
 
 
@@ -83,29 +86,13 @@ newtype a :-> sig = Partial (a -> sig)
 
 infixr :->
 
--- | Count the number of symbols in an 'AST'
-size :: AST sym sig -> Int
-size (Sym _)  = 1
-size (s :$ a) = size s + size a
-
--- | The result type of a symbol with the given signature
-type family   DenResult sig
-type instance DenResult (Full a)    = a
-type instance DenResult (a :-> sig) = DenResult sig
-
-
-
---------------------------------------------------------------------------------
--- * Smart constructors
---------------------------------------------------------------------------------
-
 -- | Witness of the arity of a symbol signature
 data SigRep sig
   where
     SigFull :: SigRep (Full a)
     SigMore :: SigRep sig -> SigRep (a :-> sig)
 
--- | Symbol signatures
+-- | Valid symbol signatures
 class Signature sig
   where
     signature :: SigRep sig
@@ -117,6 +104,37 @@ instance Signature (Full a)
 instance Signature sig => Signature (a :-> sig)
   where
     signature = SigMore signature
+
+-- | The result type of a symbol with the given signature
+type family   DenResult sig
+type instance DenResult (Full a)    = a
+type instance DenResult (a :-> sig) = DenResult sig
+
+-- | Valid symbols to use in an 'AST'
+class Symbol sym
+  where
+    -- | Force a symbol to normal form
+    rnfSym :: sym sig -> ()
+    rnfSym s = s `seq` ()
+
+    -- | Reify the signature of a symbol
+    symSig :: sym sig -> SigRep sig
+
+instance Symbol sym => NFData (AST sym sig)
+  where
+    rnf (Sym s)  = rnfSym s
+    rnf (s :$ a) = rnf s `seq` rnf a
+
+-- | Count the number of symbols in an 'AST'
+size :: AST sym sig -> Int
+size (Sym _)  = 1
+size (s :$ a) = size s + size a
+
+
+
+--------------------------------------------------------------------------------
+-- * Smart constructors
+--------------------------------------------------------------------------------
 
 -- | Maps a symbol signature to the type of the corresponding smart constructor:
 --
@@ -162,13 +180,20 @@ smartSym' s = go (signature :: SigRep sig) (Sym s)
 --------------------------------------------------------------------------------
 
 -- | Direct sum of two symbol domains
-data (sym1 :+: sym2) a
+data (sym1 :+: sym2) sig
   where
     InjL :: sym1 a -> (sym1 :+: sym2) a
     InjR :: sym2 a -> (sym1 :+: sym2) a
   deriving (Functor, Foldable, Traversable)
 
 infixr :+:
+
+instance (Symbol sym1, Symbol sym2) => Symbol (sym1 :+: sym2)
+  where
+    rnfSym (InjL s) = rnfSym s
+    rnfSym (InjR s) = rnfSym s
+    symSig (InjL s) = symSig s
+    symSig (InjR s) = symSig s
 
 -- | Symbol projection
 --
