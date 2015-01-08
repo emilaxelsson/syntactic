@@ -12,5 +12,6 @@
 :set -XTypeFamilies
 :set -XTypeOperators
 
--- Convenience:
 :set -XNoMonomorphismRestriction
+
+:set -isrc -iexamples -itests
