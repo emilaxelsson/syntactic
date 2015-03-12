@@ -76,8 +76,9 @@ instance
 
 
 
-reifyM :: forall dom p pVar a
-    . AST (HODomain dom p pVar) a -> State VarId (AST (FODomain dom p pVar) a)
+reifyM :: forall dom p pVar m a
+       .  MonadState VarId m
+       => AST (HODomain dom p pVar) a -> m (AST (FODomain dom p pVar) a)
 reifyM (f :$ a)            = liftM2 (:$) (reifyM f) (reifyM a)
 reifyM (Sym (C' (InjR a))) = return $ Sym $ C' $ InjR a
 reifyM (Sym (C' (InjL (HOLambda f)))) = do
