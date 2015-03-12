@@ -158,20 +158,21 @@ choose hoistOver pd mkId a = chooseEnvSub initEnv a
 
 
 -- | Perform common sub-expression elimination and variable hoisting
-codeMotion :: forall dom a
+codeMotion :: forall dom m a
     .  ( ConstrainedBy dom Typeable
        , AlphaEq dom dom dom [(VarId,VarId)]
+       , MonadState VarId m
        )
     => (forall c. ASTF dom c -> Bool)  -- ^ Control wether a sub-expression can be hoisted over the given expression
     -> PrjDict dom
     -> MkInjDict dom
     -> ASTF dom a
-    -> State VarId (ASTF dom a)
+    -> m (ASTF dom a)
 codeMotion hoistOver pd mkId a
     | Just (Chosen id b) <- choose hoistOver pd mkId a = share id b
     | otherwise = descend a
   where
-    share :: InjDict dom b a -> ASTF dom b -> State VarId (ASTF dom a)
+    share :: InjDict dom b a -> ASTF dom b -> m (ASTF dom a)
     share id b = do
         b' <- codeMotion hoistOver pd mkId b
         v  <- get; put (v+1)
@@ -182,7 +183,7 @@ codeMotion hoistOver pd mkId a
             :$ b'
             :$ (Sym (injLambda id v) :$ body)
 
-    descend :: AST dom b -> State VarId (AST dom b)
+    descend :: AST dom b -> m (AST dom b)
     descend (f :$ a) = liftM2 (:$) (descend f) (codeMotion hoistOver pd mkId a)
     descend a        = return a
 

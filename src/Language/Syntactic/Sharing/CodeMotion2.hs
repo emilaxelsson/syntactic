@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE DoRec #-}
-module Language.Syntactic.Sharing.CodeMotion2 
+module Language.Syntactic.Sharing.CodeMotion2
     ( codeMotion2
     , reifySmart2
     ) where
@@ -24,7 +24,7 @@ import Language.Syntactic.Constructs.Binding
 import Language.Syntactic.Constructs.Binding.HigherOrder
 import Language.Syntactic.Sharing.SimpleCodeMotion
 
-typeEq :: forall dom a b. (Typeable a, Typeable b) => ASTF dom a -> ASTF dom b -> Bool 
+typeEq :: forall dom a b. (Typeable a, Typeable b) => ASTF dom a -> ASTF dom b -> Bool
 typeEq a b | Just _ <- (gcast b :: Maybe (ASTF dom a)) = True
 typeEq _ _ = False
 
@@ -170,65 +170,66 @@ type RebuildEnv dom =
         -- nodes that have been encountered
     )
 
-type RebuildMonad dom a = ReaderT (RebuildEnv dom) (State VarId) a
+type RebuildMonad dom m a = ReaderT (RebuildEnv dom) m a
 
-
-runRebuild :: RebuildMonad dom a -> State VarId a
+runRebuild :: (MonadState VarId m) => RebuildMonad dom m a -> m a
 runRebuild m = runReaderT m (Map.empty, Set.empty, [])
 
-addBoundVar :: VarId -> RebuildMonad dom a -> RebuildMonad dom a
+addBoundVar :: (Monad m) => VarId -> RebuildMonad dom m a -> RebuildMonad dom m a
 addBoundVar v =  local (\(nm,vs,sn) -> (nm, Set.insert v vs, sn))
 
-getBoundVars :: RebuildMonad dom (Set.Set VarId)
+getBoundVars :: (Monad m) => RebuildMonad dom m (Set.Set VarId)
 getBoundVars = do
     (_,bv,_) <- ask
     return bv
 
-addNodeExpr :: NodeId -> ASTSAT dom -> RebuildMonad dom a -> RebuildMonad dom a
+addNodeExpr :: (Monad m) => NodeId -> ASTSAT dom -> RebuildMonad dom m a -> RebuildMonad dom m a
 addNodeExpr n a = local (\(nm,vs,sn) -> (Map.insert n a nm, vs, sn))
 
-getNodeExprMap :: RebuildMonad dom (Map.Map NodeId (ASTSAT dom))
+getNodeExprMap :: (Monad m) => RebuildMonad dom m (Map.Map NodeId (ASTSAT dom))
 getNodeExprMap = do
     (nm,_,_) <- ask
     return nm
 
-addSeenNode :: NodeId -> RebuildMonad dom a -> RebuildMonad dom a
+addSeenNode :: (Monad m) => NodeId -> RebuildMonad dom m a -> RebuildMonad dom m a
 addSeenNode n = local (\(nm,vs,sn) -> (nm, vs, n:sn))
 
-getSeenNodes :: RebuildMonad dom [NodeId]
+getSeenNodes :: (Monad m) => RebuildMonad dom m [NodeId]
 getSeenNodes = do
     (_,_,sn) <- ask
     return sn
 
 
 
-codeMotion2 :: forall dom a
+codeMotion2 :: forall dom m a
     .  ( ConstrainedBy dom Typeable
        , AlphaEq dom dom dom [(VarId,VarId)]
        , AlphaEq dom dom (NodeDomain dom) [(VarId,VarId)]
        , Equality dom
+       , MonadState VarId m
        )
     => (forall c. ASTF dom c -> Bool)  -- ^ Control wether a sub-expression can be hoisted over the given expression
     -> PrjDict dom
     -> MkInjDict dom
     -> ASTF dom a
-    -> State VarId (ASTF dom a)
+    -> m (ASTF dom a)
 codeMotion2 hoistOver pd mkId a = rebuild pd mkId garr a'
   where
     (garr, a') = gather hoistOver pd a
- 
+
 type ShareInfo dom = (NodeId, ASTSAT (NodeDomain dom), GatherInfo)
 
-rebuild :: forall dom a
+rebuild :: forall dom m a
     .  ( ConstrainedBy dom Typeable
        , AlphaEq dom dom (NodeDomain dom) [(VarId,VarId)]
        , Equality dom
+       , MonadState VarId m
        )
     => PrjDict dom
     -> MkInjDict dom
     -> Array NodeId (Gathered dom)
     -> ASTF (NodeDomain dom) a
-    -> State VarId (ASTF dom a)
+    -> m (ASTF dom a)
 rebuild pd mkId nodes (Sym (C' (InjL _))) = error "rebuild: root is a node"
 rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
   where
@@ -297,7 +298,7 @@ rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
     rebuild' :: forall b
         .  NodeId
         -> ASTF (NodeDomain dom) b
-        -> RebuildMonad dom (ASTF dom b)
+        -> RebuildMonad dom m (ASTF dom b)
     rebuild' n a@(Sym (C' (InjR lam)) :$ ns@(Sym (C' (InjL (Node nb)))))
         | Just v <- prjLambda pd lam
         = addSeenNode n $ shareExprsIn (Just v) n a
@@ -308,7 +309,7 @@ rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
         .  Maybe VarId -- if the last argument is a lambda, this contains the lambda VarId, otherwise Nothing.
         -> NodeId
         -> ASTF (NodeDomain dom) b
-        -> RebuildMonad dom (ASTF dom b)
+        -> RebuildMonad dom m (ASTF dom b)
     shareExprsIn mlv n a = do
         bv <- getBoundVars
         seenNodes <- getSeenNodes
@@ -318,7 +319,7 @@ rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
         let unshareable = nubBy ((==) `on` (\(n,_,_) -> n)) $ unshareableNodes n a ++ unshareable2Nodes mlv a
         unshare mlv unshareable $ shareEm mlv sorted a
 
-    unshare :: Maybe VarId -> [ShareInfo dom] -> RebuildMonad dom b -> RebuildMonad dom b
+    unshare :: Maybe VarId -> [ShareInfo dom] -> RebuildMonad dom m b -> RebuildMonad dom m b
     unshare mlv []     m = m
     unshare mlv ((n, ASTB b, gi):sis) m = do
           b' <- rebuildMaybeUnderLambda mlv n b
@@ -328,7 +329,7 @@ rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
         :: Maybe VarId
         -> [ShareInfo dom]
         -> ASTF (NodeDomain dom) b
-        -> RebuildMonad dom (ASTF dom b)
+        -> RebuildMonad dom m (ASTF dom b)
     shareEm mlv [] a = fixNodeExprSub a
     shareEm mlv ((n, ASTB b, gi) : sis) a = do
         bv <- getBoundVars
@@ -343,11 +344,11 @@ rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
                 a' <- addNodeExpr n (ASTB b') $ shareEm mlv sis a
                 return a'
 
-    rebuildMaybeUnderLambda 
+    rebuildMaybeUnderLambda
         :: Maybe VarId
         -> NodeId
         -> ASTF (NodeDomain dom) b
-        -> RebuildMonad dom (ASTF dom b)
+        -> RebuildMonad dom m (ASTF dom b)
     rebuildMaybeUnderLambda (Just lv) n a = addBoundVar lv $ rebuild' n a
     rebuildMaybeUnderLambda Nothing   n a = rebuild' n a
 
@@ -357,14 +358,15 @@ rebuild pd mkId nodes a = runRebuild $ rebuild' 0 a
            , Equality dom
            )
         => AST (NodeDomain dom) b
-        -> RebuildMonad dom (AST dom b)
+        -> RebuildMonad dom m (AST dom b)
     fixNodeExprSub (Sym (C' (InjR s))) = return (Sym s)
     fixNodeExprSub (s :$ b) = do
         b' <- fixNodeExpr b
         s' <- fixNodeExprSub s
         return (s' :$ b')
- 
-    fixNodeExpr :: forall b . ASTF (NodeDomain dom) b -> RebuildMonad dom (ASTF dom b)
+
+    fixNodeExpr :: forall b
+                .  ASTF (NodeDomain dom) b -> RebuildMonad dom m (ASTF dom b)
     fixNodeExpr (ns@(Sym (C' (InjL (Node n))))) = do
         nodeMap <- getNodeExprMap
         let a = lookNode nodeMap
@@ -505,7 +507,7 @@ gather hoistOver pd a = (gatheredArr, a')
 
     gatherRoot :: ASTF dom b -> GatherMonad dom (ASTF (NodeDomain dom) b)
     gatherRoot a@(Sym lam :$ _) | Just v <- prjLambda pd lam
-                                , Dict <- exprDict a 
+                                , Dict <- exprDict a
                                 = addScopeVar v $ gatherRec (hoistOver a) a
     gatherRoot a | Dict <- exprDict a = gatherRec (hoistOver a) a
 
@@ -535,7 +537,7 @@ gather hoistOver pd a = (gatheredArr, a')
                 (Map.findWithDefault [] (geNodeId g) propagateAdditionals)
 
     propagateAdditionals :: Additional
-    propagateAdditionals = foldr propAdditional (additionals st) $ Map.toDescList (additionals st) 
+    propagateAdditionals = foldr propAdditional (additionals st) $ Map.toDescList (additionals st)
       where
         propAdditional :: (NodeId, [(NodeId, GatherInfo)]) -> Additional -> Additional
         propAdditional (n, gi) ad = propAdditionalNode n gi ad
@@ -557,7 +559,7 @@ gather hoistOver pd a = (gatheredArr, a')
     varHash :: Map.Map VarId Hash
     varHash = lambdaHashes pd a
 
-    gather' 
+    gather'
         :: Bool
         -> ASTF dom b
         -> GatherMonad dom (ASTF (NodeDomain dom) b)
