@@ -277,65 +277,41 @@ class BindingDomain sym
   -- `(Project Binding s, Project BindingT s)`. However, the problem is that one then has to
   -- specify the type `t` through a `Proxy`. The `BindingDomain` class gets around this problem.
 
-#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
 instance {-# OVERLAPPING #-}
          (BindingDomain sym1, BindingDomain sym2) => BindingDomain (sym1 :+: sym2)
-#else
-instance (BindingDomain sym1, BindingDomain sym2) => BindingDomain (sym1 :+: sym2)
-#endif
   where
     prVar (InjL s) = prVar s
     prVar (InjR s) = prVar s
     prLam (InjL s) = prLam s
     prLam (InjR s) = prLam s
 
-#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
 instance {-# OVERLAPPING #-} BindingDomain sym => BindingDomain (sym :&: i)
-#else
-instance BindingDomain sym => BindingDomain (sym :&: i)
-#endif
   where
     prVar = prVar . decorExpr
     prLam = prLam . decorExpr
 
-#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
 instance {-# OVERLAPPING #-} BindingDomain sym => BindingDomain (AST sym)
-#else
-instance BindingDomain sym => BindingDomain (AST sym)
-#endif
   where
     prVar (Sym s) = prVar s
     prVar _       = Nothing
     prLam (Sym s) = prLam s
     prLam _       = Nothing
 
-#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
 instance {-# OVERLAPPING #-} BindingDomain Binding
-#else
-instance BindingDomain Binding
-#endif
   where
     prVar (Var v) = Just v
     prVar _       = Nothing
     prLam (Lam v) = Just v
     prLam _       = Nothing
 
-#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
 instance {-# OVERLAPPING #-} BindingDomain BindingT
-#else
-instance BindingDomain BindingT
-#endif
   where
     prVar (VarT v) = Just v
     prVar _        = Nothing
     prLam (LamT v) = Just v
     prLam _        = Nothing
 
-#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
 instance {-# OVERLAPPING #-} BindingDomain sym
-#else
-instance BindingDomain sym
-#endif
   where
     prVar _ = Nothing
     prLam _ = Nothing
@@ -593,20 +569,12 @@ class Ext ext orig
     -- | Return the amount by which an environment has been extended
     diff :: Num a => Proxy ext -> Proxy orig -> a
 
-#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
 instance {-# OVERLAPPING #-} Ext env env
-#else
-instance Ext env env
-#endif
   where
     unext = id
     diff _ _ = 0
 
-#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
 instance {-# OVERLAPPING #-} (Ext env e, ext ~ (a,env)) => Ext ext e
-#else
-instance (Ext env e, ext ~ (a,env)) => Ext ext e
-#endif
   where
     unext = unext . snd
     diff m n = diff (fmap snd m) n + 1

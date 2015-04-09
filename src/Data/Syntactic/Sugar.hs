@@ -70,17 +70,12 @@ class SyntacticN f internal | f -> internal
     desugarN :: f -> internal
     sugarN   :: internal -> f
 
-#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
 instance {-# OVERLAPPING #-}
          (Syntactic f, Domain f ~ sym, fi ~ AST sym (Full (Internal f))) => SyntacticN f fi
-#else
-instance (Syntactic f, Domain f ~ sym, fi ~ AST sym (Full (Internal f))) => SyntacticN f fi
-#endif
   where
     desugarN = desugar
     sugarN   = sugar
 
-#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
 instance {-# OVERLAPPING #-}
     ( Syntactic a
     , Domain a ~ sym
@@ -88,15 +83,6 @@ instance {-# OVERLAPPING #-}
     , SyntacticN f fi
     ) =>
       SyntacticN (a -> f) (AST sym (Full ia) -> fi)
-#else
-instance
-    ( Syntactic a
-    , Domain a ~ sym
-    , ia ~ Internal a
-    , SyntacticN f fi
-    ) =>
-      SyntacticN (a -> f) (AST sym (Full ia) -> fi)
-#endif
   where
     desugarN f = desugarN . f . sugar
     sugarN f   = sugarN . f . desugar
