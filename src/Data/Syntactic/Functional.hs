@@ -61,6 +61,7 @@ module Data.Syntactic.Functional
 
 
 
+import Control.Applicative
 import Control.DeepSeq
 import Control.Monad.Cont
 import Control.Monad.Reader

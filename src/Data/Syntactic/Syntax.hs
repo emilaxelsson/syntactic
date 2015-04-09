@@ -53,6 +53,8 @@ module Data.Syntactic.Syntax
 
 
 import Data.Typeable
+import Data.Foldable (Foldable)
+import Data.Traversable (Traversable)
 
 import Control.DeepSeq
 
