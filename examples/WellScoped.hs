@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 
 {-# OPTIONS_GHC -fno-warn-missing-methods #-}
@@ -28,9 +29,9 @@ type Exp e a = WS (Let :+: Construct) e a
 
 instance (Num a, Show a) => Num (Exp e a)
   where
-    fromInteger i = smartWS $ Construct (show i') i'
+    fromInteger i = smartWS (Construct (show i') i' :: Construct (Full a))
       where i' = fromInteger i
-    (+) = smartWS $ Construct "(+)" (+)
+    (+) = smartWS (Construct "(+)" (+) :: Construct (a :-> a :-> Full a))
 
 share :: forall e a b .
     Exp e a -> ((forall e' . Ext e' (a,e) => Exp e' a) -> Exp (a,e) b) -> Exp e b
