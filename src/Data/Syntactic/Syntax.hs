@@ -52,11 +52,12 @@ module Data.Syntactic.Syntax
 
 
 
-import Data.Typeable
-import Data.Foldable (Foldable)
-import Data.Traversable (Traversable)
-
 import Control.DeepSeq
+import Data.Typeable
+import Data.Foldable (Foldable)        -- Needed by GHC < 7.10
+import Data.Proxy                      -- Needed by GHC < 7.8
+import Data.Traversable (Traversable)  -- Needed by GHC < 7.10
+
 
 
 

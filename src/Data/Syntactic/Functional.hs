@@ -61,12 +61,13 @@ module Data.Syntactic.Functional
 
 
 
-import Control.Applicative
+import Control.Applicative  -- Needed by GHC < 7.10
 import Control.DeepSeq
 import Control.Monad.Cont
 import Control.Monad.Reader
 import Data.Dynamic
 import Data.List (genericIndex)
+import Data.Proxy  -- Needed by GHC < 7.8
 import Data.Tree
 
 import Data.Hash (hashInt)
