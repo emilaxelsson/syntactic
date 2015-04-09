@@ -19,7 +19,7 @@ import Data.Typeable (Typeable)
 
 import Data.Syntactic
 import Data.Syntactic.Functional
-import Data.Syntactic.Sugar.MonadT
+import Data.Syntactic.Sugar.MonadT ()
 
 import NanoFeldspar (Type, Arithmetic (..))
 

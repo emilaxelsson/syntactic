@@ -61,7 +61,6 @@ module Data.Syntactic.Functional
 
 
 
-import Control.Applicative
 import Control.DeepSeq
 import Control.Monad.Cont
 import Control.Monad.Reader
@@ -70,7 +69,6 @@ import Data.List (genericIndex)
 import Data.Tree
 
 import Data.Hash (hashInt)
-import Data.Proxy
 import Safe
 
 import Data.Syntactic
@@ -581,7 +579,7 @@ instance {-# OVERLAPPING #-} (Ext env e, ext ~ (a,env)) => Ext ext e
 
 -- | Lookup in an extended environment
 lookEnv :: forall env a e . Ext env (a,e) => Proxy e -> Reader env a
-lookEnv _ = reader $ \env -> let (a, e :: e) = unext env in a
+lookEnv _ = reader $ \env -> let (a, _ :: e) = unext env in a
 
 -- | Well-scoped variable binding
 --

@@ -52,11 +52,7 @@ module Data.Syntactic.Syntax
 
 
 
-import Data.Foldable (Foldable)
-import Data.Traversable (Traversable)
 import Data.Typeable
-
-import Data.Proxy
 
 import Control.DeepSeq
 

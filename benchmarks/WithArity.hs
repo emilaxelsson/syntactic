@@ -4,7 +4,6 @@ module WithArity (main) where
 
 import Criterion.Main
 import Criterion.Types
-import Data.Monoid
 import Data.Syntactic hiding (E)
 import Data.Syntactic.Functional
 

@@ -4,7 +4,6 @@ module Normal (main) where
 
 import Criterion.Main
 import Criterion.Types
-import Data.Monoid
 import Data.Syntactic
 import Data.Syntactic.Functional
 

@@ -12,7 +12,6 @@ import Test.Tasty.Golden
 import Data.ByteString.Lazy.UTF8 (fromString)
 
 import Data.Syntactic
-import Data.Syntactic.Functional
 import qualified Monad
 
 

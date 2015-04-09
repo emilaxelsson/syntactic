@@ -16,12 +16,10 @@ module WellScoped where
 
 
 
-import Data.Proxy
-
 import Data.Syntactic
 import Data.Syntactic.Functional
 
-import NanoFeldspar (Arithmetic (..), Let (..))
+import NanoFeldspar (Let (..))
 
 
 

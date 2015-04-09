@@ -26,7 +26,7 @@ import Data.Typeable
 import Data.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAST)
 import qualified Data.Syntactic as Syntactic
 import Data.Syntactic.Functional
-import Data.Syntactic.Sugar.BindingT
+import Data.Syntactic.Sugar.BindingT ()
 
 
 
