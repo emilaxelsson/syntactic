@@ -1,5 +1,15 @@
-{-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE UndecidableInstances #-}
+
+#ifndef MIN_VERSION_GLASGOW_HASKELL
+#define MIN_VERSION_GLASGOW_HASKELL(a,b,c,d) 0
+#endif
+  -- MIN_VERSION_GLASGOW_HASKELL was introduced in GHC 7.10
+
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
+#else
+{-# LANGUAGE OverlappingInstances #-}
+#endif
 
 -- | Generic representation of typed syntax trees
 --
@@ -204,21 +214,37 @@ class Project sub sup
     -- | Partial projection from @sup@ to @sub@
     prj :: sup a -> Maybe (sub a)
 
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
+instance {-# OVERLAPPING #-} Project sub sup => Project sub (AST sup)
+#else
 instance Project sub sup => Project sub (AST sup)
+#endif
   where
     prj (Sym s) = prj s
     prj _       = Nothing
 
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
+instance {-# OVERLAPPING #-} Project sym sym
+#else
 instance Project sym sym
+#endif
   where
     prj = Just
 
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
+instance {-# OVERLAPPING #-} Project sym1 (sym1 :+: sym2)
+#else
 instance Project sym1 (sym1 :+: sym2)
+#endif
   where
     prj (InjL a) = Just a
     prj _        = Nothing
 
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
+instance {-# OVERLAPPING #-} Project sym1 sym3 => Project sym1 (sym2 :+: sym3)
+#else
 instance Project sym1 sym3 => Project sym1 (sym2 :+: sym3)
+#endif
   where
     prj (InjR a) = prj a
     prj _        = Nothing
@@ -236,19 +262,35 @@ class Project sub sup => sub :<: sup
     -- | Injection from @sub@ to @sup@
     inj :: sub a -> sup a
 
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
+instance {-# OVERLAPPING #-} (sub :<: sup) => (sub :<: AST sup)
+#else
 instance (sub :<: sup) => (sub :<: AST sup)
+#endif
   where
     inj = Sym . inj
 
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
+instance {-# OVERLAPPING #-} (sym :<: sym)
+#else
 instance (sym :<: sym)
+#endif
   where
     inj = id
 
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
+instance {-# OVERLAPPING #-} (sym1 :<: (sym1 :+: sym2))
+#else
 instance (sym1 :<: (sym1 :+: sym2))
+#endif
   where
     inj = InjL
 
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
+instance {-# OVERLAPPING #-} (sym1 :<: sym3) => (sym1 :<: (sym2 :+: sym3))
+#else
 instance (sym1 :<: sym3) => (sym1 :<: (sym2 :+: sym3))
+#endif
   where
     inj = InjR . inj
 
