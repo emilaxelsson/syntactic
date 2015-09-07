@@ -28,7 +28,6 @@ module Language.Syntactic.Syntax
 
 
 
-import Control.Monad.Instances  -- Not needed in GHC 7.6
 import Data.Typeable
 
 import Data.PolyProxy
