@@ -27,7 +27,9 @@ module Language.Syntactic.Syntax
     ) where
 
 
-
+#if (__GLASGOW_HASKELL__ <= 704)
+import Control.Monad.instances
+#endif
 import Data.Typeable
 
 import Data.PolyProxy
