@@ -28,7 +28,7 @@ module Language.Syntactic.Syntax
 
 
 #if (__GLASGOW_HASKELL__ <= 704)
-import Control.Monad.instances
+import Control.Monad.Instances ()
 #endif
 import Data.Typeable
 
