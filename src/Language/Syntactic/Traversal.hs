@@ -11,6 +11,7 @@ module Language.Syntactic.Traversal
     , mapArgsA
     , mapArgsM
     , appArgs
+    , foldrArgs
     , listFold
     , match
     , query
