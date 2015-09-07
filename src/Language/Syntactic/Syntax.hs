@@ -80,10 +80,14 @@ class ApplySym sig f dom | sig dom -> f, f -> sig dom
 
 instance ApplySym (Full a) (ASTF dom a) dom
   where
+    {-# SPECIALIZE instance ApplySym (Full a) (ASTF dom a) dom #-}
+    {-# INLINABLE appSym' #-}
     appSym' = id
 
 instance ApplySym sig f dom => ApplySym (a :-> sig) (ASTF dom a -> f) dom
   where
+    {-# SPECIALIZE instance ApplySym sig f dom => ApplySym (a :-> sig) (ASTF dom a -> f) dom #-}
+    {-# INLINABLE appSym' #-}
     appSym' sym a = appSym' (sym :$ a)
 
 -- | The result type of a symbol with the given signature
@@ -114,20 +118,28 @@ class Project sub sup
 
 instance Project sub sup => Project sub (AST sup)
   where
+    {-# SPECIALIZE instance Project sub sup => Project sub (AST sup) #-}
+    {-# INLINABLE prj #-}
     prj (Sym a) = prj a
     prj _       = Nothing
 
 instance Project expr expr
   where
+    {-# SPECIALIZE instance Project expr expr #-}
+    {-# INLINABLE prj #-}
     prj = Just
 
 instance Project expr1 (expr1 :+: expr2)
   where
+    {-# SPECIALIZE instance Project expr1 (expr1 :+: expr2) #-}
+    {-# INLINABLE prj #-}
     prj (InjL a) = Just a
     prj _        = Nothing
 
 instance Project expr1 expr3 => Project expr1 (expr2 :+: expr3)
   where
+    {-# SPECIALIZE instance Project expr1 expr3 => Project expr1 (expr2 :+: expr3) #-}
+    {-# INLINABLE prj #-}
     prj (InjR a) = prj a
     prj _        = Nothing
 
@@ -139,18 +151,26 @@ class Project sub sup => sub :<: sup
 
 instance (sub :<: sup) => (sub :<: AST sup)
   where
+    {-# SPECIALIZE instance (sub :<: sup) => (sub :<: AST sup) #-}
+    {-# INLINABLE inj #-}
     inj = Sym . inj
 
 instance (expr :<: expr)
   where
+    {-# SPECIALIZE instance (expr :<: expr) #-}
+    {-# INLINABLE inj #-}
     inj = id
 
 instance (expr1 :<: (expr1 :+: expr2))
   where
+    {-# SPECIALIZE instance (expr1 :<: (expr1 :+: expr2)) #-}
+    {-# INLINABLE inj #-}
     inj = InjL
 
 instance (expr1 :<: expr3) => (expr1 :<: (expr2 :+: expr3))
   where
+    {-# SPECIALIZE instance (expr1 :<: expr3) => (expr1 :<: (expr2 :+: expr3)) #-}
+    {-# INLINABLE inj #-}
     inj = InjR . inj
 
 -- The reason for separating the `Project` and `(:<:)` classes is that there are
@@ -166,6 +186,7 @@ instance (expr1 :<: expr3) => (expr1 :<: (expr2 :+: expr3))
 -- >     -> (ASTF dom a -> ASTF dom b -> ... -> ASTF dom x)
 appSym :: (ApplySym sig f dom, sym :<: AST dom) => sym sig -> f
 appSym = appSym' . inj
+{-# INLINABLE appSym #-}
 
 
 
@@ -175,9 +196,10 @@ appSym = appSym' . inj
 
 -- | Constrain a symbol to a specific type
 symType :: P sym -> sym sig -> sym sig
-symType _ = id
+symType = const id
+{-# INLINABLE symType #-}
 
 -- | Projection to a specific symbol type
 prjP :: Project sub sup => P sub -> sup sig -> Maybe (sub sig)
-prjP _ = prj
-
+prjP = const prj
+{-# INLINABLE prjP #-}

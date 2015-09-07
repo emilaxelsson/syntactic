@@ -16,12 +16,15 @@ data Condition sig
 
 instance Constrained Condition
   where
+    {-# SPECIALIZE instance Constrained Condition #-}
+    {-# INLINABLE exprDict #-}
     type Sat Condition = Top
-    exprDict _ = Dict
+    exprDict = const Dict
 
 instance Semantic Condition
   where
+    {-# SPECIALIZE instance Semantic Condition #-}
+    {-# INLINABLE semantics #-}
     semantics Condition = Sem "condition" (\c t e -> if c then t else e)
 
 semanticInstances ''Condition
-

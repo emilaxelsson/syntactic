@@ -23,30 +23,37 @@ class Equality expr
     -- @equal a b  ==>  exprHash a == exprHash b@
     exprHash :: expr a -> Hash
 
-
 instance Equality dom => Equality (AST dom)
   where
+    {-# SPECIALIZE instance (Equality dom) => Equality (AST dom) #-}
+    {-# INLINABLE equal #-}
     equal (Sym a)    (Sym b)    = equal a b
     equal (s1 :$ a1) (s2 :$ a2) = equal s1 s2 && equal a1 a2
     equal _ _                   = False
 
+    {-# INLINABLE exprHash #-}
     exprHash (Sym a)  = hashInt 0 `combine` exprHash a
     exprHash (s :$ a) = hashInt 1 `combine` exprHash s `combine` exprHash a
 
 instance Equality dom => Eq (AST dom a)
   where
+    {-# SPECIALIZE instance (Equality dom) => Eq (AST dom a) #-}
+    {-# INLINABLE (==) #-}
     (==) = equal
 
 instance (Equality expr1, Equality expr2) => Equality (expr1 :+: expr2)
   where
+    {-# SPECIALIZE instance (Equality expr1, Equality expr2) => Equality (expr1 :+: expr2) #-}
+    {-# INLINABLE equal #-}
     equal (InjL a) (InjL b) = equal a b
     equal (InjR a) (InjR b) = equal a b
     equal _ _               = False
 
+    {-# INLINABLE exprHash #-}
     exprHash (InjL a) = hashInt 0 `combine` exprHash a
     exprHash (InjR a) = hashInt 1 `combine` exprHash a
 
 instance (Equality expr1, Equality expr2) => Eq ((expr1 :+: expr2) a)
   where
+    {-# SPECIALIZE instance (Equality expr1, Equality expr2) => Eq ((expr1 :+: expr2) a)#-}
     (==) = equal
-

@@ -17,12 +17,15 @@ data Identity sig
 
 instance Constrained Identity
   where
+    {-# SPECIALIZE instance Constrained Identity #-}
+    {-# INLINABLE exprDict #-}
     type Sat Identity = Top
-    exprDict _ = Dict
+    exprDict = const Dict
 
 instance Semantic Identity
   where
+    {-# SPECIALIZE instance Semantic Identity #-}
+    {-# INLINABLE semantics #-}
     semantics Id = Sem "id" id
 
 semanticInstances ''Identity
-

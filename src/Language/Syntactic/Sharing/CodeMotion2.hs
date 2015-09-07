@@ -44,15 +44,23 @@ showNode n = "node:" ++ show n
 
 instance AlphaEq dom dom dom env => AlphaEq Node Node dom env
   where
+    {-# SPECIALIZE instance AlphaEq dom dom dom env =>
+          AlphaEq Node Node dom env #-}
+    {-# INLINABLE alphaEqSym #-}
     alphaEqSym (Node n1) _ (Node n2) _ = return (n1 == n2)
 
 instance Constrained Node
   where
+    {-# SPECIALIZE instance Constrained Node #-}
+    {-# INLINABLE exprDict #-}
     type Sat Node = Top
     exprDict _ = Dict
 
 instance Equality Node
   where
+    {-# SPECIALIZE instance Equality Node #-}
+    {-# INLINABLE equal #-}
+    {-# INLINABLE exprHash #-}
     equal (Node n1) (Node n2) = error "can't compare nodes for equality"
     exprHash (Node n)         = hash (nodeInteger n)
 
@@ -64,6 +72,8 @@ data Node a
     Node :: NodeId -> Node (Full a)
 
 instance Render Node where
+  {-# SPECIALIZE instance Render Node #-}
+  {-# INLINABLE renderSym #-}
   renderSym (Node n) = showNode n
 
 

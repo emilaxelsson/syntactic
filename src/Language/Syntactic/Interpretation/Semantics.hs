@@ -6,6 +6,7 @@ module Language.Syntactic.Interpretation.Semantics where
 
 
 
+
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 
@@ -100,4 +101,3 @@ semanticInstances n =
     |]
   where
     typ = conT n
-

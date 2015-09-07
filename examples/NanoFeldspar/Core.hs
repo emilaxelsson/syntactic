@@ -44,7 +44,8 @@ import Language.Syntactic.Sharing.CodeMotion2
 
 -- | Convenient class alias
 class    (Ord a, Show a, Typeable a) => Type a
-instance (Ord a, Show a, Typeable a) => Type a
+instance (Ord a, Show a, Typeable a) => Type a where
+  {-# SPECIALIZE instance (Ord a, Show a, Typeable a) => Type a #-}
 
 type Length = Int
 type Index  = Int
@@ -61,11 +62,15 @@ data Parallel a
 
 instance Constrained Parallel
   where
+    {-# SPECIALIZE instance Constrained Parallel #-}
+    {-# INLINABLE exprDict #-}
     type Sat Parallel = Type
     exprDict Parallel = Dict
 
 instance Semantic Parallel
   where
+    {-# SPECIALIZE instance Semantic Parallel #-}
+    {-# INLINABLE semantics #-}
     semantics Parallel = Sem
         { semanticName = "parallel"
         , semanticEval = \len ixf -> map ixf [0 .. len-1]
@@ -73,11 +78,13 @@ instance Semantic Parallel
 
 semanticInstances ''Parallel
 
-instance EvalBind Parallel where evalBindSym = evalBindSymDefault
+instance EvalBind Parallel where
+  {-# SPECIALIZE instance EvalBind Parallel #-}
 
 instance AlphaEq dom dom dom env => AlphaEq Parallel Parallel dom env
   where
-    alphaEqSym = alphaEqSymDefault
+    {-# SPECIALIZE instance AlphaEq dom dom dom env =>
+          AlphaEq Parallel Parallel dom env #-}
 
 
 
@@ -274,4 +281,3 @@ max = sugarSymC $ Construct "max" Prelude.max
 
 min :: Type a => Data a -> Data a -> Data a
 min = sugarSymC $ Construct "min" Prelude.min
-

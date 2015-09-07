@@ -55,6 +55,8 @@ class IsHODomain dom p pVar | dom -> p pVar
 
 instance IsHODomain (HODomain dom p pVar) p pVar
   where
+    {-# SPECIALIZE instance IsHODomain (HODomain dom p pVar) p pVar #-}
+    {-# INLINABLE lambda #-}
     lambda = injC . HOLambda
 
 instance
@@ -67,6 +69,15 @@ instance
     ) =>
       Syntactic (a -> b)
   where
+    {-# SPECIALIZE instance ( Syntactic a, Domain a ~ dom
+                            , Syntactic b, Domain b ~ dom
+                            , IsHODomain dom p pVar
+                            , p (Internal a -> Internal b)
+                            , p (Internal a)
+                            , pVar (Internal a)
+                            ) => Syntactic (a -> b) #-}
+    {-# INLINABLE desugar #-}
+    {-# INLINABLE sugar #-}
     type Domain (a -> b)   = Domain a
     type Internal (a -> b) = Internal a -> Internal b
     desugar f = lambda (desugar . f . sugar)
@@ -100,4 +111,3 @@ reifyTop = flip evalState 0 . reifyM
 reify :: (Syntactic a, Domain a ~ HODomain dom p pVar) =>
     a -> ASTF (FODomain dom p pVar) (Internal a)
 reify = reifyTop . desugar
-

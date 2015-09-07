@@ -129,6 +129,7 @@ match f = flip go Nil
     go :: (a ~ DenResult sig) => AST dom sig -> Args (AST dom) sig -> c (Full a)
     go (Sym a)  as = f a as
     go (s :$ a) as = go s (a :* as)
+{-# INLINABLE match #-}
 
 query :: forall dom a c
     .  ( forall sig . (a ~ DenResult sig) =>
@@ -145,12 +146,14 @@ simpleMatch :: forall dom a b
     -> ASTF dom a
     -> b
 simpleMatch f = getConst . match (\s -> Const . f s)
+{-# INLINABLE simpleMatch #-}
 
 -- | Fold an 'AST' using an 'Args' list to hold the results of sub-terms
 fold :: forall dom c
     .  (forall sig . dom sig -> Args c sig -> c (Full (DenResult sig)))
     -> (forall a   . ASTF dom a -> c (Full a))
 fold f = match (\s -> f s . mapArgs (fold f))
+{-# INLINABLE fold #-}
 
 -- | Simplified version of 'fold' for situations where all intermediate results
 -- have the same type
@@ -158,12 +161,14 @@ simpleFold :: forall dom b
     .  (forall sig . dom sig -> Args (Const b) sig -> b)
     -> (forall a   . ASTF dom a                    -> b)
 simpleFold f = getConst . fold (\s -> Const . f s)
+{-# INLINABLE simpleFold #-}
 
 -- | Fold an 'AST' using a list to hold the results of sub-terms
 listFold :: forall dom b
     .  (forall sig . dom sig -> [b] -> b)
     -> (forall a   . ASTF dom a     -> b)
 listFold f = simpleFold (\s -> f s . listArgs getConst)
+{-# INLINABLE listFold #-}
 
 newtype WrapAST c dom sig = WrapAST { unWrapAST :: c (AST dom sig) }
   -- Only used in the definition of 'matchTrans'
@@ -177,6 +182,7 @@ matchTrans :: forall dom dom' c a
     -> ASTF dom a
     -> c (ASTF dom' a)
 matchTrans f = unWrapAST . match (\s -> WrapAST . f s)
+{-# INLINABLE matchTrans #-}
 
 -- | Can be used to make an arbitrary type constructor indexed by @(`Full` a)@.
 -- This is useful as the type constructor parameter of 'Args'. That is, use
@@ -195,4 +201,4 @@ data WrapFull c a
 -- | Convert an 'AST' to a 'Tree'
 toTree :: forall dom a b . (forall sig . dom sig -> b) -> ASTF dom a -> Tree b
 toTree f = listFold (Node . f)
-
+{-# INLINABLE toTree #-}

@@ -93,8 +93,21 @@ instance ( Syntactic a, Domain a ~ dom
          ) =>
            Syntactic (Mon dom m a)
   where
+    {-# SPECIALIZE instance ( Syntactic a, Domain a ~ dom
+                            , IsHODomain dom Typeable pVar
+                            , InjectC (MONAD m) dom (m (Internal a))
+                            , Monad m
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
+                            , Typeable m
+#else
+                            , Typeable1 m
+#endif
+                            , Typeable (Internal a)
+                            , pVar (Internal a)
+                            ) => Syntactic (Mon dom m a) #-}
+    {-# INLINABLE desugar #-}
+    {-# INLINABLE sugar #-}
     type Domain (Mon dom m a)   = dom
     type Internal (Mon dom m a) = m (Internal a)
     desugar = desugarMonad . fmap desugar
     sugar   = fmap sugar   . sugarMonad
-

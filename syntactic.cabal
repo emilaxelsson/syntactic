@@ -136,6 +136,8 @@ library
     OverlappingInstances
     UndecidableInstances
 
+  ghc-options: -O
+
 test-suite NanoFeldsparEval
   type: exitcode-stdio-1.0
 
