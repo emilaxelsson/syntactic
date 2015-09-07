@@ -71,6 +71,7 @@ library
     Language.Syntactic.Traversal
     Language.Syntactic.Constraint
     Language.Syntactic.Sugar
+    Language.Syntactic.Interpretation
     Language.Syntactic.Interpretation.Equality
     Language.Syntactic.Interpretation.Evaluation
     Language.Syntactic.Interpretation.Render

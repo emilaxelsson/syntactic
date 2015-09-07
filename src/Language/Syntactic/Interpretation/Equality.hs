@@ -1,3 +1,5 @@
+{-# LANGUAGE DefaultSignatures #-}
+
 module Language.Syntactic.Interpretation.Equality where
 
 
@@ -5,6 +7,7 @@ module Language.Syntactic.Interpretation.Equality where
 import Data.Hash
 
 import Language.Syntactic.Syntax
+import Language.Syntactic.Interpretation.Semantics
 
 
 
@@ -22,6 +25,34 @@ class Equality expr
     --
     -- @equal a b  ==>  exprHash a == exprHash b@
     exprHash :: expr a -> Hash
+
+    default equal :: Semantic expr => expr a -> expr b -> Bool
+    equal = equalDefault
+    {-# INLINABLE equal #-}
+
+    default exprHash :: Semantic expr => expr a -> Hash
+    exprHash = exprHashDefault
+    {-# INLINABLE exprHash #-}
+
+
+-- | Default implementation of 'equal'
+equalDefault :: Semantic expr => expr a -> expr b -> Bool
+equalDefault a b = equal (semantics a) (semantics b)
+{-# INLINE equalDefault #-}
+
+-- | Default implementation of 'exprHash'
+exprHashDefault :: Semantic expr => expr a -> Hash
+exprHashDefault = exprHash . semantics
+{-# INLINE exprHashDefault #-}
+
+
+instance Equality Semantics
+  where
+    {-# SPECIALIZE instance Equality Semantics #-}
+    {-# INLINABLE equal #-}
+    {-# INLINABLE exprHash #-}
+    equal (Sem a _) (Sem b _) = a==b
+    exprHash (Sem name _)     = hash name
 
 instance Equality dom => Equality (AST dom)
   where

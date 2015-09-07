@@ -1,5 +1,9 @@
+{-# LANGUAGE DefaultSignatures #-}
+
 module Language.Syntactic.Interpretation.Render
     ( Render (..)
+    , renderSymDefault
+    , renderArgsDefault
     , render
     , StringTree (..)
     , stringTree
@@ -15,6 +19,7 @@ import Data.Tree (Tree (..))
 import Data.Tree.View
 
 import Language.Syntactic.Syntax
+import Language.Syntactic.Interpretation.Semantics
 
 
 -- | Render a symbol as concrete syntax. A complete instance must define at least the 'renderSym'
@@ -29,6 +34,39 @@ class Render dom
     renderArgs []   a = renderSym a
     renderArgs args a = "(" ++ unwords (renderSym a : args) ++ ")"
     {-# INLINABLE renderArgs #-}
+
+    default renderSym :: Semantic dom => dom sig -> String
+    renderSym = renderSymDefault
+    {-# INLINABLE renderSym #-}
+
+-- | Default implementation of 'renderSym'
+renderSymDefault :: Semantic expr => expr a -> String
+renderSymDefault = renderSym . semantics
+{-# INLINE renderSymDefault #-}
+
+-- | Default implementation of 'renderArgs'
+renderArgsDefault :: Semantic expr => [String] -> expr a -> String
+renderArgsDefault args = renderArgs args . semantics
+{-# INLINE renderArgsDefault #-}
+
+instance Render Semantics
+  where
+    {-# SPECIALIZE instance Render Semantics #-}
+    {-# INLINABLE renderSym #-}
+    {-# INLINABLE renderArgs #-}
+    renderSym (Sem name _) = name
+    renderArgs [] (Sem name _) = name
+    renderArgs args (Sem name _)
+        | isInfix   = "(" ++ unwords [a,op,b] ++ ")"
+        | otherwise = "(" ++ unwords (name : args) ++ ")"
+      where
+        [a,b] = args
+        op    = init $ tail name
+        isInfix
+          =  not (null name)
+          && head name == '('
+          && last name == ')'
+          && length args == 2
 
 instance (Render expr1, Render expr2) => Render (expr1 :+: expr2)
   where
