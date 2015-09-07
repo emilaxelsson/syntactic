@@ -36,7 +36,7 @@ import Language.Syntactic.Syntax
 gmapT :: forall dom
       .  (forall a . ASTF dom a -> ASTF dom a)
       -> (forall a . ASTF dom a -> ASTF dom a)
-gmapT f a = go a
+gmapT f = go
   where
     go :: forall a . AST dom a -> AST dom a
     go (s :$ a) = go s :$ f a
@@ -48,7 +48,7 @@ gmapT f a = go a
 gmapQ :: forall dom b
       .  (forall a . ASTF dom a -> b)
       -> (forall a . ASTF dom a -> [b])
-gmapQ f a = go a
+gmapQ f = go
   where
     go :: forall a . AST dom a -> [b]
     go (s :$ a) = f a : go s
@@ -79,21 +79,21 @@ infixr :*
 -- | Map a function over an 'Args' list and collect the results in an ordinary
 -- list
 listArgs :: (forall a . c (Full a) -> b) -> Args c sig -> [b]
-listArgs f Nil       = []
+listArgs _ Nil       = []
 listArgs f (a :* as) = f a : listArgs f as
 
 -- | Map a function over an 'Args' list
 mapArgs
     :: (forall a   . c1 (Full a) -> c2 (Full a))
     -> (forall sig . Args c1 sig -> Args c2 sig)
-mapArgs f Nil       = Nil
+mapArgs _ Nil       = Nil
 mapArgs f (a :* as) = f a :* mapArgs f as
 
 -- | Map an applicative function over an 'Args' list
 mapArgsA :: Applicative f
     => (forall a   . c1 (Full a) -> f (c2 (Full a)))
     -> (forall sig . Args c1 sig -> f (Args c2 sig))
-mapArgsA f Nil       = pure Nil
+mapArgsA _ Nil       = pure Nil
 mapArgsA f (a :* as) = (:*) <$> f a <*> mapArgsA f as
 
 -- | Map a monadic function over an 'Args' list
@@ -107,7 +107,7 @@ foldrArgs
     :: (forall a . c (Full a) -> b -> b)
     -> b
     -> (forall sig . Args c sig -> b)
-foldrArgs f b Nil       = b
+foldrArgs _ b Nil       = b
 foldrArgs f b (a :* as) = f a (foldrArgs f b as)
 
 -- | Apply a (partially applied) symbol to a list of argument terms
@@ -123,7 +123,7 @@ match :: forall dom a c
        )
     -> ASTF dom a
     -> c (Full a)
-match f a = go a Nil
+match f = flip go Nil
   where
     go :: (a ~ DenResult sig) => AST dom sig -> Args (AST dom) sig -> c (Full a)
     go (Sym a)  as = f a as

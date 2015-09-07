@@ -391,6 +391,5 @@ universe :: ASTF dom a -> [ASTE dom]
 universe a = ASTE a : go a
   where
     go :: AST dom a -> [ASTE dom]
-    go (Sym s)  = []
-    go (s :$ a) = go s ++ universe a
-
+    go (Sym _)  = []
+    go (s :$ b) = go s ++ universe b
