@@ -144,6 +144,10 @@ test-suite NanoFeldsparEval
   main-is: NanoFeldsparEval.hs
 
   other-modules:
+    NanoFeldspar.Core
+    NanoFeldspar.Extra
+    NanoFeldspar.Test
+    NanoFeldspar.Vector
 
   default-language: Haskell2010
 
@@ -178,6 +182,10 @@ test-suite NanoFeldsparEval2
   main-is: NanoFeldsparEval2.hs
 
   other-modules:
+    NanoFeldspar.Core
+    NanoFeldspar.Extra
+    NanoFeldspar.Test
+    NanoFeldspar.Vector
 
   default-language: Haskell2010
 
@@ -210,6 +218,12 @@ test-suite NanoFeldsparTree
   hs-source-dirs: tests examples
 
   main-is: NanoFeldsparTree.hs
+
+  other-modules:
+    NanoFeldspar.Core
+    NanoFeldspar.Extra
+    NanoFeldspar.Test
+    NanoFeldspar.Vector
 
   default-language: Haskell2010
 
