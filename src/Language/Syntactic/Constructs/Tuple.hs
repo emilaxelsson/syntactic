@@ -36,11 +36,15 @@ data Tuple sig
 
 instance Constrained Tuple
   where
+    {-# SPECIALIZE instance Constrained Tuple #-}
+    {-# INLINE exprDict #-}
     type Sat Tuple = Top
-    exprDict _ = Dict
+    exprDict = const Dict
 
 instance Semantic Tuple
   where
+    {-# SPECIALIZE instance Semantic Tuple #-}
+    {-# INLINABLE semantics #-}
     semantics Tup2  = Sem "tup2"  (,)
     semantics Tup3  = Sem "tup3"  (,,)
     semantics Tup4  = Sem "tup4"  (,,,)
@@ -238,11 +242,15 @@ data Select a
 
 instance Constrained Select
   where
+    {-# SPECIALIZE instance Constrained Select #-}
+    {-# INLINE exprDict #-}
     type Sat Select = Top
-    exprDict _ = Dict
+    exprDict = const Dict
 
 instance Semantic Select
   where
+    {-# SPECIALIZE instance Semantic Select #-}
+    {-# INLINABLE semantics #-}
     semantics Sel1 = Sem "sel1" sel1
     semantics Sel2 = Sem "sel2" sel2
     semantics Sel3 = Sem "sel3" sel3
@@ -280,4 +288,3 @@ selectPos Sel12 = 12
 selectPos Sel13 = 13
 selectPos Sel14 = 14
 selectPos Sel15 = 15
-

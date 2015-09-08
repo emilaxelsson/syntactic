@@ -19,12 +19,15 @@ data Construct sig
 
 instance Constrained Construct
   where
+    {-# SPECIALIZE instance Constrained Construct #-}
+    {-# INLINABLE exprDict #-}
     type Sat Construct = Top
-    exprDict _ = Dict
+    exprDict = const Dict
 
 instance Semantic Construct
   where
+    {-# SPECIALIZE instance Semantic Construct #-}
+    {-# INLINABLE semantics #-}
     semantics (Construct name den) = Sem name den
 
 semanticInstances ''Construct
-

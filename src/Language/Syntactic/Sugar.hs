@@ -23,14 +23,18 @@ class Syntactic a
 
 instance Syntactic (ASTF dom a)
   where
+    {-# SPECIALIZE instance Syntactic (ASTF dom a) #-}
     type Domain (ASTF dom a)   = dom
     type Internal (ASTF dom a) = a
     desugar = id
     sugar   = id
+    {-# INLINABLE desugar #-}
+    {-# INLINABLE sugar #-}
 
 -- | Syntactic type casting
 resugar :: (Syntactic a, Syntactic b, Domain a ~ Domain b, Internal a ~ Internal b) => a -> b
 resugar = sugar . desugar
+{-# INLINABLE resugar #-}
 
 -- | N-ary syntactic functions
 --
@@ -60,8 +64,13 @@ class SyntacticN a internal | a -> internal
 
 instance (Syntactic a, Domain a ~ dom, ia ~ AST dom (Full (Internal a))) => SyntacticN a ia
   where
+    {-# SPECIALIZE instance ( Syntactic a, Domain a ~ dom
+                            , ia ~ AST dom (Full (Internal a))
+                            ) => SyntacticN a ia #-}
     desugarN = desugar
     sugarN   = sugar
+    {-# INLINABLE desugarN #-}
+    {-# INLINABLE sugarN #-}
 
 instance
     ( Syntactic a
@@ -71,8 +80,15 @@ instance
     ) =>
       SyntacticN (a -> b) (AST dom (Full ia) -> ib)
   where
+    {-# SPECIALIZE instance ( Syntactic a
+                            , Domain a ~ dom
+                            , ia ~ Internal a
+                            , SyntacticN b ib
+                            ) => SyntacticN (a -> b) (AST dom (Full ia) -> ib) #-}
     desugarN f = desugarN . f . sugar
     sugarN f   = sugarN . f . desugar
+    {-# INLINABLE desugarN #-}
+    {-# INLINABLE sugarN #-}
 
 
 
@@ -91,6 +107,7 @@ instance
 sugarSym :: (sym :<: AST dom, ApplySym sig b dom, SyntacticN c b) =>
     sym sig -> c
 sugarSym = sugarN . appSym
+{-# INLINABLE sugarSym #-}
 
 -- | \"Sugared\" symbol application
 --
@@ -111,4 +128,4 @@ sugarSymC
        )
     => sym sig -> c
 sugarSymC = sugarN . appSymC
-
+{-# INLINABLE sugarSymC #-}

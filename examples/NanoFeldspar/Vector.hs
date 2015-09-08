@@ -33,6 +33,9 @@ data Vector a
 
 instance Syntax a => Syntactic (Vector a)
   where
+    {-# SPECIALIZE instance Syntax a => Syntactic (Vector a) #-}
+    {-# INLINABLE desugar #-}
+    {-# INLINABLE sugar #-}
     type Domain (Vector a)   = FeldDomainAll
     type Internal (Vector a) = [Internal a]
     desugar = desugar . freezeVector . map resugar
@@ -96,4 +99,3 @@ type Matrix a = Vector (Vector (Data a))
 -- | Transpose of a matrix. Assumes that the number of rows is > 0.
 transpose :: Type a => Matrix a -> Matrix a
 transpose a = indexed (length (a!0)) $ \k -> indexed (length a) $ \l -> a ! l ! k
-

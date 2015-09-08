@@ -36,29 +36,43 @@ data Decor info expr sig
 
 instance Constrained expr => Constrained (Decor info expr)
   where
+    {-# SPECIALIZE instance (Constrained expr) => Constrained (Decor info expr) #-}
+    {-# INLINABLE exprDict #-}
     type Sat (Decor info expr) = Sat expr
     exprDict (Decor _ a) = exprDict a
 
 instance Project sub sup => Project sub (Decor info sup)
   where
+    {-# SPECIALIZE instance (Project sub sup) => Project sub (Decor info sup) #-}
+    {-# INLINABLE prj #-}
     prj = prj . decorExpr
 
 instance Equality expr => Equality (Decor info expr)
   where
+    {-# SPECIALIZE instance (Equality expr) => Equality (Decor info expr) #-}
+    {-# INLINABLE equal #-}
+    {-# INLINABLE exprHash #-}
     equal a b = decorExpr a `equal` decorExpr b
     exprHash  = exprHash . decorExpr
 
 instance Render expr => Render (Decor info expr)
   where
+    {-# SPECIALIZE instance (Render expr) => Render (Decor info expr) #-}
+    {-# INLINABLE renderSym #-}
+    {-# INLINABLE renderArgs #-}
     renderSym = renderSym . decorExpr
     renderArgs args = renderArgs args . decorExpr
 
 instance StringTree expr => StringTree (Decor info expr)
   where
+    {-# SPECIALIZE instance (StringTree expr) => StringTree (Decor info expr) #-}
+    {-# INLINABLE stringTreeSym #-}
     stringTreeSym args = stringTreeSym args . decorExpr
 
 instance Eval expr => Eval (Decor info expr)
   where
+    {-# SPECIALIZE instance (Eval expr) => Eval (Decor info expr) #-}
+    {-# INLINABLE evaluate #-}
     evaluate = evaluate . decorExpr
 
 
@@ -67,6 +81,7 @@ instance Eval expr => Eval (Decor info expr)
 getInfo :: AST (Decor info dom) sig -> info (DenResult sig)
 getInfo (Sym (Decor info _)) = info
 getInfo (f :$ _)             = getInfo f
+{-# INLINABLE getInfo #-}
 
 -- | Update the decoration of the top-level node
 updateDecor :: forall info dom a .
@@ -88,16 +103,17 @@ updateDecor f = match update
 -- @(`Decor` info dom)@.
 liftDecor :: (expr s -> info (DenResult s) -> b) -> (Decor info expr s -> b)
 liftDecor f (Decor info a) = f a info
+{-# INLINABLE liftDecor #-}
 
 -- | Collect the decorations of all nodes
-collectInfo :: (forall sig . info sig -> b) -> AST (Decor info dom) sig -> [b]
+collectInfo :: (forall sig . info sig -> b) -> AST (Decor info dom) a -> [b]
 collectInfo coll (Sym (Decor info _)) = [coll info]
 collectInfo coll (f :$ a) = collectInfo coll f ++ collectInfo coll a
 
 -- | Rendering of decorated syntax trees
 stringTreeDecor :: forall info dom a . (StringTree dom) =>
-    (forall a. info a -> String) -> ASTF (Decor info dom) a -> Tree String
-stringTreeDecor showInfo a = mkTree [] a
+    (forall sig. info sig -> String) -> ASTF (Decor info dom) a -> Tree String
+stringTreeDecor showInfo = mkTree []
   where
     mkTree :: [Tree String] -> AST (Decor info dom) sig -> Tree String
     mkTree args (Sym (Decor info expr)) = Node infoStr [stringTreeSym args expr]
@@ -106,16 +122,21 @@ stringTreeDecor showInfo a = mkTree [] a
     mkTree args (f :$ a) = mkTree (mkTree [] a : args) f
 
 -- | Show an decorated syntax tree using ASCII art
-showDecorWith :: StringTree dom => (forall a. info a -> String) -> ASTF (Decor info dom) a -> String
+showDecorWith :: StringTree dom
+              => (forall sig. info sig -> String)
+              -> ASTF (Decor info dom) a -> String
 showDecorWith showInfo = showTree . stringTreeDecor showInfo
 
 -- | Print an decorated syntax tree using ASCII art
-drawDecorWith :: StringTree dom => (forall a. info a -> String) -> ASTF (Decor info dom) a -> IO ()
+drawDecorWith :: StringTree dom
+              => (forall sig. info sig -> String)
+              -> ASTF (Decor info dom) a -> IO ()
 drawDecorWith showInfo = putStrLn . showDecorWith showInfo
 
 writeHtmlDecorWith :: forall info sym a. (StringTree sym)
-                   => (forall b. info b -> String) -> FilePath -> ASTF (Decor info sym) a -> IO ()
-writeHtmlDecorWith showInfo file a = writeHtmlTree file $ mkTree [] a
+                   => (forall sig. info sig -> String)
+                   -> FilePath -> ASTF (Decor info sym) a -> IO ()
+writeHtmlDecorWith showInfo file = writeHtmlTree file . mkTree []
   where
     mkTree :: [Tree NodeInfo] -> AST (Decor info sym) sig -> Tree NodeInfo
     mkTree args (f :$ a) = mkTree (mkTree [] a : args) f
@@ -125,3 +146,4 @@ writeHtmlDecorWith showInfo file a = writeHtmlTree file $ mkTree [] a
 stripDecor :: AST (Decor info dom) sig -> AST dom sig
 stripDecor (Sym (Decor _ a)) = Sym a
 stripDecor (f :$ a)          = stripDecor f :$ stripDecor a
+{-# INLINABLE stripDecor #-}

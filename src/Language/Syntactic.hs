@@ -6,6 +6,7 @@ module Language.Syntactic
     , module Language.Syntactic.Traversal
     , module Language.Syntactic.Constraint
     , module Language.Syntactic.Sugar
+    , module Language.Syntactic.Interpretation
     , module Language.Syntactic.Interpretation.Equality
     , module Language.Syntactic.Interpretation.Render
     , module Language.Syntactic.Interpretation.Evaluation
@@ -20,10 +21,10 @@ import Language.Syntactic.Syntax
 import Language.Syntactic.Traversal
 import Language.Syntactic.Constraint
 import Language.Syntactic.Sugar
+import Language.Syntactic.Interpretation
 import Language.Syntactic.Interpretation.Equality
 import Language.Syntactic.Interpretation.Render
 import Language.Syntactic.Interpretation.Evaluation
 import Language.Syntactic.Interpretation.Semantics
 
 import Data.Constraint (Constraint, Dict (..))
-

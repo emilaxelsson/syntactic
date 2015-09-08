@@ -23,23 +23,38 @@ data MONAD m sig
 
 instance Constrained (MONAD m)
   where
+    {-# SPECIALIZE instance Constrained (MONAD m) #-}
+    {-# INLINABLE exprDict #-}
     type Sat (MONAD m) = Top
-    exprDict _ = Dict
+    exprDict = const Dict
 
 instance Monad m => Semantic (MONAD m)
   where
+    {-# SPECIALIZE instance (Monad m) => Semantic (MONAD m) #-}
+    {-# INLINABLE semantics #-}
     semantics Return = Sem "return" return
     semantics Bind   = Sem "bind"   (>>=)
     semantics Then   = Sem "then"   (>>)
     semantics When   = Sem "when"   when
 
-instance Monad m => Equality   (MONAD m) where equal      = equalDefault; exprHash = exprHashDefault
-instance Monad m => Render     (MONAD m) where renderSym  = renderSymDefault
-                                               renderArgs = renderArgsDefault
-instance Monad m => Eval       (MONAD m) where evaluate   = evaluateDefault
-instance Monad m => StringTree (MONAD m)
+instance Monad m => Equality   (MONAD m) where
+  {-# SPECIALIZE instance (Monad m) => Equality (MONAD m) #-}
+  {-# INLINABLE equal #-}
+  {-# INLINABLE exprHash #-}
+  equal = equalDefault
+  exprHash = exprHashDefault
+instance Monad m => Render     (MONAD m) where
+  {-# SPECIALIZE instance (Monad m) => Render (MONAD m) #-}
+  {-# INLINABLE renderSym #-}
+  renderSym = renderSymDefault
+instance Monad m => Eval       (MONAD m) where
+  {-# SPECIALIZE instance (Monad m) => Eval (MONAD m) #-}
+  {-# INLINABLE evaluate #-}
+  evaluate = evaluateDefault
+instance Monad m => StringTree (MONAD m) where
+  {-# SPECIALIZE instance (Monad m) => StringTree (MONAD m) #-}
 
 -- | Projection with explicit monad type
 prjMonad :: Project (MONAD m) sup => P m -> sup sig -> Maybe (MONAD m sig)
 prjMonad _ = prj
-
+{-# INLINABLE prjMonad #-}

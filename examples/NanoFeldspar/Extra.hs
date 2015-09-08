@@ -64,10 +64,14 @@ drawObs a = do
 
 instance Optimize ForLoop
   where
+    {-# SPECIALIZE instance Optimize ForLoop #-}
+    {-# INLINABLE optimizeSym #-}
     optimizeSym = optimizeSymDefault
 
 instance Optimize Parallel
   where
+    {-# SPECIALIZE instance Optimize Parallel #-}
+    {-# INLINABLE optimizeSym #-}
     optimizeSym = optimizeSymDefault
 
 constFold :: forall a
@@ -90,4 +94,3 @@ reifySimp = flip evalState 0 .
 
 drawSimp :: (Syntactic a, Domain a ~ FeldDomainAll) => a -> IO ()
 drawSimp = Syntactic.drawAST . reifySimp
-

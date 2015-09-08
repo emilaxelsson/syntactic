@@ -45,14 +45,19 @@ data Node a
 
 instance Constrained Node
   where
+    {-# SPECIALIZE instance Constrained Node #-}
+    {-# INLINABLE exprDict #-}
     type Sat Node = Top
     exprDict _ = Dict
 
 instance Render Node
   where
+    {-# SPECIALIZE instance Render Node #-}
+    {-# INLINABLE renderSym #-}
     renderSym (Node a) = showNode a
 
-instance StringTree Node
+instance StringTree Node where
+  {-# SPECIALIZE instance StringTree Node #-}
 
 
 
@@ -71,17 +76,26 @@ type NodeEnv dom p =
 
 instance (p ~ Sat dom) => NodeEqEnv dom (EqEnv dom p)
   where
+    {-# SPECIALIZE instance (p ~ Sat dom) => NodeEqEnv dom (EqEnv dom p) #-}
+    {-# INLINABLE prjNodeEqEnv #-}
+    {-# INLINABLE modNodeEqEnv #-}
     prjNodeEqEnv   = snd
     modNodeEqEnv f = (id *** f)
 
 instance VarEqEnv (EqEnv dom p)
   where
+    {-# SPECIALIZE instance VarEqEnv (EqEnv dom p) #-}
+    {-# INLINABLE prjVarEqEnv #-}
+    {-# INLINABLE modVarEqEnv #-}
     prjVarEqEnv   = fst
     modVarEqEnv f = (f *** id)
 
 instance (AlphaEq dom dom dom env, NodeEqEnv dom env) =>
     AlphaEq Node Node dom env
   where
+    {-# SPECIALIZE instance (AlphaEq dom dom dom env, NodeEqEnv dom env) =>
+          AlphaEq Node Node dom env #-}
+    {-# INLINABLE alphaEqSym #-}
     alphaEqSym (Node n1) Nil (Node n2) Nil
         | n1 == n2  = return True
         | otherwise = do
@@ -334,4 +348,3 @@ cse graph@(ASG top nodes n) = nubNodes $ reindexNodes (reixTab!) graph
   where
     parts   = partitionNodes graph
     reixTab = array (0,n-1) [(n,p) | (part,p) <- parts `zip` [0..], n <- part]
-
