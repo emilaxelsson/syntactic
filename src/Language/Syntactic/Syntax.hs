@@ -1,5 +1,7 @@
 {-# LANGUAGE CPP #-}
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ <= 708
 {-# LANGUAGE OverlappingInstances #-}
+#endif
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | Generic representation of typed syntax trees
@@ -131,14 +133,14 @@ instance Project expr expr
     {-# INLINABLE prj #-}
     prj = Just
 
-instance Project expr1 (expr1 :+: expr2)
+instance {-# OVERLAPPING #-} Project expr1 (expr1 :+: expr2)
   where
     {-# SPECIALIZE instance Project expr1 (expr1 :+: expr2) #-}
     {-# INLINABLE prj #-}
     prj (InjL a) = Just a
     prj _        = Nothing
 
-instance Project expr1 expr3 => Project expr1 (expr2 :+: expr3)
+instance {-# OVERLAPPING #-} Project expr1 expr3 => Project expr1 (expr2 :+: expr3)
   where
     {-# SPECIALIZE instance Project expr1 expr3 => Project expr1 (expr2 :+: expr3) #-}
     {-# INLINABLE prj #-}
@@ -163,13 +165,13 @@ instance (expr :<: expr)
     {-# INLINABLE inj #-}
     inj = id
 
-instance (expr1 :<: (expr1 :+: expr2))
+instance {-# OVERLAPPING #-} (expr1 :<: (expr1 :+: expr2))
   where
     {-# SPECIALIZE instance (expr1 :<: (expr1 :+: expr2)) #-}
     {-# INLINABLE inj #-}
     inj = InjL
 
-instance (expr1 :<: expr3) => (expr1 :<: (expr2 :+: expr3))
+instance {-# OVERLAPPING #-} (expr1 :<: expr3) => (expr1 :<: (expr2 :+: expr3))
   where
     {-# SPECIALIZE instance (expr1 :<: expr3) => (expr1 :<: (expr2 :+: expr3)) #-}
     {-# INLINABLE inj #-}

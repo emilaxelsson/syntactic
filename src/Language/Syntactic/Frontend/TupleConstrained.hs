@@ -1,5 +1,9 @@
-{-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE UndecidableInstances #-}
+
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ <= 708
+{-# LANGUAGE OverlappingInstances #-}
+#endif
 
 -- | Constrained 'Syntactic' instances for Haskell tuples
 

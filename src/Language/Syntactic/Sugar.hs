@@ -1,5 +1,9 @@
-{-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE UndecidableInstances #-}
+
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ <= 708
+{-# LANGUAGE OverlappingInstances #-}
+#endif
 
 -- | \"Syntactic sugar\"
 
@@ -62,7 +66,8 @@ class SyntacticN a internal | a -> internal
     desugarN :: a -> internal
     sugarN   :: internal -> a
 
-instance (Syntactic a, Domain a ~ dom, ia ~ AST dom (Full (Internal a))) => SyntacticN a ia
+instance {-# OVERLAPPABLE #-}
+    (Syntactic a, Domain a ~ dom, ia ~ AST dom (Full (Internal a))) => SyntacticN a ia
   where
     {-# SPECIALIZE instance ( Syntactic a, Domain a ~ dom
                             , ia ~ AST dom (Full (Internal a))
@@ -72,7 +77,7 @@ instance (Syntactic a, Domain a ~ dom, ia ~ AST dom (Full (Internal a))) => Synt
     {-# INLINABLE desugarN #-}
     {-# INLINABLE sugarN #-}
 
-instance
+instance {-# OVERLAPPABLE #-}
     ( Syntactic a
     , Domain a ~ dom
     , ia ~ Internal a

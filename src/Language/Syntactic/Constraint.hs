@@ -1,8 +1,9 @@
 {-# LANGUAGE CPP #-}
+#if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ <= 708)
 {-# LANGUAGE OverlappingInstances #-}
+#endif
 {-# LANGUAGE UndecidableInstances #-}
 
--- TODO Only `InjectC` should be used overlapped. Move to separate module?
 
 -- | Type-constrained syntax trees
 
@@ -285,7 +286,7 @@ instance (Sat expr a) => InjectC expr expr a
     {-# INLINABLE injC #-}
     injC = id
 
-instance InjectC expr1 (expr1 :+: expr2) a
+instance {-# OVERLAPPABLE #-} InjectC expr1 (expr1 :+: expr2) a
   where
 #ifdef MIN_VERSION_GLASGOW_HASKELL
 #if MIN_VERSION_GLASGOW_HASKELL(7,10,2,0)
@@ -295,7 +296,8 @@ instance InjectC expr1 (expr1 :+: expr2) a
     {-# INLINABLE injC #-}
     injC = InjL
 
-instance InjectC expr1 expr3 a => InjectC expr1 (expr2 :+: expr3) a
+instance {-# OVERLAPPABLE #-} InjectC expr1 expr3 a =>
+    InjectC expr1 (expr2 :+: expr3) a
   where
 #ifdef MIN_VERSION_GLASGOW_HASKELL
 #if MIN_VERSION_GLASGOW_HASKELL(7,10,2,0)
