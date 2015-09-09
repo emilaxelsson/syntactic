@@ -58,7 +58,6 @@ instance Constrained Node
 
 instance Equality Node
   where
-    {-# SPECIALIZE instance Equality Node #-}
     {-# INLINABLE equal #-}
     {-# INLINABLE exprHash #-}
     equal (Node n1) (Node n2) = error "can't compare nodes for equality"
@@ -72,7 +71,6 @@ data Node a
     Node :: NodeId -> Node (Full a)
 
 instance Render Node where
-  {-# SPECIALIZE instance Render Node #-}
   {-# INLINABLE renderSym #-}
   renderSym (Node n) = showNode n
 

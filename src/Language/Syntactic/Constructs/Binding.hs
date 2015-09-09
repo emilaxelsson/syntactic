@@ -65,7 +65,6 @@ instance Constrained Variable
 -- @`alphaEq` a b  ==>  `exprHash` a == `exprHash` b@
 instance Equality Variable
   where
-    {-# SPECIALIZE instance Equality Variable #-}
     {-# INLINABLE equal #-}
     {-# INLINABLE exprHash #-}
     equal (Variable v1) (Variable v2) = v1==v2
@@ -73,13 +72,11 @@ instance Equality Variable
 
 instance Render Variable
   where
-    {-# SPECIALIZE instance Render Variable #-}
     {-# INLINABLE renderSym #-}
     renderSym (Variable v) = showVar v
 
 instance StringTree Variable
   where
-    {-# SPECIALIZE instance StringTree Variable #-}
     {-# INLINABLE stringTreeSym #-}
     stringTreeSym [] (Variable v) = Node ("var:" ++ show v) []
 
@@ -96,7 +93,6 @@ data Lambda a
 
 instance Constrained Lambda
   where
-    {-# SPECIALIZE instance Constrained Lambda #-}
     {-# INLINABLE exprDict #-}
     type Sat Lambda = Top
     exprDict = const Dict
@@ -109,7 +105,6 @@ instance Constrained Lambda
 -- @`alphaEq` a b  ==>  `exprHash` a == `exprHash` b@
 instance Equality Lambda
   where
-    {-# SPECIALIZE instance Equality Lambda #-}
     {-# INLINABLE equal #-}
     {-# INLINABLE exprHash #-}
     equal (Lambda v1) (Lambda v2) = v1==v2
@@ -117,7 +112,6 @@ instance Equality Lambda
 
 instance Render Lambda
   where
-    {-# SPECIALIZE instance Render Lambda #-}
     {-# INLINABLE renderSym #-}
     {-# INLINABLE renderArgs #-}
     renderSym (Lambda v) = "Lambda " ++ show v
@@ -125,7 +119,6 @@ instance Render Lambda
 
 instance StringTree Lambda
   where
-    {-# SPECIALIZE instance StringTree Lambda #-}
     {-# INLINABLE stringTreeSym #-}
     stringTreeSym [body] (Lambda v) = Node ("Lambda " ++ show v) [body]
 
@@ -150,14 +143,12 @@ data Let a
 
 instance Constrained Let
   where
-    {-# SPECIALIZE instance Constrained Let #-}
     {-# INLINABLE exprDict #-}
     type Sat Let = Top
     exprDict = const Dict
 
 instance Equality Let
   where
-    {-# SPECIALIZE instance Equality Let #-}
     {-# INLINABLE equal #-}
     {-# INLINABLE exprHash #-}
     equal Let Let = True
@@ -165,7 +156,6 @@ instance Equality Let
 
 instance Render Let
   where
-    {-# SPECIALIZE instance Render Let #-}
     {-# INLINABLE renderSym #-}
     {-# INLINABLE renderArgs #-}
     renderSym Let = "Let"
@@ -174,7 +164,6 @@ instance Render Let
 
 instance StringTree Let
   where
-    {-# SPECIALIZE instance StringTree Let #-}
     {-# INLINABLE stringTreeSym #-}
     stringTreeSym [a,body] Let = case splitAt 7 node of
         ("Lambda ", var) -> Node ("Let " ++ var) [a,body']
@@ -184,7 +173,6 @@ instance StringTree Let
 
 instance Eval Let
   where
-    {-# SPECIALIZE instance Eval Let #-}
     {-# INLINABLE evaluate #-}
     evaluate Let = flip ($)
 
@@ -382,7 +370,6 @@ class VarEqEnv a
 
 instance VarEqEnv [(VarId,VarId)]
   where
-    {-# SPECIALIZE instance VarEqEnv [(VarId,VarId)] #-}
     {-# INLINABLE prjVarEqEnv #-}
     {-# INLINABLE modVarEqEnv #-}
     prjVarEqEnv = id

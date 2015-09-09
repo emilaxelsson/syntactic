@@ -38,17 +38,16 @@ class Equality expr
 -- | Default implementation of 'equal'
 equalDefault :: Semantic expr => expr a -> expr b -> Bool
 equalDefault a b = equal (semantics a) (semantics b)
-{-# INLINE equalDefault #-}
+{-# INLINABLE equalDefault #-}
 
 -- | Default implementation of 'exprHash'
 exprHashDefault :: Semantic expr => expr a -> Hash
 exprHashDefault = exprHash . semantics
-{-# INLINE exprHashDefault #-}
+{-# INLINABLE exprHashDefault #-}
 
 
 instance Equality Semantics
   where
-    {-# SPECIALIZE instance Equality Semantics #-}
     {-# INLINABLE equal #-}
     {-# INLINABLE exprHash #-}
     equal (Sem a _) (Sem b _) = a==b

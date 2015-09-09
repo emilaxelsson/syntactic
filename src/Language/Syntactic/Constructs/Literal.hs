@@ -25,7 +25,6 @@ instance Constrained Literal
 
 instance Equality Literal
   where
-    {-# SPECIALIZE instance Equality Literal #-}
     {-# INLINABLE equal #-}
     {-# INLINABLE exprHash #-}
     Literal a `equal` Literal b = case cast a of
@@ -36,12 +35,10 @@ instance Equality Literal
 
 instance Render Literal
   where
-    {-# SPECIALIZE instance Render Literal #-}
     {-# INLINABLE renderSym #-}
     renderSym (Literal a) = show a
 
-instance StringTree Literal where
-  {-# SPECIALIZE instance StringTree Literal #-}
+instance StringTree Literal
 
 instance Eval Literal
   where

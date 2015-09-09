@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | 'Syntactic' instances for Haskell tuples
@@ -24,6 +25,8 @@ instance
     ) =>
       Syntactic (a,b)
   where
+#ifdef MIN_VERSION_GLASGOW_HASKELL
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,2,0)
     {-# SPECIALIZE instance ( Syntactic a, Domain a ~ dom
                             , Syntactic b, Domain b ~ dom
                             , InjectC Tuple dom
@@ -33,6 +36,8 @@ instance
                             , InjectC Select dom (Internal a)
                             , InjectC Select dom (Internal b)
                             ) => Syntactic (a,b) #-}
+#endif
+#endif
     {-# INLINABLE desugar #-}
     {-# INLINABLE sugar #-}
     type Domain (a,b) = Domain a

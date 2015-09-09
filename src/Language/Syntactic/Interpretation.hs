@@ -14,12 +14,9 @@ import Language.Syntactic.Interpretation.Evaluation
 semanticInstances :: Name -> DecsQ
 semanticInstances n =
     [d|
-        instance Equality $(typ) where
-          {-# SPECIALIZE instance Equality $(typ) #-}
-        instance Render $(typ) where
-          {-# SPECIALIZE instance Render $(typ) #-}
-        instance StringTree $(typ) where
-          {-# SPECIALIZE instance StringTree $(typ) #-}
+        instance Equality $(typ)
+        instance Render $(typ)
+        instance StringTree $(typ)
         instance Eval $(typ) where
           {-# SPECIALIZE instance Eval $(typ) #-}
     |]

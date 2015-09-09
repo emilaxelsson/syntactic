@@ -52,12 +52,10 @@ instance Constrained Node
 
 instance Render Node
   where
-    {-# SPECIALIZE instance Render Node #-}
     {-# INLINABLE renderSym #-}
     renderSym (Node a) = showNode a
 
-instance StringTree Node where
-  {-# SPECIALIZE instance StringTree Node #-}
+instance StringTree Node
 
 
 

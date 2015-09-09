@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -27,8 +28,9 @@ import Language.Syntactic.Interpretation.Evaluation
 
 -- | Intersection of type predicates
 class    (c1 a, c2 a) => (c1 :/\: c2) a
-instance (c1 a, c2 a) => (c1 :/\: c2) a where
-  {-# SPECIALIZE instance (c1 a, c2 a) => (c1 :/\: c2) a #-}
+instance (c1 a, c2 a) => (c1 :/\: c2) a
+  where
+    {-# SPECIALIZE instance (c1 a, c2 a) => (c1 :/\: c2) a #-}
 
 infixr 5 :/\:
 
@@ -227,17 +229,19 @@ type ConstrainedBy expr p = (Constrained expr, Sat expr :< p)
 -- | A version of 'exprDict' that returns a constraint for a particular
 -- predicate @p@ as long as @(p :< Sat dom)@ holds
 exprDictSub :: ConstrainedBy expr p => P p -> expr a -> Dict (p (DenResult a))
+{-# SPECIALIZE INLINE exprDictSub :: (ConstrainedBy expr p) => P p -> expr a -> Dict (p (DenResult a)) #-}
 exprDictSub = const $ sub . exprDict
-{-# INLINABLE exprDictSub #-}
 
 -- | A version of 'exprDict' that works for domains of the form
 -- @(dom1 :+: dom2)@ as long as @(Sat dom1 ~ Sat dom2)@ holds
 exprDictPlus :: (Constrained dom1, Constrained dom2, Sat dom1 ~ Sat dom2) =>
     AST (dom1 :+: dom2) a -> Dict (Sat dom1 (DenResult a))
+{-# SPECIALIZE INLINE
+      exprDictPlus :: (Constrained dom1, Constrained dom2, Sat dom1 ~ Sat dom2)
+                   => AST (dom1 :+: dom2) a -> Dict (Sat dom1 (DenResult a)) #-}
 exprDictPlus (s :$ _)       = exprDictPlus s
 exprDictPlus (Sym (InjL a)) = exprDict a
 exprDictPlus (Sym (InjR a)) = exprDict a
-{-# INLINABLE exprDictPlus #-}
 
 
 
@@ -246,39 +250,58 @@ class (Project sub sup, Sat sup a) => InjectC sub sup a
   where
     injC :: (DenResult sig ~ a) => sub sig -> sup sig
 
-instance (InjectC sub sup a, Sat (AST sup) a) => InjectC sub (AST sup) a
+instance (InjectC sub sup a, Sat (AST sup) a) =>
+    InjectC sub (AST sup) a
   where
+#ifdef MIN_VERSION_GLASGOW_HASKELL
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,2,0)
     {-# SPECIALIZE instance (InjectC sub sup a, Sat (AST sup) a) => InjectC sub (AST sup) a #-}
+#endif
+#endif
     {-# INLINABLE injC #-}
     injC = Sym . injC
 
-instance (InjectC sub sup a, Sat (sup :| pred) a) => InjectC sub (sup :| pred) a
+instance (InjectC sub sup a, Sat (sup :| pred) a) =>
+    InjectC sub (sup :| pred) a
   where
     {-# SPECIALIZE instance (InjectC sub sup a, Sat (sup :| pred) a) => InjectC sub (sup :| pred) a #-}
     {-# INLINABLE injC #-}
     injC = C . injC
 
-instance (InjectC sub sup a, Sat (sup :|| pred) a) => InjectC sub (sup :|| pred) a
+instance (InjectC sub sup a, Sat (sup :|| pred) a) =>
+    InjectC sub (sup :|| pred) a
   where
+#ifdef MIN_VERSION_GLASGOW_HASKELL
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,2,0)
     {-# SPECIALIZE instance (InjectC sub sup a, Sat (sup :|| pred) a) => InjectC sub (sup :|| pred) a #-}
+#endif
+#endif
     {-# INLINABLE injC #-}
     injC = C' . injC
 
-instance Sat expr a => InjectC expr expr a
+instance (Sat expr a) => InjectC expr expr a
   where
-    {-# SPECIALIZE instance Sat expr a => InjectC expr expr a #-}
+    {-# SPECIALIZE instance (Sat expr a) => InjectC expr expr a #-}
     {-# INLINABLE injC #-}
     injC = id
 
 instance InjectC expr1 (expr1 :+: expr2) a
   where
+#ifdef MIN_VERSION_GLASGOW_HASKELL
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,2,0)
     {-# SPECIALIZE instance InjectC expr1 (expr1 :+: expr2) a #-}
+#endif
+#endif
     {-# INLINABLE injC #-}
     injC = InjL
 
 instance InjectC expr1 expr3 a => InjectC expr1 (expr2 :+: expr3) a
   where
+#ifdef MIN_VERSION_GLASGOW_HASKELL
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,2,0)
     {-# SPECIALIZE instance InjectC expr1 expr3 a => InjectC expr1 (expr2 :+: expr3) a #-}
+#endif
+#endif
     {-# INLINABLE injC #-}
     injC = InjR . injC
 
@@ -466,23 +489,18 @@ data Empty :: * -> *
 
 instance Constrained Empty
   where
-    {-# SPECIALIZE instance Constrained Empty #-}
     type Sat Empty = Top
     exprDict = error "Not implemented: exprDict for Empty"
 
 instance Equality Empty where
-  {-# SPECIALIZE instance Equality Empty #-}
   equal      = error "Not implemented: equal for Empty"
   exprHash   = error "Not implemented: exprHash for Empty"
 instance Eval Empty where
-  {-# SPECIALIZE instance Eval Empty #-}
   evaluate   = error "Not implemented: equal for Empty"
 instance Render Empty where
-  {-# SPECIALIZE instance Render Empty #-}
   renderSym  = error "Not implemented: renderSym for Empty"
   renderArgs = error "Not implemented: renderArgs for Empty"
-instance StringTree Empty where
-  {-# SPECIALIZE instance StringTree Empty #-}
+instance StringTree Empty
 
 
 

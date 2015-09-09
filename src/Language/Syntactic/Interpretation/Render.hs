@@ -42,16 +42,15 @@ class Render dom
 -- | Default implementation of 'renderSym'
 renderSymDefault :: Semantic expr => expr a -> String
 renderSymDefault = renderSym . semantics
-{-# INLINE renderSymDefault #-}
+{-# INLINABLE renderSymDefault #-}
 
 -- | Default implementation of 'renderArgs'
 renderArgsDefault :: Semantic expr => [String] -> expr a -> String
 renderArgsDefault args = renderArgs args . semantics
-{-# INLINE renderArgsDefault #-}
+{-# INLINABLE renderArgsDefault #-}
 
 instance Render Semantics
   where
-    {-# SPECIALIZE instance Render Semantics #-}
     {-# INLINABLE renderSym #-}
     {-# INLINABLE renderArgs #-}
     renderSym (Sem name _) = name

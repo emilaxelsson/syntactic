@@ -21,11 +21,10 @@ class Eval expr
 -- | Default implementation of 'evaluate'
 evaluateDefault :: Semantic expr => expr a -> Denotation a
 evaluateDefault = evaluate . semantics
-{-# INLINE evaluateDefault #-}
+{-# INLINABLE evaluateDefault #-}
 
 instance Eval Semantics
   where
-    {-# SPECIALIZE instance Eval Semantics #-}
     {-# INLINABLE evaluate #-}
     evaluate (Sem _ a) = a
 
