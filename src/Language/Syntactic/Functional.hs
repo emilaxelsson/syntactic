@@ -296,6 +296,11 @@ instance {-# OVERLAPPING #-}
     prLam (InjL s) = prLam s
     prLam (InjR s) = prLam s
 
+instance {-# OVERLAPPING #-} BindingDomain sym => BindingDomain (Typed sym)
+  where
+    prVar (Typed s) = prVar s
+    prLam (Typed s) = prLam s
+
 instance {-# OVERLAPPING #-} BindingDomain sym => BindingDomain (sym :&: i)
   where
     prVar = prVar . decorExpr
@@ -552,6 +557,10 @@ instance (EvalEnv sym1 env, EvalEnv sym2 env) => EvalEnv (sym1 :+: sym2) env
 instance EvalEnv Empty env
   where
     compileSym = error "compileSym: Empty"
+
+instance EvalEnv sym env => EvalEnv (Typed sym) env
+  where
+    compileSym p (Typed s) = compileSym p s
 
 instance EvalEnv sym env => EvalEnv (sym :&: info) env
   where

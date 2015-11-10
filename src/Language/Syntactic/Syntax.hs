@@ -333,6 +333,10 @@ data Typed sym sig
   where
     Typed :: Typeable (DenResult sig) => sym sig -> Typed sym sig
 
+instance {-# OVERLAPPING #-} Project sub sup => Project sub (Typed sup)
+  where
+    prj (Typed s) = prj s
+
 -- | Type cast an expression
 castExpr :: forall sym a b
     .  ASTF (Typed sym) a  -- ^ Expression to cast

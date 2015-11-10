@@ -83,6 +83,11 @@ instance Equality Empty
     equal = error "equal: Empty"
     hash  = error "hash: Empty"
 
+instance Equality sym => Equality (Typed sym)
+  where
+    equal (Typed s1) (Typed s2) = equal s1 s2
+    hash (Typed s) = hash s
+
 
 
 ----------------------------------------------------------------------------------------------------
@@ -137,6 +142,11 @@ instance Render Empty
     renderSym  = error "renderSym: Empty"
     renderArgs = error "renderArgs: Empty"
 
+instance Render sym => Render (Typed sym)
+  where
+    renderSym (Typed s)  = renderSym s
+    renderArgs args (Typed s) = renderArgs args s
+
 instance Render sym => Show (ASTF sym a)
   where
     show = render
@@ -156,6 +166,10 @@ instance (StringTree sym1, StringTree sym2) => StringTree (sym1 :+: sym2)
     stringTreeSym args (InjR s) = stringTreeSym args s
 
 instance StringTree Empty
+
+instance StringTree sym => StringTree (Typed sym)
+  where
+    stringTreeSym args (Typed s) = stringTreeSym args s
 
 -- | Convert an 'AST' to a 'Tree' of strings
 stringTree :: forall sym a . StringTree sym => ASTF sym a -> Tree String
