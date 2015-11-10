@@ -16,8 +16,8 @@ module WellScoped where
 
 
 
-import Data.Syntactic
-import Data.Syntactic.Functional
+import Language.Syntactic
+import Language.Syntactic.Functional
 
 import NanoFeldspar (Let (..))
 

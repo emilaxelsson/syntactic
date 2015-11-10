@@ -4,8 +4,8 @@ module WithArity (main) where
 
 import Criterion.Main
 import Criterion.Types
-import Data.Syntactic hiding (E)
-import Data.Syntactic.Functional
+import Language.Syntactic hiding (E)
+import Language.Syntactic.Functional
 
 main :: IO ()
 main = defaultMainWith (defaultConfig {csvFile = Just "bench-results/withArity.csv"})

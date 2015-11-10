@@ -17,9 +17,9 @@ import Control.Monad (replicateM_)
 import Data.Char (isDigit)
 import Data.Typeable (Typeable)
 
-import Data.Syntactic
-import Data.Syntactic.Functional
-import Data.Syntactic.Sugar.MonadT ()
+import Language.Syntactic
+import Language.Syntactic.Functional
+import Language.Syntactic.Sugar.MonadT ()
 
 import NanoFeldspar (Type, Arithmetic (..))
 

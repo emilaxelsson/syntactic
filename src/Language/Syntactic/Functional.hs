@@ -13,7 +13,7 @@
 
 -- | Basics for implementing functional EDSLs
 
-module Data.Syntactic.Functional
+module Language.Syntactic.Functional
     ( -- * Syntactic constructs
       Name (..)
     , Construct (..)
@@ -73,7 +73,7 @@ import Data.Tree
 import Data.Hash (hashInt)
 import Safe
 
-import Data.Syntactic
+import Language.Syntactic
 
 
 

@@ -4,8 +4,8 @@ module JoiningTypes (main) where
 
 import Criterion.Main
 import Criterion.Types
-import Data.Syntactic
-import Data.Syntactic.Functional
+import Language.Syntactic
+import Language.Syntactic.Functional
 
 -- Normal DSL, not joined types.
 data Expr1 t where

@@ -23,10 +23,10 @@ import qualified Prelude
 import Data.Tree
 import Data.Typeable
 
-import Data.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAST)
-import qualified Data.Syntactic as Syntactic
-import Data.Syntactic.Functional
-import Data.Syntactic.Sugar.BindingT ()
+import Language.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAST)
+import qualified Language.Syntactic as Syntactic
+import Language.Syntactic.Functional
+import Language.Syntactic.Sugar.BindingT ()
 
 
 

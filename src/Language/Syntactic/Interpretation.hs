@@ -2,7 +2,7 @@
 
 -- | Equality and rendering of 'AST's
 
-module Data.Syntactic.Interpretation
+module Language.Syntactic.Interpretation
     ( -- * Equality
       Equality (..)
       -- * Rendering
@@ -29,7 +29,7 @@ import Data.Hash (Hash, combine, hashInt)
 import qualified Data.Hash as Hash
 import Data.Tree.View
 
-import Data.Syntactic.Syntax
+import Language.Syntactic.Syntax
 
 
 

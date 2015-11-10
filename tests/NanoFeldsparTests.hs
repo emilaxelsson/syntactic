@@ -15,8 +15,8 @@ import Test.Tasty.QuickCheck
 
 import Data.ByteString.Lazy.UTF8 (fromString)
 
-import Data.Syntactic
-import Data.Syntactic.Functional
+import Language.Syntactic
+import Language.Syntactic.Functional
 import qualified NanoFeldspar as Nano
 
 

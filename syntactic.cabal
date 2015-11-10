@@ -45,17 +45,17 @@ source-repository head
 
 library
   exposed-modules:
-    Data.Syntactic
-    Data.Syntactic.Syntax
-    Data.Syntactic.Traversal
-    Data.Syntactic.Interpretation
-    Data.Syntactic.Sugar
-    Data.Syntactic.Decoration
-    Data.Syntactic.Functional
-    Data.Syntactic.Sugar.Binding
-    Data.Syntactic.Sugar.BindingT
-    Data.Syntactic.Sugar.Monad
-    Data.Syntactic.Sugar.MonadT
+    Language.Syntactic
+    Language.Syntactic.Syntax
+    Language.Syntactic.Traversal
+    Language.Syntactic.Interpretation
+    Language.Syntactic.Sugar
+    Language.Syntactic.Decoration
+    Language.Syntactic.Functional
+    Language.Syntactic.Sugar.Binding
+    Language.Syntactic.Sugar.BindingT
+    Language.Syntactic.Sugar.Monad
+    Language.Syntactic.Sugar.MonadT
 
   build-depends:
     base >= 4 && < 5,

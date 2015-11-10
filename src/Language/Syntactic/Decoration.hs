@@ -1,6 +1,6 @@
 -- | Construct for decorating symbols or expressions with additional information
 
-module Data.Syntactic.Decoration where
+module Language.Syntactic.Decoration where
 
 
 
@@ -8,9 +8,9 @@ import Data.Tree (Tree (..))
 
 import Data.Tree.View
 
-import Data.Syntactic.Syntax
-import Data.Syntactic.Traversal
-import Data.Syntactic.Interpretation
+import Language.Syntactic.Syntax
+import Language.Syntactic.Traversal
+import Language.Syntactic.Interpretation
 
 
 

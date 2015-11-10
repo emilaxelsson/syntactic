@@ -4,8 +4,8 @@ module Normal (main) where
 
 import Criterion.Main
 import Criterion.Types
-import Data.Syntactic
-import Data.Syntactic.Functional
+import Language.Syntactic
+import Language.Syntactic.Functional
 
 main :: IO ()
 main = defaultMainWith (defaultConfig {csvFile = Just "bench-results/normal.csv"})
