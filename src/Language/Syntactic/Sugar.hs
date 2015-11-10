@@ -20,6 +20,8 @@ module Language.Syntactic.Sugar where
 
 
 
+import Data.Typeable
+
 import Language.Syntactic.Syntax
 
 
@@ -110,4 +112,30 @@ sugarSym
        )
     => sub sig -> f
 sugarSym = sugarN . smartSym
+
+-- | \"Sugared\" symbol application
+--
+-- 'sugarSym' has any type of the form:
+--
+-- > sugarSym ::
+-- >     ( sub :<: AST (Typed sup)
+-- >     , Syntactic a
+-- >     , Syntactic b
+-- >     , ...
+-- >     , Syntactic x
+-- >     , Domain a ~ Domain b ~ ... ~ Domain x
+-- >     , Typeable (Internal x)
+-- >     ) => sub (Internal a :-> Internal b :-> ... :-> Full (Internal x))
+-- >       -> (a -> b -> ... -> x)
+sugarSymT
+    :: ( Signature sig
+       , fi        ~ SmartFun (Typed sup) sig
+       , sig       ~ SmartSig fi
+       , Typed sup ~ SmartSym fi
+       , SyntacticN f fi
+       , sub :<: sup
+       , Typeable (DenResult sig)
+       )
+    => sub sig -> f
+sugarSymT = sugarN . smartSymT
 

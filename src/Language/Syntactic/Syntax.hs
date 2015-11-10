@@ -37,6 +37,7 @@ module Language.Syntactic.Syntax
     , Project (..)
     , (:<:) (..)
     , smartSym
+    , smartSymT
     , Empty
       -- * Existential quantification
     , E (..)
@@ -47,6 +48,7 @@ module Language.Syntactic.Syntax
     , liftEF2
       -- * Type casting expressions
     , Typed (..)
+    , injT
     , castExpr
       -- * Type inference
     , symType
@@ -285,6 +287,22 @@ smartSym
     => sub sig -> f
 smartSym = smartSym' . inj
 
+-- | Make a smart constructor of a symbol. 'smartSymT' has any type of the form:
+--
+-- > smartSym :: (sub :<: AST (Typed sup), Typeable x)
+-- >     => sub (a :-> b :-> ... :-> Full x)
+-- >     -> (ASTF sup a -> ASTF sup b -> ... -> ASTF sup x)
+smartSymT
+    :: ( Signature sig
+       , f         ~ SmartFun (Typed sup) sig
+       , sig       ~ SmartSig f
+       , Typed sup ~ SmartSym f
+       , sub :<: sup
+       , Typeable (DenResult sig)
+       )
+    => sub sig -> f
+smartSymT = smartSym' . Typed . inj
+
 -- | Empty symbol type
 --
 -- Can be used to make uninhabited 'AST' types. It can also be used as a terminator in co-product
@@ -336,6 +354,11 @@ data Typed sym sig
 instance {-# OVERLAPPING #-} Project sub sup => Project sub (Typed sup)
   where
     prj (Typed s) = prj s
+
+-- | Inject a symbol in an 'AST' with a 'Typed' domain
+injT :: (sub :<: sup, Typeable (DenResult sig)) =>
+    sub sig -> AST (Typed sup) sig
+injT = Sym . Typed . inj
 
 -- | Type cast an expression
 castExpr :: forall sym a b
