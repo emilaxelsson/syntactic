@@ -28,6 +28,9 @@ module Language.Syntactic.Functional
     , MONAD (..)
     , Remon (..)
     , desugarMonad
+      -- * Free and bound variables
+    , freeVars
+    , allVars
       -- * Alpha-equivalence
     , AlphaEnv
     , alphaEq'
@@ -74,6 +77,8 @@ import Data.List (genericIndex)
 #else
 import Data.Proxy  -- Needed by GHC < 7.8
 #endif
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Tree
 
 import Data.Hash (hashInt)
@@ -376,6 +381,31 @@ instance (Monad m) => Monad (Remon dom m)
 -- | One-layer desugaring of monadic actions
 desugarMonad :: (MONAD m :<: sym, Monad m) => Remon sym m (ASTF sym a) -> ASTF sym (m a)
 desugarMonad = flip runCont (sugarSym Return) . unRemon
+
+
+
+----------------------------------------------------------------------------------------------------
+-- * Free variables
+----------------------------------------------------------------------------------------------------
+
+-- | Get the set of free variables in an expression
+freeVars :: BindingDomain sym => AST sym sig -> Set Name
+freeVars var
+    | Just v <- prVar var = Set.singleton v
+freeVars (lam :$ body)
+    | Just v <- prLam lam = Set.delete v (freeVars body)
+freeVars (s :$ a) = Set.union (freeVars s) (freeVars a)
+freeVars _ = Set.empty
+
+-- | Get the set of variables (free, bound and introduced by lambdas) in an
+-- expression
+allVars :: BindingDomain sym => AST sym sig -> Set Name
+allVars var
+    | Just v <- prVar var = Set.singleton v
+allVars (lam :$ body)
+    | Just v <- prLam lam = Set.insert v (allVars body)
+allVars (s :$ a) = Set.union (allVars s) (allVars a)
+allVars _ = Set.empty
 
 
 
