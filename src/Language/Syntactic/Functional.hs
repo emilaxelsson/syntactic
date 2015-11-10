@@ -61,13 +61,19 @@ module Language.Syntactic.Functional
 
 
 
-import Control.Applicative  -- Needed by GHC < 7.10
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
+#else
+import Control.Applicative
+#endif
 import Control.DeepSeq
 import Control.Monad.Cont
 import Control.Monad.Reader
 import Data.Dynamic
 import Data.List (genericIndex)
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
+#else
 import Data.Proxy  -- Needed by GHC < 7.8
+#endif
 import Data.Tree
 
 import Data.Hash (hashInt)

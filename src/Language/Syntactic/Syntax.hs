@@ -54,10 +54,12 @@ module Language.Syntactic.Syntax
 
 import Control.DeepSeq
 import Data.Typeable
-import Data.Foldable (Foldable)        -- Needed by GHC < 7.10
-import Data.Proxy                      -- Needed by GHC < 7.8
-import Data.Traversable (Traversable)  -- Needed by GHC < 7.10
-
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
+#else
+import Data.Foldable (Foldable)
+import Data.Proxy  -- Needed by GHC < 7.8
+import Data.Traversable (Traversable)
+#endif
 
 
 

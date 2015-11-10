@@ -11,7 +11,7 @@ import Data.Typeable
 
 import Language.Syntactic
 import Language.Syntactic.Functional
-import Language.Syntactic.Sugar.BindingT
+import Language.Syntactic.Sugar.BindingT ()
 
 
 
