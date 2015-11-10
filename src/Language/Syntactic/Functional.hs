@@ -255,7 +255,7 @@ instance StringTree BindingT
 --
 -- \[1\] Ordered binders means that the names of 'LamT' nodes are decreasing along every path from
 -- the root.
-maxLamT :: (BindingT :<: s) => AST s a -> Name
+maxLamT :: Project BindingT sym => AST sym a -> Name
 maxLamT (Sym lam :$ _) | Just (LamT n :: BindingT (b :-> a)) <- prj lam = n
 maxLamT (s :$ a) = maxLamT s `Prelude.max` maxLamT a
 maxLamT _ = 0
