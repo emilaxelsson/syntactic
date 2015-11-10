@@ -2,8 +2,8 @@
 
 -- | 'Syntactic' instance for functions
 --
--- This module is based on having 'Binding' in the domain. For 'BindingT' import module
--- "Language.Syntactic.Sugar.BindingT" instead
+-- This module is based on having 'Binding' in the domain. For 'BindingT' import
+-- module "Language.Syntactic.Sugar.BindingT" instead.
 
 module Language.Syntactic.Sugar.Binding where
 

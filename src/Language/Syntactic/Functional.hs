@@ -368,11 +368,12 @@ instance StringTree (MONAD m)
 
 -- | Reifiable monad
 --
--- See \"Generic Monadic Constructs for Embedded Languages\" (Persson et al., IFL 2011
--- <http://www.cse.chalmers.se/~emax/documents/persson2011generic.pdf>).
+-- See \"Generic Monadic Constructs for Embedded Languages\" (Persson et al.,
+-- IFL 2011 <http://www.cse.chalmers.se/~emax/documents/persson2011generic.pdf>).
 --
--- It is advised to convert to/from 'Mon' using the 'Syntactic' instance provided in the modules
--- @Data.Syntactic.Sugar.Monad@ or @Data.Syntactic.Sugar.MonadT@.
+-- It is advised to convert to/from 'Remon' using the 'Syntactic' instance
+-- provided in the modules "Language.Syntactic.Sugar.Monad" or
+-- "Language.Syntactic.Sugar.MonadT".
 newtype Remon sym m a
   where
     Remon
