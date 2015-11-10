@@ -45,6 +45,9 @@ module Language.Syntactic.Syntax
     , EF (..)
     , liftEF
     , liftEF2
+      -- * Type casting expressions
+    , Typed (..)
+    , castExpr
       -- * Type inference
     , symType
     , prjP
@@ -317,6 +320,42 @@ liftEF f (EF a) = f a
 
 liftEF2 :: (forall a b . e (Full a) -> e (Full b) -> c) -> EF e -> EF e -> c
 liftEF2 f (EF a) (EF b) = f a b
+
+
+
+--------------------------------------------------------------------------------
+-- * Type casting expressions
+--------------------------------------------------------------------------------
+
+-- | \"Typed\" symbol. Using @`Typed` sym@ instead of @sym@ gives access to the
+-- function 'castExpr' for casting expressions.
+data Typed sym sig
+  where
+    Typed :: Typeable (DenResult sig) => sym sig -> Typed sym sig
+
+-- | Type cast an expression
+castExpr :: forall sym a b
+    .  ASTF (Typed sym) a  -- ^ Expression to cast
+    -> ASTF (Typed sym) b  -- ^ Witness for typeability of result
+    -> Maybe (ASTF (Typed sym) b)
+castExpr a b = cast1 a
+  where
+    cast1 :: (DenResult sig ~ a) => AST (Typed sym) sig -> Maybe (ASTF (Typed sym) b)
+    cast1 (s :$ _) = cast1 s
+    cast1 (Sym (Typed _)) = cast2 b
+      where
+        cast2 :: (DenResult sig ~ b) => AST (Typed sym) sig -> Maybe (ASTF (Typed sym) b)
+        cast2 (s :$ _)        = cast2 s
+        cast2 (Sym (Typed _)) = gcast a
+  -- Could be simplified using `simpleMatch`, but that would give an import
+  -- cycle.
+  --
+  --     castExpr a b =
+  --       simpleMatch
+  --         (\(Typed _) _ -> simpleMatch
+  --           (\(Typed _) _ -> gcast a
+  --           ) b
+  --         ) a
 
 
 
