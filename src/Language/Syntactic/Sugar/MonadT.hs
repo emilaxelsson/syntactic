@@ -16,21 +16,30 @@ import Language.Syntactic.Sugar.BindingT ()
 
 
 -- | One-layer sugaring of monadic actions
-sugarMonad :: (BindingT :<: sym, Typeable a) => ASTF sym (m a) -> Remon sym m (ASTF sym a)
-sugarMonad ma = Remon $ cont $ sugarSym Bind ma
+sugarMonad
+    :: ( BindingT :<: sym
+       , MONAD m  :<: sym
+       , symT ~ Typed sym
+       , Typeable m
+       , Typeable a
+       )
+    => ASTF symT (m a) -> Remon symT m (ASTF symT a)
+sugarMonad ma = Remon $ cont $ sugarSymT Bind ma
 
 instance
     ( Syntactic a
-    , Domain a ~ sym
+    , Domain a ~ symT
+    , symT ~ Typed sym
     , BindingT :<: sym
     , MONAD m  :<: sym
     , Monad m
+    , Typeable m
     , Typeable (Internal a)
     ) =>
-      Syntactic (Remon sym m a)
+      Syntactic (Remon symT m a)
   where
-    type Domain (Remon sym m a)   = sym
-    type Internal (Remon sym m a) = m (Internal a)
-    desugar = desugarMonad . fmap desugar
+    type Domain (Remon symT m a)   = symT
+    type Internal (Remon symT m a) = m (Internal a)
+    desugar = desugarMonadT . fmap desugar
     sugar   = fmap sugar   . sugarMonad
 

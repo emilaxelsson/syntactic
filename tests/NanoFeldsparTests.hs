@@ -51,19 +51,19 @@ alphaRename :: ASTF Nano.FeldDomain a -> ASTF Nano.FeldDomain a
 alphaRename = mapAST rename
   where
     rename :: Nano.FeldDomain a -> Nano.FeldDomain a
-    rename s
-        | Just (VarT v) <- prj s = inj (VarT (v+1))
-        | Just (LamT v) <- prj s = inj (LamT (v+1))
-        | otherwise = s
+    rename (Typed s)
+        | Just (VarT v) <- prj s = Typed $ inj (VarT (v+1))
+        | Just (LamT v) <- prj s = Typed $ inj (LamT (v+1))
+        | otherwise = Typed s
 
 badRename :: ASTF Nano.FeldDomain a -> ASTF Nano.FeldDomain a
 badRename = mapAST rename
   where
     rename :: Nano.FeldDomain a -> Nano.FeldDomain a
-    rename s
-        | Just (VarT v) <- prj s = inj (VarT (v+1))
-        | Just (LamT v) <- prj s = inj (LamT (v-1))
-        | otherwise = s
+    rename (Typed s)
+        | Just (VarT v) <- prj s = Typed $ inj (VarT (v+1))
+        | Just (LamT v) <- prj s = Typed $ inj (LamT (v-1))
+        | otherwise = Typed s
 
 prop_alphaEq a = alphaEq a (alphaRename a)
 

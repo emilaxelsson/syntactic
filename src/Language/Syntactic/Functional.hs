@@ -28,6 +28,7 @@ module Language.Syntactic.Functional
     , MONAD (..)
     , Remon (..)
     , desugarMonad
+    , desugarMonadT
       -- * Free and bound variables
     , freeVars
     , allVars
@@ -273,10 +274,16 @@ maxLamT _ = 0
 --
 -- See \"Using Circular Programs for Higher-Order Syntax\"
 -- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>).
-lamT :: forall s a b . (BindingT :<: s, Typeable a) => (ASTF s a -> ASTF s b) -> ASTF s (a -> b)
-lamT f = smartSym (LamT v :: BindingT (b :-> Full (a -> b))) body
+lamT :: forall sym symT a b
+    .  ( BindingT :<: sym
+       , symT ~ Typed sym
+       , Typeable a
+       , Typeable b
+       )
+    => (ASTF symT a -> ASTF symT b) -> ASTF symT (a -> b)
+lamT f = smartSymT (LamT v) body
   where
-    body = f (smartSym (VarT v))
+    body = f (smartSymT (VarT v))
     v    = succ $ maxLamT body
 
 -- | Domains that \"might\" include variables and binders
@@ -369,9 +376,15 @@ instance StringTree (MONAD m)
 newtype Remon sym m a
   where
     Remon
-        :: { unRemon :: forall r . (Monad m, MONAD m :<: sym) => Cont (ASTF sym (m r)) a }
+        :: { unRemon :: forall r . (Monad m, Typeable r)
+                     => Cont (ASTF sym (m r)) a
+           }
         -> Remon sym m a
   deriving (Functor)
+  -- The `Typeable` constraint is a bit unfortunate. It's only needed when using
+  -- a `Typed` domain. Since this is probably the most common case I decided to
+  -- bake in `Typeable` here. A more flexible solution would be to parameterize
+  -- `Remon` on the constraint.
 
 instance (Applicative m) => Applicative (Remon sym m)
   where
@@ -384,8 +397,25 @@ instance (Monad m) => Monad (Remon dom m)
     ma >>= f = Remon $ unRemon ma >>= unRemon . f
 
 -- | One-layer desugaring of monadic actions
-desugarMonad :: (MONAD m :<: sym, Monad m) => Remon sym m (ASTF sym a) -> ASTF sym (m a)
+desugarMonad
+    :: ( MONAD m :<: sym
+       , Monad m
+       , Typeable a
+       , Typeable m
+       )
+    => Remon sym m (ASTF sym a) -> ASTF sym (m a)
 desugarMonad = flip runCont (sugarSym Return) . unRemon
+
+-- | One-layer desugaring of monadic actions
+desugarMonadT
+    :: ( MONAD m :<: sym
+       , symT ~ Typed sym
+       , Monad m
+       , Typeable a
+       , Typeable m
+       )
+    => Remon symT m (ASTF symT a) -> ASTF symT (m a)
+desugarMonadT = flip runCont (sugarSymT Return) . unRemon
 
 
 

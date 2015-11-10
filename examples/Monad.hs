@@ -25,35 +25,35 @@ import NanoFeldspar (Type, Arithmetic (..))
 
 
 
-type Dom = BindingT :+: MONAD IO :+: Construct :+: Arithmetic
+type Dom = Typed (BindingT :+: MONAD IO :+: Construct :+: Arithmetic)
 
 type Exp a = ASTF Dom a
 
 type IO' a = Remon Dom IO (Exp a)
 
 getDigit :: IO' Int
-getDigit = sugarSym $ Construct "getDigit" get
+getDigit = sugarSymT $ Construct "getDigit" get
   where
     get = do
         c <- getChar
         if isDigit c then return (fromEnum c - fromEnum '0') else get
 
 putDigit :: Exp Int -> IO' ()
-putDigit = sugarSym $ Construct "putDigit" print
+putDigit = sugarSymT $ Construct "putDigit" print
 
 iter :: Typeable a => Exp Int -> IO' a -> IO' ()
-iter = sugarSym $ Construct "iter" replicateM_
+iter = sugarSymT $ Construct "iter" replicateM_
 
 -- | Literal
-value :: Show a => a -> Exp a
-value a = sugar $ inj $ Construct (show a) a
+value :: (Show a, Typeable a) => a -> Exp a
+value a = sugarSymT $ Construct (show a) a
 
 instance (Num a, Type a) => Num (Exp a)
   where
     fromInteger = value . fromInteger
-    (+)         = sugarSym Add
-    (-)         = sugarSym Sub
-    (*)         = sugarSym Mul
+    (+)         = sugarSymT Add
+    (-)         = sugarSymT Sub
+    (*)         = sugarSymT Mul
 
 ex1 :: Exp Int -> IO' ()
 ex1 n = iter n $ do

@@ -145,13 +145,14 @@ instance Eval ForLoop
 
 instance EvalEnv ForLoop env
 
-type FeldDomain
-    =   Arithmetic
+type FeldDomain = Typed
+    (   Arithmetic
     :+: BindingT
     :+: Let
     :+: Parallel
     :+: ForLoop
     :+: Construct
+    )
 
 newtype Data a = Data { unData :: ASTF FeldDomain a }
 
@@ -208,7 +209,7 @@ eval = evalClosed . desugar
 
 -- | Literal
 value :: Syntax a => Internal a -> a
-value a = sugar $ inj $ Construct (show a) a
+value a = sugar $ injT $ Construct (show a) a
 
 false :: Data Bool
 false = value False
@@ -224,33 +225,33 @@ force = resugar
 instance (Type a, Num a) => Num (Data a)
   where
     fromInteger = value . fromInteger
-    (+)         = sugarSym Add
-    (-)         = sugarSym Sub
-    (*)         = sugarSym Mul
+    (+)         = sugarSymT Add
+    (-)         = sugarSymT Sub
+    (*)         = sugarSymT Mul
 
-share :: (Syntax a, Syntactic b, Domain b ~ FeldDomain) => a -> (a -> b) -> b
-share = sugarSym Let
+share :: (Syntax a, Syntax b) => a -> (a -> b) -> b
+share = sugarSymT Let
 
 -- | Parallel array
 parallel :: Type a => Data Length -> (Data Index -> Data a) -> Data [a]
-parallel = sugarSym Parallel
+parallel = sugarSymT Parallel
 
 -- | For loop
 forLoop :: Syntax st => Data Length -> st -> (Data Index -> st -> st) -> st
-forLoop = sugarSym ForLoop
+forLoop = sugarSymT ForLoop
 
 (?) :: forall a . Syntax a => Data Bool -> (a,a) -> a
-c ? (t,f) = sugarSym sym c t f
+c ? (t,f) = sugarSymT sym c t f
   where
     sym :: Construct (Bool :-> Internal a :-> Internal a :-> Full (Internal a))
     sym = Construct "cond" (\c t f -> if c then t else f)
 
 arrLength :: Type a => Data [a] -> Data Length
-arrLength = sugarSym $ Construct "arrLength" Prelude.length
+arrLength = sugarSymT $ Construct "arrLength" Prelude.length
 
 -- | Array indexing
 getIx :: Type a => Data [a] -> Data Index -> Data a
-getIx = sugarSym $ Construct "getIx" eval
+getIx = sugarSymT $ Construct "getIx" eval
   where
     eval as i
         | i >= len || i < 0 = error "getIx: index out of bounds"
@@ -259,16 +260,16 @@ getIx = sugarSym $ Construct "getIx" eval
         len = Prelude.length as
 
 not :: Data Bool -> Data Bool
-not = sugarSym $ Construct "not" Prelude.not
+not = sugarSymT $ Construct "not" Prelude.not
 
 (==) :: Type a => Data a -> Data a -> Data Bool
-(==) = sugarSym $ Construct "(==)" (Prelude.==)
+(==) = sugarSymT $ Construct "(==)" (Prelude.==)
 
 max :: Type a => Data a -> Data a -> Data a
-max = sugarSym $ Construct "max" Prelude.max
+max = sugarSymT $ Construct "max" Prelude.max
 
 min :: Type a => Data a -> Data a -> Data a
-min = sugarSym $ Construct "min" Prelude.min
+min = sugarSymT $ Construct "min" Prelude.min
 
 
 

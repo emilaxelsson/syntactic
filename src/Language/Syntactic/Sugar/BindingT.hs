@@ -17,10 +17,11 @@ import Language.Syntactic.Functional
 
 
 instance
-    ( Syntactic a, Domain a ~ dom
-    , Syntactic b, Domain b ~ dom
+    ( Syntactic a, Domain a ~ Typed dom
+    , Syntactic b, Domain b ~ Typed dom
     , BindingT :<: dom
     , Typeable (Internal a)
+    , Typeable (Internal b)
     ) =>
       Syntactic (a -> b)
   where

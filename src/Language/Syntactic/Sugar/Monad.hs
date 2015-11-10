@@ -7,15 +7,17 @@ module Language.Syntactic.Sugar.Monad where
 
 
 import Control.Monad.Cont
+import Data.Typeable
 
 import Language.Syntactic
 import Language.Syntactic.Functional
-import Language.Syntactic.Sugar.Binding
+import Language.Syntactic.Sugar.Binding ()
 
 
 
 -- | One-layer sugaring of monadic actions
-sugarMonad :: (Binding :<: sym) => ASTF sym (m a) -> Remon sym m (ASTF sym a)
+sugarMonad :: (Binding :<: sym, MONAD m :<: sym) =>
+    ASTF sym (m a) -> Remon sym m (ASTF sym a)
 sugarMonad ma = Remon $ cont $ sugarSym Bind ma
 
 instance
@@ -24,6 +26,11 @@ instance
     , Binding :<: sym
     , MONAD m :<: sym
     , Monad m
+    , Typeable m
+    , Typeable (Internal a)
+        -- The `Typeable` constraints are only needed due to the `Typeable`
+        -- constraint in `Remon`. That constraint, in turn, is only needed by
+        -- the module "Language.Syntactic.Sugar.MonadT"
     ) =>
       Syntactic (Remon sym m a)
   where
