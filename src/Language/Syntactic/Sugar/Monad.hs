@@ -25,7 +25,6 @@ instance
     , Domain a ~ sym
     , Binding :<: sym
     , MONAD m :<: sym
-    , Monad m
     , Typeable m
     , Typeable (Internal a)
         -- The `Typeable` constraints are only needed due to the `Typeable`

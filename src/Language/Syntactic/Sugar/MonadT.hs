@@ -32,7 +32,6 @@ instance
     , symT ~ Typed sym
     , BindingT :<: sym
     , MONAD m  :<: sym
-    , Monad m
     , Typeable m
     , Typeable (Internal a)
     ) =>

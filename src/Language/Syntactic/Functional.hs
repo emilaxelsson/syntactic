@@ -376,9 +376,7 @@ instance StringTree (MONAD m)
 newtype Remon sym m a
   where
     Remon
-        :: { unRemon :: forall r . (Monad m, Typeable r)
-                     => Cont (ASTF sym (m r)) a
-           }
+        :: { unRemon :: forall r . Typeable r => Cont (ASTF sym (m r)) a }
         -> Remon sym m a
   deriving (Functor)
   -- The `Typeable` constraint is a bit unfortunate. It's only needed when using
@@ -386,12 +384,12 @@ newtype Remon sym m a
   -- bake in `Typeable` here. A more flexible solution would be to parameterize
   -- `Remon` on the constraint.
 
-instance (Applicative m) => Applicative (Remon sym m)
+instance Applicative (Remon sym m)
   where
     pure a  = Remon $ pure a
     f <*> a = Remon $ unRemon f <*> unRemon a
 
-instance (Monad m) => Monad (Remon dom m)
+instance Monad (Remon dom m)
   where
     return a = Remon $ return a
     ma >>= f = Remon $ unRemon ma >>= unRemon . f
@@ -399,7 +397,6 @@ instance (Monad m) => Monad (Remon dom m)
 -- | One-layer desugaring of monadic actions
 desugarMonad
     :: ( MONAD m :<: sym
-       , Monad m
        , Typeable a
        , Typeable m
        )
@@ -410,7 +407,6 @@ desugarMonad = flip runCont (sugarSym Return) . unRemon
 desugarMonadT
     :: ( MONAD m :<: sym
        , symT ~ Typed sym
-       , Monad m
        , Typeable a
        , Typeable m
        )
