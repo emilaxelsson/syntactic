@@ -60,7 +60,6 @@ library
   build-depends:
     base >= 4 && < 5,
     containers,
-    constraints,
     data-hash,
     deepseq,
     mtl >= 2 && < 3,
