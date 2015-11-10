@@ -27,7 +27,7 @@ module Language.Syntactic.Syntax
     , DenResult
     , Symbol (..)
     , size
-      -- Smart constructors
+      -- * Smart constructors
     , SmartFun
     , SmartSig
     , SmartSym
