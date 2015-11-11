@@ -178,10 +178,10 @@ cmInterface = defaultInterfaceT sharable (const True)
         | Just Sel4 <- prj sel = False
       -- Tuple selection not shared
     sharable (arrl :$ _ ) _
-        | Just (Construct "arrLength" _) <- prj arrl = False
+        | Just (Construct "arrLen" _) <- prj arrl = False
       -- Array length not shared
     sharable (gix :$ _ :$ _) _
-        | Just (Construct "getIx" _) <- prj gix = False
+        | Just (Construct "arrIx" _) <- prj gix = False
       -- Array indexing not shared
     sharable _ _ = True
 
@@ -257,15 +257,15 @@ c ? (t,f) = sugarSymT sym c t f
     sym = Construct "cond" (\c t f -> if c then t else f)
 
 -- | Get the length of an array
-arrLength :: Type a => Data [a] -> Data Length
-arrLength = sugarSymT $ Construct "arrLength" Prelude.length
+arrLen :: Type a => Data [a] -> Data Length
+arrLen = sugarSymT $ Construct "arrLen" Prelude.length
 
 -- | Index into an array
-getIx :: Type a => Data [a] -> Data Index -> Data a
-getIx = sugarSymT $ Construct "getIx" eval
+arrIx :: Type a => Data [a] -> Data Index -> Data a
+arrIx = sugarSymT $ Construct "arrIx" eval
   where
     eval as i
-        | i >= len || i < 0 = error "getIx: index out of bounds"
+        | i >= len || i < 0 = error "arrIx: index out of bounds"
         | otherwise         = as !! i
       where
         len = Prelude.length as
@@ -317,7 +317,7 @@ freezeVector :: Type a => Vector (Data a) -> Data [a]
 freezeVector vec = parallel (length vec) (index vec)
 
 thawVector :: Type a => Data [a] -> Vector (Data a)
-thawVector arr = Indexed (arrLength arr) (getIx arr)
+thawVector arr = Indexed (arrLen arr) (arrIx arr)
 
 zip :: Vector a -> Vector b -> Vector (a,b)
 zip a b = indexed (length a `min` length b) (\i -> (index a i, index b i))

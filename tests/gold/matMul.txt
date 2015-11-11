@@ -1,20 +1,20 @@
 Lam v6
  └╴Lam v5
     └╴parallel
-       ├╴arrLength
+       ├╴arrLen
        │  └╴v6
        └╴Lam v4
           └╴Let v7
              ├╴min
-             │  ├╴arrLength
-             │  │  └╴getIx
+             │  ├╴arrLen
+             │  │  └╴arrIx
              │  │     ├╴v6
              │  │     └╴v4
-             │  └╴arrLength
+             │  └╴arrLen
              │     └╴v5
              └╴parallel
-                ├╴arrLength
-                │  └╴getIx
+                ├╴arrLen
+                │  └╴arrIx
                 │     ├╴v5
                 │     └╴0
                 └╴Lam v3
@@ -25,13 +25,13 @@ Lam v6
                          └╴Lam v1
                             └╴(+)
                                ├╴(*)
-                               │  ├╴getIx
-                               │  │  ├╴getIx
+                               │  ├╴arrIx
+                               │  │  ├╴arrIx
                                │  │  │  ├╴v6
                                │  │  │  └╴v4
                                │  │  └╴v2
-                               │  └╴getIx
-                               │     ├╴getIx
+                               │  └╴arrIx
+                               │     ├╴arrIx
                                │     │  ├╴v5
                                │     │  └╴v2
                                │     └╴v3

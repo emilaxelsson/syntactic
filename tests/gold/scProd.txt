@@ -2,19 +2,19 @@ Lam v4
  └╴Lam v3
     └╴forLoop
        ├╴min
-       │  ├╴arrLength
+       │  ├╴arrLen
        │  │  └╴v4
-       │  └╴arrLength
+       │  └╴arrLen
        │     └╴v3
        ├╴0.0
        └╴Lam v2
           └╴Lam v1
              └╴(+)
                 ├╴(*)
-                │  ├╴getIx
+                │  ├╴arrIx
                 │  │  ├╴v4
                 │  │  └╴v2
-                │  └╴getIx
+                │  └╴arrIx
                 │     ├╴v3
                 │     └╴v2
                 └╴v1

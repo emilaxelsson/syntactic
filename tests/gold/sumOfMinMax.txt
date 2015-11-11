@@ -1,26 +1,26 @@
 Lam v3
  └╴Let v4
     ├╴forLoop
-    │  ├╴arrLength
+    │  ├╴arrLen
     │  │  └╴v3
     │  ├╴tup2
-    │  │  ├╴getIx
+    │  │  ├╴arrIx
     │  │  │  ├╴v3
     │  │  │  └╴0
-    │  │  └╴getIx
+    │  │  └╴arrIx
     │  │     ├╴v3
     │  │     └╴0
     │  └╴Lam v2
     │     └╴Lam v1
     │        └╴tup2
     │           ├╴min
-    │           │  ├╴getIx
+    │           │  ├╴arrIx
     │           │  │  ├╴v3
     │           │  │  └╴v2
     │           │  └╴sel1
     │           │     └╴v1
     │           └╴max
-    │              ├╴getIx
+    │              ├╴arrIx
     │              │  ├╴v3
     │              │  └╴v2
     │              └╴sel2
