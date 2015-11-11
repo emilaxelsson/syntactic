@@ -11,6 +11,12 @@
 {-# LANGUAGE OverlappingInstances #-}
 #endif
 
+#if __GLASGOW_HASKELL__ < 708
+#define TYPEABLE Typeable1
+#else
+#define TYPEABLE Typeable
+#endif
+
 -- | Basics for implementing functional EDSLs
 
 module Language.Syntactic.Functional
@@ -423,7 +429,7 @@ instance Monad (Remon dom m)
 desugarMonad
     :: ( MONAD m :<: sym
        , Typeable a
-       , Typeable m
+       , TYPEABLE m
        )
     => Remon sym m (ASTF sym a) -> ASTF sym (m a)
 desugarMonad = flip runCont (sugarSym Return) . unRemon
@@ -433,7 +439,7 @@ desugarMonadT
     :: ( MONAD m :<: sym
        , symT ~ Typed sym
        , Typeable a
-       , Typeable m
+       , TYPEABLE m
        )
     => Remon symT m (ASTF symT a) -> ASTF symT (m a)
 desugarMonadT = flip runCont (sugarSymT Return) . unRemon

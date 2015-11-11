@@ -1,4 +1,11 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE UndecidableInstances #-}
+
+#if __GLASGOW_HASKELL__ < 708
+#define TYPEABLE Typeable1
+#else
+#define TYPEABLE Typeable
+#endif
 
 -- | 'Syntactic' instance for 'Remon' using 'Binding' to handle variable binding
 
@@ -25,7 +32,7 @@ instance
     , Domain a ~ sym
     , Binding :<: sym
     , MONAD m :<: sym
-    , Typeable m
+    , TYPEABLE m
     , Typeable (Internal a)
         -- The `Typeable` constraints are only needed due to the `Typeable`
         -- constraint in `Remon`. That constraint, in turn, is only needed by
