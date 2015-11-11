@@ -19,26 +19,24 @@ Lam v6
                    │  │     ├╴v6
                    │  │     └╴v4
                    │  └╴v8
-                   └╴Let v10
-                      ├╴getIx
-                      │  ├╴v6
-                      │  └╴v4
-                      └╴parallel
-                         ├╴v7
-                         └╴Lam v3
-                            └╴forLoop
-                               ├╴v9
-                               ├╴0.0
-                               └╴Lam v2
-                                  └╴Lam v1
-                                     └╴(+)
-                                        ├╴(*)
-                                        │  ├╴getIx
-                                        │  │  ├╴v10
-                                        │  │  └╴v2
-                                        │  └╴getIx
-                                        │     ├╴getIx
-                                        │     │  ├╴v5
-                                        │     │  └╴v2
-                                        │     └╴v3
-                                        └╴v1
+                   └╴parallel
+                      ├╴v7
+                      └╴Lam v3
+                         └╴forLoop
+                            ├╴v9
+                            ├╴0.0
+                            └╴Lam v2
+                               └╴Lam v1
+                                  └╴(+)
+                                     ├╴(*)
+                                     │  ├╴getIx
+                                     │  │  ├╴getIx
+                                     │  │  │  ├╴v6
+                                     │  │  │  └╴v4
+                                     │  │  └╴v2
+                                     │  └╴getIx
+                                     │     ├╴getIx
+                                     │     │  ├╴v5
+                                     │     │  └╴v2
+                                     │     └╴v3
+                                     └╴v1
