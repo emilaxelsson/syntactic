@@ -149,7 +149,7 @@ instance (Syntactic a, Domain a ~ FeldDomain, Type (Internal a)) => Syntax a
 
 instance Type a => Show (Data a)
   where
-    show = render . unData
+    show = showExpr
 
 
 
