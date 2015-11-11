@@ -1,10 +1,4 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE RecordWildCards #-}
-
-#ifndef MIN_VERSION_GLASGOW_HASKELL
-#define MIN_VERSION_GLASGOW_HASKELL(a,b,c,d) 0
-#endif
-  -- MIN_VERSION_GLASGOW_HASKELL was introduced in GHC 7.10
 
 -- | Simple code motion transformation performing common sub-expression
 -- elimination and variable hoisting. Note that the implementation is very
@@ -24,10 +18,6 @@ module Language.Syntactic.Functional.Sharing
 
 
 
-#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
-#else
-import Control.Applicative
-#endif
 import Control.Monad.State
 import Data.Maybe (isNothing)
 import Data.Set (Set)
@@ -252,7 +242,7 @@ codeMotionM iface a
             :$ (Sym (injLambda id v) :$ body)
 
     descend :: AST sym b -> m (AST sym b)
-    descend (f :$ a) = (:$) <$> descend f <*> codeMotionM iface a
+    descend (f :$ a) = liftM2 (:$) (descend f) (codeMotionM iface a)
     descend a        = return a
 
 -- | Perform common sub-expression elimination and variable hoisting
