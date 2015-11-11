@@ -25,6 +25,7 @@ module Language.Syntactic.Functional
     , maxLamT
     , lamT
     , BindingDomain (..)
+    , Let (..)
     , MONAD (..)
     , Remon (..)
     , desugarMonad
@@ -338,6 +339,30 @@ instance {-# OVERLAPPING #-} BindingDomain sym
   where
     prVar _ = Nothing
     prLam _ = Nothing
+
+-- | A symbol for let bindings
+--
+-- This symbol is just an application operator. The actual binding has to be
+-- done by a lambda that constructs the second argument.
+data Let sig
+  where
+    Let :: Let (a :-> (a -> b) :-> Full b)
+
+instance Symbol Let where symSig Let = signature
+instance Render Let where renderSym Let = "letBind"
+instance Eval Let where evalSym Let = flip ($)
+instance EvalEnv Let env
+
+instance Equality Let
+  where
+    equal = equalDefault
+    hash  = hashDefault
+
+instance StringTree Let
+  where
+    stringTreeSym [a, Node lam [body]] Let
+        | ("Lam",v) <- splitAt 3 lam = Node ("Let" ++ v) [a,body]
+    stringTreeSym [a,f] Let = Node "Let" [a,f]
 
 -- | Monadic constructs
 --

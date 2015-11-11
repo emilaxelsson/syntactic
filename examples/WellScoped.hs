@@ -19,8 +19,6 @@ module WellScoped where
 import Language.Syntactic
 import Language.Syntactic.Functional
 
-import NanoFeldspar (Let (..))
-
 
 
 type Exp e a = WS (Let :+: Construct) e a

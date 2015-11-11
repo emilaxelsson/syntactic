@@ -20,7 +20,6 @@ module NanoFeldspar where
 import Prelude hiding (max, min, not, (==), length, map, sum, zip, zipWith)
 import qualified Prelude
 
-import Data.Tree
 import Data.Typeable
 
 import Language.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAST)
@@ -75,35 +74,6 @@ instance Eval Arithmetic
     evalSym Mul = (*)
 
 instance EvalEnv Arithmetic env
-
-data Let sig
-  where
-    Let :: Let (a :-> (a -> b) :-> Full b)
-
-instance Symbol Let
-  where
-    symSig Let = signature
-
-instance Equality Let
-  where
-    equal = equalDefault
-    hash  = hashDefault
-
-instance Render Let
-  where
-    renderSym Let = "letBind"
-
-instance StringTree Let
-  where
-    stringTreeSym [a, Node lam [body]] Let
-        | ("Lam",v) <- splitAt 3 lam = Node ("Let" ++ v) [a,body]
-    stringTreeSym [a,f] Let = Node "Let" [a,f]
-
-instance Eval Let
-  where
-    evalSym Let = flip ($)
-
-instance EvalEnv Let env
 
 data Parallel sig
   where
