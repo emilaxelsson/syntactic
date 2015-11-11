@@ -26,7 +26,9 @@ import Language.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAS
 import qualified Language.Syntactic as Syntactic
 import Language.Syntactic.Functional
 import Language.Syntactic.Functional.Sharing
+import Language.Syntactic.Functional.Tuple
 import Language.Syntactic.Sugar.BindingT ()
+import Language.Syntactic.Sugar.TupleT ()
 
 
 
@@ -117,9 +119,10 @@ instance Eval ForLoop
 instance EvalEnv ForLoop env
 
 type FeldDomain = Typed
-    (   Arithmetic
-    :+: BindingT
+    (   BindingT
     :+: Let
+    :+: Tuple
+    :+: Arithmetic
     :+: Parallel
     :+: ForLoop
     :+: Construct
@@ -163,6 +166,12 @@ cmInterface = defaultInterfaceT sharable (const True)
       -- Don't place let bindings over lambdas. This ensures that function
       -- arguments of higher-order constructs such as `Parallel` are always
       -- lambdas.
+    sharable (sel :$ _) _
+        | Just Sel1 <- prj sel = False
+        | Just Sel2 <- prj sel = False
+        | Just Sel3 <- prj sel = False
+        | Just Sel4 <- prj sel = False
+      -- Tuple selection not shared
     sharable (gix :$ _) _
         | Just (Construct "getIx" _) <- prj gix = False
       -- Array indexing not shared
