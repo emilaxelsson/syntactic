@@ -155,11 +155,17 @@ cmInterface = defaultInterfaceT sharable (const True)
     sharable :: ASTF FeldDomain a -> ASTF FeldDomain b -> Bool
     sharable (Sym _) _ = False
       -- Simple expressions not shared
+    sharable (lam :$ _) _
+        | Just _ <- prLam lam = False
+      -- Lambdas not shared
     sharable _ (lam :$ _)
         | Just _ <- prLam lam = False
       -- Don't place let bindings over lambdas. This ensures that function
       -- arguments of higher-order constructs such as `Parallel` are always
       -- lambdas.
+    sharable (gix :$ _) _
+        | Just (Construct "getIx" _) <- prj gix = False
+      -- Array indexing not shared
     sharable _ _ = True
 
 -- | Show the expression
