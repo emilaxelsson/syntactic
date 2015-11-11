@@ -54,6 +54,7 @@ library
     Language.Syntactic.Functional
     Language.Syntactic.Functional.Sharing
     Language.Syntactic.Functional.Tuple
+    Language.Syntactic.Functional.WellScoped
     Language.Syntactic.Sugar.Binding
     Language.Syntactic.Sugar.BindingT
     Language.Syntactic.Sugar.Monad

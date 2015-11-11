@@ -18,6 +18,7 @@ module WellScoped where
 
 import Language.Syntactic
 import Language.Syntactic.Functional
+import Language.Syntactic.Functional.WellScoped
 
 
 

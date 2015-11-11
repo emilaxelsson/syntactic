@@ -13,7 +13,7 @@ import Test.Tasty.QuickCheck
 import Data.ByteString.Lazy.UTF8 (fromString)
 
 import Language.Syntactic
-import Language.Syntactic.Functional
+import Language.Syntactic.Functional.WellScoped
 import qualified WellScoped as WS
 
 
