@@ -64,7 +64,6 @@ library
     data-hash,
     deepseq,
     mtl >= 2 && < 3,
-    safe,
     tagged,
     template-haskell,
     tree-view

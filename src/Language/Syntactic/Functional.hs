@@ -84,7 +84,6 @@ import qualified Data.Set as Set
 import Data.Tree
 
 import Data.Hash (hashInt)
-import Safe
 
 import Language.Syntactic
 
@@ -628,11 +627,12 @@ instance Monad m => EvalEnv (MONAD m) env
 
 instance EvalEnv BindingT RunEnv
   where
-    compileSym _ (VarT v) = reader $ \env -> case fromJustNote (msgVar v) $ lookup v env of
-        d -> fromJustNote msgType $ fromDynamic d
-      where
-        msgVar v = "compileSym: Variable " ++ show v ++ " not in scope"
-        msgType  = "compileSym: type error"  -- TODO Print types
+    compileSym _ (VarT v) = reader $ \env ->
+        case lookup v env of
+          Nothing -> error $ "compileSym: Variable " ++ show v ++ " not in scope"
+          Just d  -> case fromDynamic d of
+            Nothing -> error "compileSym: type error"  -- TODO Print types
+            Just a -> a
     compileSym _ (LamT v) = \body -> reader $ \env a -> runReader body ((v, toDyn a) : env)
 
 -- | \"Compile\" a term to a Haskell function
