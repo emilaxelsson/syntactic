@@ -127,6 +127,11 @@ type FeldDomain = Typed
     :+: ForLoop
     :+: Construct
     )
+  -- `Construct` can be used to create arbitrary symbols from a name and an
+  -- evaluation function. We could have used `Construct` for all symbols, but
+  -- the problem with `Construct` is that it does not know about the arity or
+  -- type of the construct it represents, so it's easy to make mistakes, e.g.
+  -- when transforming expressions with `Construct` symbols.
 
 newtype Data a = Data { unData :: ASTF FeldDomain a }
 
@@ -201,6 +206,7 @@ writeHtmlAST :: (Syntactic a, Domain a ~ FeldDomain) => a -> IO ()
 writeHtmlAST =
     Syntactic.writeHtmlAST "tree.html" . codeMotion cmInterface . desugar
 
+-- | Evaluate an expression
 eval :: (Syntactic a, Domain a ~ FeldDomain) => a -> Internal a
 eval = evalClosed . desugar
 
@@ -220,8 +226,7 @@ false = value False
 true :: Data Bool
 true = value True
 
--- | For types containing some kind of \"thunk\", this function can be used to
--- force computation
+-- | Force computation
 force :: Syntax a => a -> a
 force = resugar
 
@@ -232,6 +237,7 @@ instance (Type a, Num a) => Num (Data a)
     (-)         = sugarSymT Sub
     (*)         = sugarSymT Mul
 
+-- | Explicit sharing
 share :: (Syntax a, Syntax b) => a -> (a -> b) -> b
 share = sugarSymT Let
 
@@ -243,16 +249,18 @@ parallel = sugarSymT Parallel
 forLoop :: Syntax st => Data Length -> st -> (Data Index -> st -> st) -> st
 forLoop = sugarSymT ForLoop
 
+-- | Conditional expression
 (?) :: forall a . Syntax a => Data Bool -> (a,a) -> a
 c ? (t,f) = sugarSymT sym c t f
   where
     sym :: Construct (Bool :-> Internal a :-> Internal a :-> Full (Internal a))
     sym = Construct "cond" (\c t f -> if c then t else f)
 
+-- | Get the length of an array
 arrLength :: Type a => Data [a] -> Data Length
 arrLength = sugarSymT $ Construct "arrLength" Prelude.length
 
--- | Array indexing
+-- | Index into an array
 getIx :: Type a => Data [a] -> Data Index -> Data a
 getIx = sugarSymT $ Construct "getIx" eval
   where
