@@ -53,10 +53,13 @@ library
     Language.Syntactic.Decoration
     Language.Syntactic.Functional
     Language.Syntactic.Functional.Sharing
+    Language.Syntactic.Functional.Tuple
     Language.Syntactic.Sugar.Binding
     Language.Syntactic.Sugar.BindingT
     Language.Syntactic.Sugar.Monad
     Language.Syntactic.Sugar.MonadT
+    Language.Syntactic.Sugar.Tuple
+    Language.Syntactic.Sugar.TupleT
 
   build-depends:
     base >= 4 && < 5,

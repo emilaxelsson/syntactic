@@ -29,7 +29,7 @@ instance
     , Typeable (Internal a)
         -- The `Typeable` constraints are only needed due to the `Typeable`
         -- constraint in `Remon`. That constraint, in turn, is only needed by
-        -- the module "Language.Syntactic.Sugar.MonadT"
+        -- the module "Language.Syntactic.Sugar.MonadT".
     ) =>
       Syntactic (Remon sym m a)
   where
