@@ -17,14 +17,21 @@ import Data.ByteString.Lazy.UTF8 (fromString)
 
 import Language.Syntactic
 import Language.Syntactic.Functional
+import Language.Syntactic.Functional.Sharing
 import qualified NanoFeldspar as Nano
 
 
 
+-- | Evaluate after code motion. Used to test that 'codeMotion' doesn't change
+-- semantics.
+evalCM :: (Syntactic a, Domain a ~ Nano.FeldDomain) => a -> Internal a
+evalCM = evalClosed . codeMotion Nano.cmInterface . desugar
+
 scProd :: [Float] -> [Float] -> Float
 scProd as bs = sum $ zipWith (*) as bs
 
-prop_scProd as bs = scProd as bs == Nano.eval Nano.scProd as bs
+prop_scProd as bs   = scProd as bs == Nano.eval Nano.scProd as bs
+prop_scProdCM as bs = scProd as bs == evalCM Nano.scProd as bs
 
 genMat :: Gen [[Float]]
 genMat = sized $ \s -> do
@@ -43,6 +50,11 @@ prop_matMul =
     forAll genMat $ \a ->
       forAll genMat $ \b ->
         matMul a b == Nano.eval Nano.matMul a b
+
+prop_matMulCM =
+    forAll genMat $ \a ->
+      forAll genMat $ \b ->
+        matMul a b == evalCM Nano.matMul a b
 
 mkGold_scProd = writeFile "tests/gold/scProd.txt" $ Nano.showAST Nano.scProd
 mkGold_matMul = writeFile "tests/gold/matMul.txt" $ Nano.showAST Nano.matMul
@@ -75,6 +87,9 @@ tests = testGroup "NanoFeldsparTests"
 
     , testProperty "scProd eval" prop_scProd
     , testProperty "matMul eval" prop_matMul
+
+    , testProperty "scProd evalCM" prop_scProdCM
+    , testProperty "matMul evalCM" prop_matMulCM
 
     , testProperty "alphaEq scProd"        (prop_alphaEq (desugar Nano.scProd))
     , testProperty "alphaEq matMul"        (prop_alphaEq (desugar Nano.matMul))
