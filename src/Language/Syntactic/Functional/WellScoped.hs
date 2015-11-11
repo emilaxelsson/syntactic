@@ -1,4 +1,15 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE UndecidableInstances #-}
+
+#ifndef MIN_VERSION_GLASGOW_HASKELL
+#define MIN_VERSION_GLASGOW_HASKELL(a,b,c,d) 0
+#endif
+  -- MIN_VERSION_GLASGOW_HASKELL was introduced in GHC 7.10
+
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
+#else
+{-# LANGUAGE OverlappingInstances #-}
+#endif
 
 -- | Well-scoped terms
 
