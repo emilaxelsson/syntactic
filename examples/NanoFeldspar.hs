@@ -339,6 +339,9 @@ zipWith f a b = map (uncurry f) $ zip a b
 fold :: Syntax b => (a -> b -> b) -> b -> Vector a -> b
 fold f b (Indexed len ixf) = forLoop len b (\i st -> f (ixf i) st)
 
+fold1 :: Syntax a => (a -> a -> a) -> Vector a -> a
+fold1 f (Indexed len ixf) = forLoop len (ixf 0) (\i st -> f (ixf i) st)
+
 sum :: (Num a, Syntax a) => Vector a -> a
 sum = fold (+) 0
 
