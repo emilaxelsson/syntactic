@@ -1,36 +1,44 @@
 Lam v6
  └╴Lam v5
-    └╴parallel
+    └╴Let v7
        ├╴arrLength
-       │  └╴v6
-       └╴Lam v4
+       │  └╴getIx
+       │     ├╴v5
+       │     └╴0
+       └╴Let v8
+          ├╴arrLength
+          │  └╴v5
           └╴parallel
              ├╴arrLength
-             │  └╴getIx
-             │     ├╴v5
-             │     └╴0
-             └╴Lam v3
-                └╴forLoop
+             │  └╴v6
+             └╴Lam v4
+                └╴Let v9
                    ├╴min
                    │  ├╴arrLength
                    │  │  └╴getIx
                    │  │     ├╴v6
                    │  │     └╴v4
-                   │  └╴arrLength
-                   │     └╴v5
-                   ├╴0.0
-                   └╴Lam v2
-                      └╴Lam v1
-                         └╴(+)
-                            ├╴(*)
-                            │  ├╴getIx
-                            │  │  ├╴getIx
-                            │  │  │  ├╴v6
-                            │  │  │  └╴v4
-                            │  │  └╴v2
-                            │  └╴getIx
-                            │     ├╴getIx
-                            │     │  ├╴v5
-                            │     │  └╴v2
-                            │     └╴v3
-                            └╴v1
+                   │  └╴v8
+                   └╴Let v10
+                      ├╴getIx
+                      │  ├╴v6
+                      │  └╴v4
+                      └╴parallel
+                         ├╴v7
+                         └╴Lam v3
+                            └╴forLoop
+                               ├╴v9
+                               ├╴0.0
+                               └╴Lam v2
+                                  └╴Lam v1
+                                     └╴(+)
+                                        ├╴(*)
+                                        │  ├╴getIx
+                                        │  │  ├╴v10
+                                        │  │  └╴v2
+                                        │  └╴getIx
+                                        │     ├╴getIx
+                                        │     │  ├╴v5
+                                        │     │  └╴v2
+                                        │     └╴v3
+                                        └╴v1

@@ -25,6 +25,7 @@ import Data.Typeable
 import Language.Syntactic hiding (fold, printExpr, showAST, drawAST, writeHtmlAST)
 import qualified Language.Syntactic as Syntactic
 import Language.Syntactic.Functional
+import Language.Syntactic.Functional.Sharing
 import Language.Syntactic.Sugar.BindingT ()
 
 
@@ -148,9 +149,22 @@ instance Type a => Show (Data a)
 -- * "Backends"
 --------------------------------------------------------------------------------
 
+cmInterface :: CodeMotionInterface FeldDomain
+cmInterface = defaultInterfaceT sharable (const True)
+  where
+    sharable :: ASTF FeldDomain a -> ASTF FeldDomain b -> Bool
+    sharable (Sym _) _ = False
+      -- Simple expressions not shared
+    sharable _ (lam :$ _)
+        | Just _ <- prLam lam = False
+      -- Don't place let bindings over lambdas. This ensures that function
+      -- arguments of higher-order constructs such as `Parallel` are always
+      -- lambdas.
+    sharable _ _ = True
+
 -- | Show the expression
 showExpr :: (Syntactic a, Domain a ~ FeldDomain) => a -> String
-showExpr = render . desugar
+showExpr = render . codeMotion cmInterface . desugar
 
 -- | Print the expression
 printExpr :: (Syntactic a, Domain a ~ FeldDomain) => a -> IO ()
@@ -158,7 +172,7 @@ printExpr = putStrLn . showExpr
 
 -- | Show the syntax tree using unicode art
 showAST :: (Syntactic a, Domain a ~ FeldDomain) => a -> String
-showAST = Syntactic.showAST . desugar
+showAST = Syntactic.showAST . codeMotion cmInterface . desugar
 
 -- | Draw the syntax tree on the terminal using unicode art
 drawAST :: (Syntactic a, Domain a ~ FeldDomain) => a -> IO ()
@@ -166,7 +180,8 @@ drawAST = putStrLn . showAST
 
 -- | Write the syntax tree to an HTML file with foldable nodes
 writeHtmlAST :: (Syntactic a, Domain a ~ FeldDomain) => a -> IO ()
-writeHtmlAST = Syntactic.writeHtmlAST "tree.html" . desugar
+writeHtmlAST =
+    Syntactic.writeHtmlAST "tree.html" . codeMotion cmInterface . desugar
 
 eval :: (Syntactic a, Domain a ~ FeldDomain) => a -> Internal a
 eval = evalClosed . desugar
