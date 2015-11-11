@@ -172,6 +172,9 @@ cmInterface = defaultInterfaceT sharable (const True)
         | Just Sel3 <- prj sel = False
         | Just Sel4 <- prj sel = False
       -- Tuple selection not shared
+    sharable (arrl :$ _ ) _
+        | Just (Construct "arrLength" _) <- prj arrl = False
+      -- Array length not shared
     sharable (gix :$ _ :$ _) _
         | Just (Construct "getIx" _) <- prj gix = False
       -- Array indexing not shared
