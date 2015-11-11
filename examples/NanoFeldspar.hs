@@ -351,6 +351,10 @@ transpose a = indexed (length (a!0)) $ \k -> indexed (length a) $ \l -> a ! l ! 
 -- * Examples
 --------------------------------------------------------------------------------
 
+-- | Fibonacci function
+fib :: Data Int -> Data Int
+fib n = fst $ forLoop n (0,1) $ \_ (a,b) -> (b,a+b)
+
 -- | Scalar product
 scProd :: Vector (Data Float) -> Vector (Data Float) -> Data Float
 scProd a b = sum (zipWith (*) a b)

@@ -1,0 +1,17 @@
+Lam v3
+ └╴sel1
+    └╴forLoop
+       ├╴v3
+       ├╴tup2
+       │  ├╴0
+       │  └╴1
+       └╴Lam v2
+          └╴Lam v1
+             └╴tup2
+                ├╴sel2
+                │  └╴v1
+                └╴(+)
+                   ├╴sel1
+                   │  └╴v1
+                   └╴sel2
+                      └╴v1

@@ -27,6 +27,14 @@ import qualified NanoFeldspar as Nano
 evalCM :: (Syntactic a, Domain a ~ Nano.FeldDomain) => a -> Internal a
 evalCM = evalClosed . codeMotion Nano.cmInterface . desugar
 
+fib :: Int -> Int
+fib n = fibs !! n
+  where
+    fibs = 0 : 1 : zipWith (+) fibs (tail fibs)
+
+prop_fib (NonNegative (Small n))   = fib n == Nano.eval Nano.fib n
+prop_fibCM (NonNegative (Small n)) = fib n == evalCM Nano.fib n
+
 scProd :: [Float] -> [Float] -> Float
 scProd as bs = sum $ zipWith (*) as bs
 
@@ -82,12 +90,15 @@ prop_alphaEq a = alphaEq a (alphaRename a)
 prop_alphaEqBad a = alphaEq a (badRename a)
 
 tests = testGroup "NanoFeldsparTests"
-    [ goldenVsString "scProd tree" "tests/gold/scProd.txt" $ return $ fromString $ Nano.showAST Nano.scProd
+    [ goldenVsString "fib tree"    "tests/gold/fib.txt"    $ return $ fromString $ Nano.showAST Nano.fib
+    , goldenVsString "scProd tree" "tests/gold/scProd.txt" $ return $ fromString $ Nano.showAST Nano.scProd
     , goldenVsString "matMul tree" "tests/gold/matMul.txt" $ return $ fromString $ Nano.showAST Nano.matMul
 
+    , testProperty "fib eval"    prop_fib
     , testProperty "scProd eval" prop_scProd
     , testProperty "matMul eval" prop_matMul
 
+    , testProperty "fib evalCM"    prop_fibCM
     , testProperty "scProd evalCM" prop_scProdCM
     , testProperty "matMul evalCM" prop_matMulCM
 
