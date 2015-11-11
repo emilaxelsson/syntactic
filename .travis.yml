@@ -1,9 +1,9 @@
 sudo: false
 language: c
 
-# cache:
-#   directories:
-#     - .cabal-sandbox
+cache:
+  directories:
+    - .cabal-sandbox
 
 matrix:
   include:
