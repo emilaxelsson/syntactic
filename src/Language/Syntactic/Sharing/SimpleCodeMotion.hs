@@ -66,6 +66,8 @@ substitute x y a
     subst :: AST dom c -> AST dom c
     subst (f :$ a) = subst f :$ substitute x y a
     subst a = a
+  -- Note: Since `codeMotion` only uses `substitute` to replace sub-expressions
+  -- with fresh variables, there's no risk of capturing.
 
 -- | Count the number of occurrences of a sub-expression
 count :: forall dom a b
