@@ -369,13 +369,14 @@ transpose a = indexed (length (a!0)) $ \k -> indexed (length a) $ \l -> a ! l ! 
 fib :: Data Int -> Data Int
 fib n = fst $ forLoop n (0,1) $ \_ (a,b) -> (b,a+b)
 
--- | Demonstration of how tuples interplay with sharing. Tuples are essentially
--- useless without sharing. This function would get two identical for loops if
--- it wasn't for sharing.
-sumOfMinMax :: Vector (Data Int) -> Data Int
-sumOfMinMax vec = lo+hi
+-- | The span of a vector (difference between greatest and smallest element)
+spanVec :: Vector (Data Int) -> Data Int
+spanVec vec = hi-lo
   where
     (lo,hi) = fold (\a (l,h) -> (min a l, max a h)) (vec!0,vec!0) vec
+  -- This demonstrates how tuples interplay with sharing. Tuples are essentially
+  -- useless without sharing. This function would get two identical for loops if
+  -- it wasn't for sharing.
 
 -- | Scalar product
 scProd :: Vector (Data Float) -> Vector (Data Float) -> Data Float

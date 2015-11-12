@@ -35,11 +35,11 @@ fib n = fibs !! n
 prop_fib (NonNegative (Small n))   = fib n == Nano.eval Nano.fib n
 prop_fibCM (NonNegative (Small n)) = fib n == evalCM Nano.fib n
 
-sumOfMinMax :: [Int] -> Int
-sumOfMinMax as = minimum as + maximum as
+spanVec :: [Int] -> Int
+spanVec as = maximum as - minimum as
 
-prop_sumOfMinMax (NonEmpty as)   = sumOfMinMax as == Nano.eval Nano.sumOfMinMax as
-prop_sumOfMinMaxCM (NonEmpty as) = sumOfMinMax as == evalCM Nano.sumOfMinMax as
+prop_spanVec (NonEmpty as)   = spanVec as == Nano.eval Nano.spanVec as
+prop_spanVecCM (NonEmpty as) = spanVec as == evalCM Nano.spanVec as
 
 scProd :: [Float] -> [Float] -> Float
 scProd as bs = sum $ zipWith (*) as bs
@@ -96,15 +96,15 @@ prop_alphaEq a = alphaEq a (alphaRename a)
 prop_alphaEqBad a = alphaEq a (badRename a)
 
 tests = testGroup "NanoFeldsparTests"
-    [ goldenVsString "fib tree"         "tests/gold/fib.txt"         $ return $ fromString $ Nano.showAST Nano.fib
-    , goldenVsString "sumOfMinMax tree" "tests/gold/sumOfMinMax.txt" $ return $ fromString $ Nano.showAST Nano.sumOfMinMax
-    , goldenVsString "scProd tree"      "tests/gold/scProd.txt"      $ return $ fromString $ Nano.showAST Nano.scProd
-    , goldenVsString "matMul tree"      "tests/gold/matMul.txt"      $ return $ fromString $ Nano.showAST Nano.matMul
+    [ goldenVsString "fib tree"     "tests/gold/fib.txt"     $ return $ fromString $ Nano.showAST Nano.fib
+    , goldenVsString "spanVec tree" "tests/gold/spanVec.txt" $ return $ fromString $ Nano.showAST Nano.spanVec
+    , goldenVsString "scProd tree"  "tests/gold/scProd.txt"  $ return $ fromString $ Nano.showAST Nano.scProd
+    , goldenVsString "matMul tree"  "tests/gold/matMul.txt"  $ return $ fromString $ Nano.showAST Nano.matMul
 
-    , testProperty "fib eval"         prop_fib
-    , testProperty "sumOfMinMax eval" prop_sumOfMinMax
-    , testProperty "scProd eval"      prop_scProd
-    , testProperty "matMul eval"      prop_matMul
+    , testProperty "fib eval"     prop_fib
+    , testProperty "spanVec eval" prop_spanVec
+    , testProperty "scProd eval"  prop_scProd
+    , testProperty "matMul eval"  prop_matMul
 
     , testProperty "fib evalCM"    prop_fibCM
     , testProperty "scProd evalCM" prop_scProdCM
