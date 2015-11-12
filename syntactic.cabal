@@ -5,6 +5,9 @@ Description:    The library provides a generic representation of type-indexed ab
                 (or indexed data types in general). It also permits the definition of open syntax
                 trees based on the technique in Data Types à la Carte [1].
                 .
+                (Note that the difference between version 2.x and 3.0 is not that big. The bump to
+                3.0 was done because the modules changed namespace.)
+                .
                 For more information, see
                 \"A Generic Abstract Syntax Model for Embedded Languages\"
                 (ICFP 2012):
