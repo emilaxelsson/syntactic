@@ -10,6 +10,8 @@ module Language.Syntactic.Constructs.Binding where
 import qualified Control.Monad.Identity as Monad
 import Control.Monad.Reader
 import Data.Ix
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Tree
 import Data.Typeable
 

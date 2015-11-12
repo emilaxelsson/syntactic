@@ -92,22 +92,27 @@ data Env dom = Env
         -- expression
     }
 
-independent :: PrjDict dom -> Env dom -> AST dom a -> Bool
-independent pd env (Sym (prjVariable pd -> Just v)) = not (v `member` dependencies env)
-independent pd env (f :$ a) = independent pd env f && independent pd env a
-independent _ _ _ = True
-
 isVariable :: PrjDict dom -> ASTF dom a -> Bool
 isVariable pd (Sym (prjVariable pd -> Just _)) = True
 isVariable pd _ = False
 
+-- | Get the set of free variables in an expression
+freeVars :: PrjDict dom -> AST dom sig -> Set VarId
+freeVars pd (Sym var)
+    | Just v <- prjVariable pd var = Set.singleton v
+freeVars pd (Sym lam :$ body)
+    | Just v <- prjLambda pd lam = Set.delete v (freeVars pd body)
+freeVars pd (s :$ a) = Set.union (freeVars pd s) (freeVars pd a)
+freeVars _ _ = Set.empty
+
 -- | Checks whether a sub-expression in a given environment can be lifted out
 liftable :: PrjDict dom -> Env dom -> ASTF dom a -> Bool
-liftable pd env a = independent pd env a && not (isVariable pd a) && heuristic
+liftable pd env a = independent && not (isVariable pd a) && heuristic
     -- Lifting dependent expressions is semantically incorrect
     -- Lifting variables would cause `codeMotion` to loop
   where
-    heuristic = inLambda env || (counter env (ASTE a) > 1)
+   independent = Set.null $ Set.intersection (freeVars pd a) (dependencies env)
+   heuristic   = inLambda env || (counter env (ASTE a) > 1)
 
 
 
