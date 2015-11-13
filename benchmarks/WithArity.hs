@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module WithArity (main) where
 
 import Criterion.Main
@@ -104,7 +102,8 @@ instance Render T
     renderSym T5     = "T5"
     renderSym T10    = "T10"
 
-interpretationInstances ''T
+instance Equality   T
+instance StringTree T
 
 instance Eval T
   where

@@ -71,9 +71,9 @@ library
     data-hash,
     deepseq,
     mtl >= 2 && < 3,
-    tagged,
-    template-haskell,
     tree-view
+  if impl(ghc < 7.8)
+    build-depends: tagged
 
   hs-source-dirs: src
 
@@ -97,7 +97,6 @@ library
 
   other-extensions:
     OverlappingInstances
-    TemplateHaskell
     UndecidableInstances
 
 test-suite examples

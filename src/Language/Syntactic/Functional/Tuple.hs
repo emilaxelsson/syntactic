@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 -- | Construction and elimination of tuples
 
 module Language.Syntactic.Functional.Tuple where
@@ -118,7 +116,8 @@ instance Render Tuple
     renderSym Sel4 = "sel4"
     renderArgs = renderArgsSmart
 
-interpretationInstances ''Tuple
+instance Equality   Tuple
+instance StringTree Tuple
 
 instance Eval Tuple
   where

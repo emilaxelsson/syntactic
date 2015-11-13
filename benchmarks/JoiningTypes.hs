@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module JoiningTypes (main) where
 
 import Criterion.Main
@@ -39,7 +37,8 @@ instance Render Expr1 where
   renderSym (EEq)   = "EEq"
   renderSym (EIf)   = "EIf"
 
-interpretationInstances ''Expr1
+instance Equality   Expr1
+instance StringTree Expr1
 
 instance Eval Expr1 where
   evalSym (EI n)  = n
@@ -91,8 +90,10 @@ instance Render ExprB where
   renderSym (EEqJ)   = "EEq"
   renderSym (EIfJ)   = "EIf"
 
-interpretationInstances ''ExprI
-interpretationInstances ''ExprB
+instance Equality   ExprI
+instance StringTree ExprI
+instance Equality   ExprB
+instance StringTree ExprB
 
 instance Eval ExprI where
   evalSym (EIJ n) = n
@@ -158,11 +159,14 @@ instance Render Expr4J4 where
 instance Render Expr4J5 where
   renderSym (E4JIf)   = "EIf"
 
-interpretationInstances ''Expr4J1
-interpretationInstances ''Expr4J2
-interpretationInstances ''Expr4J3
-interpretationInstances ''Expr4J4
-interpretationInstances ''Expr4J5
+instance Equality   Expr4J1
+instance StringTree Expr4J1
+instance Equality   Expr4J2
+instance StringTree Expr4J2
+instance Equality   Expr4J3
+instance StringTree Expr4J3
+instance Equality   Expr4J5
+instance StringTree Expr4J5
 
 instance Eval Expr4J1 where
   evalSym (E4JI n)  = n
