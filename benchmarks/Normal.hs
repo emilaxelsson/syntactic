@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module Normal (main) where
 
 import Criterion.Main
@@ -110,7 +108,8 @@ instance Render ExprS where
   renderSym EEq    = "EEq"
   renderSym EIf    = "EIf"
 
-interpretationInstances ''ExprS
+instance Equality   ExprS
+instance StringTree ExprS
 
 instance Eval ExprS where
   evalSym (EI n) = n

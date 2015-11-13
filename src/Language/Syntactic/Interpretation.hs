@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DefaultSignatures #-}
 
 -- | Equality and rendering of 'AST's
 
@@ -17,13 +17,11 @@ module Language.Syntactic.Interpretation
       -- * Default interpretation
     , equalDefault
     , hashDefault
-    , interpretationInstances
     ) where
 
 
 
 import Data.Tree (Tree (..))
-import Language.Haskell.TH
 
 import Data.Hash (Hash, combine, hashInt)
 import qualified Data.Hash as Hash
@@ -45,12 +43,16 @@ class Equality e
     -- Comparing elements of different types is often needed when dealing with expressions with
     -- existentially quantified sub-terms.
     equal :: e a -> e b -> Bool
+    default equal :: Render e => e a -> e b -> Bool
+    equal = equalDefault
 
     -- | Higher-kinded hashing. Elements that are equal according to 'equal' must result in the same
     -- hash:
     --
     -- @equal a b  ==>  hash a == hash b@
     hash :: e a -> Hash
+    default hash :: Render e => e a -> Hash
+    hash  = hashDefault
 
 instance Equality sym => Equality (AST sym)
   where
@@ -204,16 +206,3 @@ equalDefault a b = renderSym a == renderSym b
 -- | Default implementation of 'hash'
 hashDefault :: Render sym => sym a -> Hash
 hashDefault = Hash.hash . renderSym
-
--- | Derive instances for 'Equality' and 'StringTree'
-interpretationInstances :: Name -> DecsQ
-interpretationInstances n =
-    [d|
-        instance Equality $(typ) where
-          equal = equalDefault
-          hash  = hashDefault
-        instance StringTree $(typ)
-    |]
-  where
-    typ = conT n
-

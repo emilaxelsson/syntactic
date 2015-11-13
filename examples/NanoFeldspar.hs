@@ -3,7 +3,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -68,7 +67,8 @@ instance Render Arithmetic
     renderSym Mul = "(*)"
     renderArgs = renderArgsSmart
 
-interpretationInstances ''Arithmetic
+instance Equality   Arithmetic
+instance StringTree Arithmetic
 
 instance Eval Arithmetic
   where
@@ -90,7 +90,8 @@ instance Render Parallel
   where
     renderSym Parallel = "parallel"
 
-interpretationInstances ''Parallel
+instance Equality   Parallel
+instance StringTree Parallel
 
 instance Eval Parallel
   where
@@ -110,7 +111,8 @@ instance Render ForLoop
   where
     renderSym ForLoop = "forLoop"
 
-interpretationInstances ''ForLoop
+instance Equality   ForLoop
+instance StringTree ForLoop
 
 instance Eval ForLoop
   where

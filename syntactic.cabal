@@ -72,7 +72,6 @@ library
     deepseq,
     mtl >= 2 && < 3,
     tagged,
-    template-haskell,
     tree-view
 
   hs-source-dirs: src
@@ -97,7 +96,6 @@ library
 
   other-extensions:
     OverlappingInstances
-    TemplateHaskell
     UndecidableInstances
 
 test-suite examples
