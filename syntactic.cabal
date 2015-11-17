@@ -125,6 +125,7 @@ test-suite examples
     syntactic,
     base,
     containers,
+    mtl,
     QuickCheck,
     tagged,
     tasty,

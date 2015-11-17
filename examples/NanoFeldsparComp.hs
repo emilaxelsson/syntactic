@@ -1,3 +1,6 @@
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+
 -- | A simple compiler for NanoFeldspar
 
 module NanoFeldsparComp where
