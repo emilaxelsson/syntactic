@@ -110,17 +110,6 @@ test-suite examples
 
   default-extensions:
 
-  other-extensions:
-    FlexibleContexts
-    FlexibleInstances
-    GADTs
-    MultiParamTypeClasses
-    ScopedTypeVariables
-    TemplateHaskell
-    TypeFamilies
-    TypeOperators
-    UndecidableInstances
-
   build-depends:
     syntactic,
     base,
