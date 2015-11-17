@@ -70,9 +70,6 @@ prop_matMulCM =
       forAll genMat $ \b ->
         matMul a b == evalCM Nano.matMul a b
 
-mkGold_scProd = writeFile "tests/gold/scProd.txt" $ Nano.showAST Nano.scProd
-mkGold_matMul = writeFile "tests/gold/matMul.txt" $ Nano.showAST Nano.matMul
-
 alphaRename :: ASTF Nano.FeldDomain a -> ASTF Nano.FeldDomain a
 alphaRename = mapAST rename
   where
