@@ -1,5 +1,7 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeOperators #-}
+
+-- Note GADTs needed by GHC 7.6. In later GHCs is works with just TypeFamilies.
 
 -- | A simple compiler for NanoFeldspar
 
