@@ -1,0 +1,7 @@
+v4 = inp0
+v3 = inp1
+v1 = 0.0
+for v2 < (min (arrLen v4) (arrLen v3))
+    v0 = (((v4 ! v2) * (v3 ! v2)) + v1)
+    v1 = v0
+out = v0

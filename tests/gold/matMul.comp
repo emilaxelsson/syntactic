@@ -1,0 +1,12 @@
+v6 = inp0
+v5 = inp1
+for v4 < (arrLen v6)
+    v7 = (min (arrLen (v6 ! v4)) (arrLen v5))
+    for v3 < (arrLen (v5 ! 0))
+        v1 = 0.0
+        for v2 < v7
+            v0 = ((((v6 ! v4) ! v2) * ((v5 ! v2) ! v3)) + v1)
+            v1 = v0
+        (v1 ! v3) = v0
+    (v2 ! v4) = v1
+out = v2

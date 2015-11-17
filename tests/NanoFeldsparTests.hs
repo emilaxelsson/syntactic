@@ -19,6 +19,7 @@ import Language.Syntactic
 import Language.Syntactic.Functional
 import Language.Syntactic.Functional.Sharing
 import qualified NanoFeldspar as Nano
+import qualified NanoFeldsparComp as Nano
 
 
 
@@ -97,6 +98,11 @@ tests = testGroup "NanoFeldsparTests"
     , goldenVsString "spanVec tree" "tests/gold/spanVec.txt" $ return $ fromString $ Nano.showAST Nano.spanVec
     , goldenVsString "scProd tree"  "tests/gold/scProd.txt"  $ return $ fromString $ Nano.showAST Nano.scProd
     , goldenVsString "matMul tree"  "tests/gold/matMul.txt"  $ return $ fromString $ Nano.showAST Nano.matMul
+
+    , goldenVsString "fib comp"     "tests/gold/fib.comp"     $ return $ fromString $ Nano.compile Nano.fib
+    , goldenVsString "spanVec comp" "tests/gold/spanVec.comp" $ return $ fromString $ Nano.compile Nano.spanVec
+    , goldenVsString "scProd comp"  "tests/gold/scProd.comp"  $ return $ fromString $ Nano.compile Nano.scProd
+    , goldenVsString "matMul comp"  "tests/gold/matMul.comp"  $ return $ fromString $ Nano.compile Nano.matMul
 
     , testProperty "fib eval"     prop_fib
     , testProperty "spanVec eval" prop_spanVec

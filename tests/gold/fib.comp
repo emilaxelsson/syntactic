@@ -1,0 +1,6 @@
+v3 = inp0
+v1 = (tup2 0 1)
+for v2 < v3
+    v0 = (tup2 (sel2 v1) ((sel1 v1) + (sel2 v1)))
+    v1 = v0
+out = (sel1 v0)
