@@ -186,13 +186,9 @@ compile
     . flip runState 0
     . execWriterT
     . compileTop
-    . unType
+    . mapAST (\(Typed s) -> s)
     . codeMotion cmInterface
     . desugar
-  where
-    unType :: AST (Typed s) sig -> AST s sig
-    unType (Sym (Typed s)) = Sym s
-    unType (s :$ a) = unType s :$ unType a
 
 icompile :: (Syntactic a, Domain a ~ Typed Dom) => a -> IO ()
 icompile = putStrLn . compile
