@@ -36,9 +36,9 @@ instance Symbol sym => Symbol (sym :&: info)
   where
     symSig = symSig . decorExpr
 
-instance NFData1 sym => NFData1 (sym :&: info)
+instance (NFData1 sym, NFData1 info) => NFData1 (sym :&: info)
   where
-    rnf1 = rnf1 . decorExpr
+    rnf1 (s :&: i) = rnf1 s `seq` rnf1 i `seq` ()
 
 instance Project sub sup => Project sub (sup :&: info)
   where

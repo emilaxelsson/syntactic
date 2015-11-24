@@ -92,14 +92,13 @@ import Language.Syntactic
 data Construct sig
   where
     Construct :: Signature sig => String -> Denotation sig -> Construct sig
+  -- There is no `NFData1` instance for `Construct` because that would give rise
+  -- to a constraint `NFData (Denotation sig)`, which easily spreads to other
+  -- functions.
 
 instance Symbol Construct
   where
     symSig (Construct _ _) = signature
-
-instance NFData1 Construct
-  where
-    rnf1 (Construct name den) = rnf name `seq` den `seq` ()
 
 instance Render Construct
   where
