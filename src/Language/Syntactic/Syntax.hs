@@ -50,7 +50,8 @@ module Language.Syntactic.Syntax
     , Typed (..)
     , injT
     , castExpr
-      -- * Type inference
+      -- * Misc.
+    , NFData1 (..)
     , symType
     , prjP
     ) where
@@ -129,16 +130,12 @@ type instance DenResult (a :-> sig) = DenResult sig
 -- | Valid symbols to use in an 'AST'
 class Symbol sym
   where
-    -- | Force a symbol to normal form
-    rnfSym :: sym sig -> ()
-    rnfSym s = s `seq` ()
-
     -- | Reify the signature of a symbol
     symSig :: sym sig -> SigRep sig
 
-instance Symbol sym => NFData (AST sym sig)
+instance NFData1 sym => NFData (AST sym sig)
   where
-    rnf (Sym s)  = rnfSym s
+    rnf (Sym s)  = rnf1 s
     rnf (s :$ a) = rnf s `seq` rnf a
 
 -- | Count the number of symbols in an 'AST'
@@ -206,10 +203,13 @@ infixr :+:
 
 instance (Symbol sym1, Symbol sym2) => Symbol (sym1 :+: sym2)
   where
-    rnfSym (InjL s) = rnfSym s
-    rnfSym (InjR s) = rnfSym s
     symSig (InjL s) = symSig s
     symSig (InjR s) = symSig s
+
+instance (NFData1 sym1, NFData1 sym2) => NFData1 (sym1 :+: sym2)
+  where
+    rnf1 (InjL s) = rnf1 s
+    rnf1 (InjR s) = rnf1 s
 
 -- | Symbol projection
 --
@@ -387,8 +387,15 @@ castExpr a b = cast1 a
 
 
 --------------------------------------------------------------------------------
--- * Type inference
+-- * Misc.
 --------------------------------------------------------------------------------
+
+-- | Higher-kinded version of 'NFData'
+class NFData1 c
+  where
+    -- | Force a symbol to normal form
+    rnf1 :: c a -> ()
+    rnf1 s = s `seq` ()
 
 -- | Constrain a symbol to a specific type
 symType :: Proxy sym -> sym sig -> sym sig

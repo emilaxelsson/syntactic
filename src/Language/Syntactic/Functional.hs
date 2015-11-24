@@ -95,8 +95,11 @@ data Construct sig
 
 instance Symbol Construct
   where
-    rnfSym (Construct name den) = rnf name `seq` den `seq` ()
-    symSig (Construct _ _)      = signature
+    symSig (Construct _ _) = signature
+
+instance NFData1 Construct
+  where
+    rnf1 (Construct name den) = rnf name `seq` den `seq` ()
 
 instance Render Construct
   where
@@ -126,10 +129,13 @@ data Binding sig
 
 instance Symbol Binding
   where
-    rnfSym (Var v) = rnf v
-    rnfSym (Lam v) = rnf v
     symSig (Var _) = signature
     symSig (Lam _) = signature
+
+instance NFData1 Binding
+  where
+    rnf1 (Var v) = rnf v
+    rnf1 (Lam v) = rnf v
 
 -- | 'equal' does strict identifier comparison; i.e. no alpha equivalence.
 --
@@ -211,10 +217,13 @@ data BindingT sig
 
 instance Symbol BindingT
   where
-    rnfSym (VarT v) = rnf v
-    rnfSym (LamT v) = rnf v
     symSig (VarT _) = signature
     symSig (LamT _) = signature
+
+instance NFData1 BindingT
+  where
+    rnf1 (VarT v) = rnf v
+    rnf1 (LamT v) = rnf v
 
 -- | 'equal' does strict identifier comparison; i.e. no alpha equivalence.
 --

@@ -34,8 +34,11 @@ data (expr :&: info) sig
 
 instance Symbol sym => Symbol (sym :&: info)
   where
-    rnfSym = rnfSym . decorExpr
     symSig = symSig . decorExpr
+
+instance NFData1 sym => NFData1 (sym :&: info)
+  where
+    rnf1 = rnf1 . decorExpr
 
 instance Project sub sup => Project sub (sup :&: info)
   where

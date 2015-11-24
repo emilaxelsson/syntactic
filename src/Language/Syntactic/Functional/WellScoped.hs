@@ -63,10 +63,13 @@ data BindingWS sig
 
 instance Symbol BindingWS
   where
-    rnfSym (VarWS Proxy) = ()
-    rnfSym LamWS         = ()
-    symSig (VarWS _)     = signature
-    symSig LamWS         = signature
+    symSig (VarWS _) = signature
+    symSig LamWS     = signature
+
+instance NFData1 BindingWS
+  where
+    rnf1 (VarWS Proxy) = ()
+    rnf1 LamWS         = ()
 
 instance Eval BindingWS
   where
