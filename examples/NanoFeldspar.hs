@@ -144,6 +144,7 @@ instance Type a => Show (Data a)
 -- * "Backends"
 --------------------------------------------------------------------------------
 
+-- | Interface for controlling code motion
 cmInterface :: CodeMotionInterface FeldDomain
 cmInterface = defaultInterfaceT sharable (const True)
   where

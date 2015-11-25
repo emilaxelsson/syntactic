@@ -52,7 +52,7 @@ class Equality e
     -- @equal a b  ==>  hash a == hash b@
     hash :: e a -> Hash
     default hash :: Render e => e a -> Hash
-    hash  = hashDefault
+    hash = hashDefault
 
 instance Equality sym => Equality (AST sym)
   where
