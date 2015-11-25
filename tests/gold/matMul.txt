@@ -1,6 +1,6 @@
 Lam v6
  └╴Lam v5
-    └╴parallel
+    └╴Parallel
        ├╴arrLen
        │  └╴v6
        └╴Lam v4
@@ -12,13 +12,13 @@ Lam v6
              │  │     └╴v4
              │  └╴arrLen
              │     └╴v5
-             └╴parallel
+             └╴Parallel
                 ├╴arrLen
                 │  └╴arrIx
                 │     ├╴v5
                 │     └╴0
                 └╴Lam v3
-                   └╴forLoop
+                   └╴ForLoop
                       ├╴v7
                       ├╴0.0
                       └╴Lam v2

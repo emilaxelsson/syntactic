@@ -3,6 +3,7 @@ import Test.Tasty
 import qualified NanoFeldsparTests
 import qualified WellScopedTests
 import qualified MonadTests
+import qualified TH
 
 tests = testGroup "AllTests"
     [ NanoFeldsparTests.tests
@@ -10,5 +11,7 @@ tests = testGroup "AllTests"
     , MonadTests.tests
     ]
 
-main = defaultMain tests
+main = do
+    TH.main
+    defaultMain tests
 

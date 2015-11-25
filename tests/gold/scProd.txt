@@ -1,6 +1,6 @@
 Lam v4
  └╴Lam v3
-    └╴forLoop
+    └╴ForLoop
        ├╴min
        │  ├╴arrLen
        │  │  └╴v4

@@ -46,6 +46,11 @@ source-repository head
   type:     git
   location: https://github.com/emilaxelsson/syntactic
 
+flag th
+  description: Include the module Language.Syntactic.TH, which uses Template
+               Haskell
+  default:     True
+
 library
   exposed-modules:
     Language.Syntactic
@@ -64,6 +69,9 @@ library
     Language.Syntactic.Sugar.MonadT
     Language.Syntactic.Sugar.Tuple
     Language.Syntactic.Sugar.TupleT
+  if flag(th)
+    exposed-modules:
+      Language.Syntactic.TH
 
   build-depends:
     base >= 4 && < 5,
@@ -74,6 +82,8 @@ library
     tree-view
   if impl(ghc < 7.8)
     build-depends: tagged
+  if flag(th)
+    build-depends: template-haskell
 
   hs-source-dirs: src
 

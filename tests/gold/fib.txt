@@ -1,6 +1,6 @@
 Lam v3
  └╴sel1
-    └╴forLoop
+    └╴ForLoop
        ├╴v3
        ├╴tup2
        │  ├╴0

@@ -1,6 +1,6 @@
 Lam v3
  └╴Let v4
-    ├╴forLoop
+    ├╴ForLoop
     │  ├╴arrLen
     │  │  └╴v3
     │  ├╴tup2

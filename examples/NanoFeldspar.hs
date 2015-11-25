@@ -3,6 +3,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -28,6 +29,7 @@ import Language.Syntactic.Functional.Sharing
 import Language.Syntactic.Functional.Tuple
 import Language.Syntactic.Sugar.BindingT ()
 import Language.Syntactic.Sugar.TupleT ()
+import Language.Syntactic.TH
 
 
 
@@ -54,11 +56,11 @@ data Arithmetic sig
     Sub :: (Type a, Num a) => Arithmetic (a :-> a :-> Full a)
     Mul :: (Type a, Num a) => Arithmetic (a :-> a :-> Full a)
 
-instance Symbol Arithmetic
-  where
-    symSig Add = signature
-    symSig Sub = signature
-    symSig Mul = signature
+deriveSymbol   ''Arithmetic
+deriveEquality ''Arithmetic
+
+instance StringTree Arithmetic
+instance EvalEnv Arithmetic env
 
 instance Render Arithmetic
   where
@@ -67,58 +69,41 @@ instance Render Arithmetic
     renderSym Mul = "(*)"
     renderArgs = renderArgsSmart
 
-instance Equality   Arithmetic
-instance StringTree Arithmetic
-
 instance Eval Arithmetic
   where
     evalSym Add = (+)
     evalSym Sub = (-)
     evalSym Mul = (*)
 
-instance EvalEnv Arithmetic env
-
 data Parallel sig
   where
     Parallel :: Type a => Parallel (Length :-> (Index -> a) :-> Full [a])
 
-instance Symbol Parallel
-  where
-    symSig Parallel = signature
+deriveSymbol   ''Parallel
+deriveRender   ''Parallel
+deriveEquality ''Parallel
 
-instance Render Parallel
-  where
-    renderSym Parallel = "parallel"
-
-instance Equality   Parallel
 instance StringTree Parallel
+instance EvalEnv Parallel env
 
 instance Eval Parallel
   where
     evalSym Parallel = \len ixf -> Prelude.map ixf [0 .. len-1]
 
-instance EvalEnv Parallel env
-
 data ForLoop sig
   where
     ForLoop :: Type st => ForLoop (Length :-> st :-> (Index -> st -> st) :-> Full st)
 
-instance Symbol ForLoop
-  where
-    symSig ForLoop = signature
+deriveSymbol   ''ForLoop
+deriveRender   ''ForLoop
+deriveEquality ''ForLoop
 
-instance Render ForLoop
-  where
-    renderSym ForLoop = "forLoop"
-
-instance Equality   ForLoop
 instance StringTree ForLoop
+instance EvalEnv ForLoop env
 
 instance Eval ForLoop
   where
     evalSym ForLoop = \len init body -> foldl (flip body) init [0 .. len-1]
-
-instance EvalEnv ForLoop env
 
 type FeldDomain = Typed
     (   BindingT
