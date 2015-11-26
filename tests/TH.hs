@@ -19,9 +19,9 @@ data Sym sig
     B :: Sym (Full Bool)
     C :: String -> Sym (a :-> Int :-> Full a)
 
-deriveSymbol   ''Sym
-deriveEquality ''Sym
-deriveRender   ''Sym
+deriveSymbol    ''Sym
+deriveEquality  ''Sym
+deriveRender id ''Sym
 
 tests =
     [ equal B B

@@ -79,9 +79,9 @@ data Parallel sig
   where
     Parallel :: Type a => Parallel (Length :-> (Index -> a) :-> Full [a])
 
-deriveSymbol   ''Parallel
-deriveRender   ''Parallel
-deriveEquality ''Parallel
+deriveSymbol    ''Parallel
+deriveRender id ''Parallel
+deriveEquality  ''Parallel
 
 instance StringTree Parallel
 instance EvalEnv Parallel env
@@ -94,9 +94,9 @@ data ForLoop sig
   where
     ForLoop :: Type st => ForLoop (Length :-> st :-> (Index -> st -> st) :-> Full st)
 
-deriveSymbol   ''ForLoop
-deriveRender   ''ForLoop
-deriveEquality ''ForLoop
+deriveSymbol    ''ForLoop
+deriveRender id ''ForLoop
+deriveEquality  ''ForLoop
 
 instance StringTree ForLoop
 instance EvalEnv ForLoop env

@@ -128,18 +128,21 @@ deriveEquality ty =
 -- > renderSym Con1           = "Con1"
 -- > renderSym (Con2 a ... x) = concat ["(", unwords ["Con2", show a, ... show x], ")"]
 deriveRender
-    :: Name  -- ^ Type name
+    :: (String -> String)  -- ^ Constructor name modifier
+    -> Name                -- ^ Type name
     -> DecsQ
-deriveRender ty =
+deriveRender modify ty =
     deriveClass ''Render ty [] [MatchingMethod 'renderSym renderClause []]
   where
+    conName = modify . nameBase
+
     renderClause _ con arity = Clause
         [ConP con [VarP v | v <- take arity varSupply]]
         (NormalB body)
         []
       where
         body = case arity of
-            0 -> LitE $ StringL $ nameBase con
+            0 -> LitE $ StringL $ conName con
             _ -> renderRHS con $ take arity varSupply
 
     renderRHS :: Name -> [Name] -> Exp
@@ -148,7 +151,7 @@ deriveRender ty =
         ( ListE
             [ LitE (StringL "(")
             , AppE (VarE 'unwords)
-                (ListE (LitE (StringL (nameBase con)) : map showArg args))
+                (ListE (LitE (StringL (conName con)) : map showArg args))
             , LitE (StringL ")")
             ]
         )
