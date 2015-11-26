@@ -292,8 +292,7 @@ class BindingDomain sym
     prVar :: sym sig -> Maybe Name
     prLam :: sym sig -> Maybe Name
   -- It is in principle possible to replace a constraint `BindingDomain s` by
-  -- `(Project Binding s, Project BindingT s)`. However, the problem is that one then has to
-  -- specify the type `t` through a `Proxy`. The `BindingDomain` class gets around this problem.
+  -- `(Project Binding s, Project BindingT s)`
 
 instance {-# OVERLAPPING #-}
          (BindingDomain sym1, BindingDomain sym2) => BindingDomain (sym1 :+: sym2)
