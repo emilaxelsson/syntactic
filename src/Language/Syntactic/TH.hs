@@ -35,12 +35,13 @@ deriveClass
     :: Name      -- ^ Class name
     -> Name      -- ^ Type constructor name
     -> [Type]    -- ^ Type constructor arguments
+    -> [Type]    -- ^ Other class arguments
     -> [Method]  -- ^ Methods
     -> DecsQ
-deriveClass cl ty tyArgs methods = do
+deriveClass cl ty tyArgs tys methods = do
     t@(TyConI (DataD _ _ _ cs _)) <- reify ty
     return
-      [ InstanceD [] (AppT (ConT cl) (foldl AppT (ConT ty) tyArgs)) $
+      [ InstanceD [] (foldl AppT (ConT cl) (foldl AppT (ConT ty) tyArgs : tys)) $
           [ FunD method (clauses ++ extra)
             | MatchingMethod method mkClause extra <- methods
             , let clauses = [ mkClause i nm ar | (i,c) <- zip [0..] cs
@@ -63,7 +64,7 @@ deriveSymbol
     :: Name  -- ^ Type name
     -> DecsQ
 deriveSymbol ty =
-    deriveClass ''Symbol ty [] [MatchingMethod 'symSig  symSigClause []]
+    deriveClass ''Symbol ty [] [] [MatchingMethod 'symSig  symSigClause []]
   where
     symSigClause _ con arity =
       Clause [ConP con (replicate arity WildP)] (NormalB (VarE 'signature)) []
@@ -84,7 +85,7 @@ deriveEquality ty = do
     let equalFallThrough = if length cs > 1
           then [Clause [WildP, WildP] (NormalB $ ConE 'False) []]
           else []
-    deriveClass ''Equality ty []
+    deriveClass ''Equality ty [] []
       [ MatchingMethod 'equal equalClause equalFallThrough
       , MatchingMethod 'hash hashClause []
       ]
@@ -135,7 +136,7 @@ deriveRender
     -> Name                -- ^ Type name
     -> DecsQ
 deriveRender modify ty =
-    deriveClass ''Render ty [] [MatchingMethod 'renderSym renderClause []]
+    deriveClass ''Render ty [] [] [MatchingMethod 'renderSym renderClause []]
   where
     conName = modify . nameBase
 
