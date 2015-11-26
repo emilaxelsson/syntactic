@@ -79,13 +79,16 @@ deriveSymbol ty =
 deriveEquality
     :: Name  -- ^ Type name
     -> DecsQ
-deriveEquality ty =
+deriveEquality ty = do
+    TyConI (DataD _ _ _ cs _) <- reify ty
+    let equalFallThrough = if length cs > 1
+          then [Clause [WildP, WildP] (NormalB $ ConE 'False) []]
+          else []
     deriveClass ''Equality ty []
-      [ MatchingMethod 'equal equalClause [equalFallThrough]
+      [ MatchingMethod 'equal equalClause equalFallThrough
       , MatchingMethod 'hash hashClause []
       ]
   where
-    equalFallThrough = Clause [WildP, WildP] (NormalB $ ConE 'False) []
     equalClause _ con arity = Clause
         [ ConP con [VarP v | v <- vs1]
         , ConP con [VarP v | v <- vs2]
