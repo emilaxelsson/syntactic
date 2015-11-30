@@ -24,27 +24,27 @@ conName (ForallC _ _ c)     = conName c
 data Method
     = DefaultMethod Name Name
         -- ^ rhs = lhs
-    | MatchingMethod Name (Int -> Name -> Int -> Clause) [Clause]
+    | MatchingMethod Name (Con -> Int -> Name -> Int -> Clause) [Clause]
         -- ^ @MatchingMethod methodName mkClause extraClauses@
         --
-        -- @mkClause@ takes as arguments (1) the constructor's index, (2) its
-        -- name and (3) its arity.
+        -- @mkClause@ takes as arguments (1) a description of the constructor,
+        -- (2) the constructor's index, (3) the constructor's name, and (4) its
+        -- arity.
 
 -- | General method for class deriving
 deriveClass
-    :: Name      -- ^ Class name
+    :: Cxt       -- ^ Instance context
     -> Name      -- ^ Type constructor name
-    -> [Type]    -- ^ Type constructor arguments
-    -> [Type]    -- ^ Other class arguments
+    -> Type      -- ^ Class head (e.g. @Render Con@)
     -> [Method]  -- ^ Methods
     -> DecsQ
-deriveClass cl ty tyArgs tys methods = do
+deriveClass cxt ty clHead methods = do
     t@(TyConI (DataD _ _ _ cs _)) <- reify ty
     return
-      [ InstanceD [] (foldl AppT (ConT cl) (foldl AppT (ConT ty) tyArgs : tys)) $
+      [ InstanceD cxt clHead $
           [ FunD method (clauses ++ extra)
             | MatchingMethod method mkClause extra <- methods
-            , let clauses = [ mkClause i nm ar | (i,c) <- zip [0..] cs
+            , let clauses = [ mkClause c i nm ar | (i,c) <- zip [0..] cs
                             , let (nm,ar) = conName c
                             ]
           ] ++
@@ -52,6 +52,14 @@ deriveClass cl ty tyArgs tys methods = do
             | DefaultMethod rhs lhs <- methods
           ]
       ]
+
+-- | General method for class deriving
+deriveClassSimple
+    :: Name      -- ^ Class name
+    -> Name      -- ^ Type constructor name
+    -> [Method]  -- ^ Methods
+    -> DecsQ
+deriveClassSimple cl ty = deriveClass [] ty (AppT (ConT cl) (ConT ty))
 
 varSupply :: [Name]
 varSupply = map mkName $ tail $ concat $ iterate step [[]]
@@ -64,9 +72,9 @@ deriveSymbol
     :: Name  -- ^ Type name
     -> DecsQ
 deriveSymbol ty =
-    deriveClass ''Symbol ty [] [] [MatchingMethod 'symSig  symSigClause []]
+    deriveClassSimple ''Symbol ty [MatchingMethod 'symSig  symSigClause []]
   where
-    symSigClause _ con arity =
+    symSigClause _ _ con arity =
       Clause [ConP con (replicate arity WildP)] (NormalB (VarE 'signature)) []
 
 -- | Derive 'Equality' instance for a type
@@ -85,12 +93,12 @@ deriveEquality ty = do
     let equalFallThrough = if length cs > 1
           then [Clause [WildP, WildP] (NormalB $ ConE 'False) []]
           else []
-    deriveClass ''Equality ty [] []
+    deriveClassSimple ''Equality ty
       [ MatchingMethod 'equal equalClause equalFallThrough
       , MatchingMethod 'hash hashClause []
       ]
   where
-    equalClause _ con arity = Clause
+    equalClause _ _ con arity = Clause
         [ ConP con [VarP v | v <- vs1]
         , ConP con [VarP v | v <- vs2]
         ]
@@ -109,7 +117,7 @@ deriveEquality ty = do
                      ]
                  )
 
-    hashClause i con arity = Clause
+    hashClause _ i con arity = Clause
         [ConP con [VarP v | v <- vs]]
         (NormalB body)
         []
@@ -136,11 +144,11 @@ deriveRender
     -> Name                -- ^ Type name
     -> DecsQ
 deriveRender modify ty =
-    deriveClass ''Render ty [] [] [MatchingMethod 'renderSym renderClause []]
+    deriveClassSimple ''Render ty [MatchingMethod 'renderSym renderClause []]
   where
     conName = modify . nameBase
 
-    renderClause _ con arity = Clause
+    renderClause _ _ con arity = Clause
         [ConP con [VarP v | v <- take arity varSupply]]
         (NormalB body)
         []
