@@ -11,18 +11,20 @@ module Language.Syntactic.Functional.Sharing
       InjDict (..)
     , CodeMotionInterface (..)
     , defaultInterface
+    , defaultInterfaceDecor
       -- * Code motion
     , codeMotion
     ) where
 
 
 
-import Data.Typeable
-
 import Control.Monad.State
 import Data.Maybe (isNothing)
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.Typeable
+
+import Data.Constraint (Dict (..))
 
 import Language.Syntactic
 import Language.Syntactic.Functional
@@ -92,6 +94,52 @@ defaultInterface var lam sharable hoistOver = Interface {..}
           ) a
 
     castExprCM = castExpr
+
+-- | Default 'CodeMotionInterface' for domains of the form
+-- @(... `:&:` info)@, where @info@ can be used to witness type casting
+defaultInterfaceDecor :: forall binding sym symI info
+    .  ( binding :<: sym
+       , Let     :<: sym
+       , symI ~ (sym :&: info)
+       )
+    => (forall a b . info a -> info b -> Maybe (Dict (a ~ b)))
+         -- ^ Construct a type equality witness
+    -> (forall a b . info a -> info b -> info (a -> b))
+         -- ^ Construct info for a function, given info for the argument and the
+         -- result
+    -> (forall a . info a -> Name -> binding (Full a))
+         -- ^ Variable constructor
+    -> (forall a b . info a -> info b -> Name -> binding (b :-> Full (a -> b)))
+         -- ^ Lambda constructor
+    -> (forall a b . ASTF symI a -> ASTF symI b -> Bool)
+         -- ^ Can the expression represented by the first argument be shared in
+         -- the second argument?
+    -> (forall a . ASTF symI a -> Bool)  -- ^ Can we hoist over this expression?
+    -> CodeMotionInterface symI
+defaultInterfaceDecor kaka mkFunInfo var lam sharable hoistOver = Interface {..}
+  where
+    mkInjDict :: ASTF symI a -> ASTF symI b -> Maybe (InjDict symI a b)
+    mkInjDict a b | not (sharable a b) = Nothing
+    mkInjDict a b =
+        simpleMatch
+          (\(_ :&: aInfo) _ -> simpleMatch
+            (\(_ :&: bInfo) _ ->
+              let injVariable v = inj (var aInfo v) :&: aInfo
+                  injLambda   v = inj (lam aInfo bInfo v) :&: mkFunInfo aInfo bInfo
+                  injLet        = inj Let :&: bInfo
+              in  Just InjDict {..}
+            ) b
+          ) a
+
+    castExprCM :: ASTF symI a -> ASTF symI b -> Maybe (ASTF symI b)
+    castExprCM a b =
+        simpleMatch
+          (\(_ :&: aInfo) _ -> simpleMatch
+            (\(_ :&: bInfo) _ -> case kaka aInfo bInfo of
+              Just Dict -> Just a
+              _ -> Nothing
+            ) b
+          ) a
 
 
 
