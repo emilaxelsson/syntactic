@@ -11,12 +11,13 @@ module Language.Syntactic.Functional.Sharing
       InjDict (..)
     , CodeMotionInterface (..)
     , defaultInterface
-    , defaultInterfaceT
       -- * Code motion
     , codeMotion
     ) where
 
 
+
+import Data.Typeable
 
 import Control.Monad.State
 import Data.Maybe (isNothing)
@@ -61,17 +62,21 @@ data CodeMotionInterface sym = Interface
 
 -- | Default 'CodeMotionInterface' for domains of the form
 -- @`Typed` (... `:+:` `Binding` `:+:` ...)@.
-defaultInterface :: forall sym symT
-    .  ( Binding :<: sym
+defaultInterface :: forall binding sym symT
+    .  ( binding :<: sym
        , Let     :<: sym
        , symT ~ Typed sym
        )
-    => (forall a b . ASTF symT a -> ASTF symT b -> Bool)
+    => (forall a .   Typeable a => Name -> binding (Full a))
+         -- ^ Variable constructor (e.g. 'Var' or 'VarT')
+    -> (forall a b . Typeable a => Name -> binding (b :-> Full (a -> b)))
+         -- ^ Lambda constructor (e.g. 'Lam' or 'LamT')
+    -> (forall a b . ASTF symT a -> ASTF symT b -> Bool)
          -- ^ Can the expression represented by the first argument be shared in
          -- the second argument?
     -> (forall a . ASTF symT a -> Bool)  -- ^ Can we hoist over this expression?
     -> CodeMotionInterface symT
-defaultInterface sharable hoistOver = Interface {..}
+defaultInterface var lam sharable hoistOver = Interface {..}
   where
     mkInjDict :: ASTF symT a -> ASTF symT b -> Maybe (InjDict symT a b)
     mkInjDict a b | not (sharable a b) = Nothing
@@ -79,37 +84,8 @@ defaultInterface sharable hoistOver = Interface {..}
         simpleMatch
           (\(Typed _) _ -> simpleMatch
             (\(Typed _) _ ->
-              let injVariable = Typed . inj . Var
-                  injLambda   = Typed . inj . Lam
-                  injLet      = Typed $ inj Let
-              in  Just InjDict {..}
-            ) b
-          ) a
-
-    castExprCM = castExpr
-
--- | Default 'CodeMotionInterface' for domains of the form
--- @`Typed` (... `:+:` `BindingT` `:+:` ...)@.
-defaultInterfaceT :: forall sym symT
-    .  ( BindingT :<: sym
-       , Let      :<: sym
-       , symT ~ Typed sym
-       )
-    => (forall a b . ASTF symT a -> ASTF symT b -> Bool)
-         -- ^ Can the expression represented by the first argument be shared in
-         -- the second argument?
-    -> (forall a . ASTF symT a -> Bool)  -- ^ Can we hoist over this expression?
-    -> CodeMotionInterface symT
-defaultInterfaceT sharable hoistOver = Interface {..}
-  where
-    mkInjDict :: ASTF symT a -> ASTF symT b -> Maybe (InjDict symT a b)
-    mkInjDict a b | not (sharable a b) = Nothing
-    mkInjDict a b =
-        simpleMatch
-          (\(Typed _) _ -> simpleMatch
-            (\(Typed _) _ ->
-              let injVariable = Typed . inj . VarT
-                  injLambda   = Typed . inj . LamT
+              let injVariable = Typed . inj . var
+                  injLambda   = Typed . inj . lam
                   injLet      = Typed $ inj Let
               in  Just InjDict {..}
             ) b

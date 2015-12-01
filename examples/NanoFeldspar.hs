@@ -146,7 +146,7 @@ instance Type a => Show (Data a)
 
 -- | Interface for controlling code motion
 cmInterface :: CodeMotionInterface FeldDomain
-cmInterface = defaultInterfaceT sharable (const True)
+cmInterface = defaultInterface VarT LamT sharable (const True)
   where
     sharable :: ASTF FeldDomain a -> ASTF FeldDomain b -> Bool
     sharable (Sym _) _ = False
