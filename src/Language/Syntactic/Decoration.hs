@@ -1,3 +1,15 @@
+{-# LANGUAGE CPP #-}
+
+#ifndef MIN_VERSION_GLASGOW_HASKELL
+#define MIN_VERSION_GLASGOW_HASKELL(a,b,c,d) 0
+#endif
+  -- MIN_VERSION_GLASGOW_HASKELL was introduced in GHC 7.10
+
+#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
+#else
+{-# LANGUAGE OverlappingInstances #-}
+#endif
+
 -- | Construct for decorating symbols or expressions with additional information
 
 module Language.Syntactic.Decoration where
@@ -40,7 +52,7 @@ instance (NFData1 sym, NFData1 info) => NFData1 (sym :&: info)
   where
     rnf1 (s :&: i) = rnf1 s `seq` rnf1 i `seq` ()
 
-instance Project sub sup => Project sub (sup :&: info)
+instance {-# OVERLAPPING #-} Project sub sup => Project sub (sup :&: info)
   where
     prj = prj . decorExpr
 
