@@ -22,6 +22,7 @@
 module Language.Syntactic.Functional
     ( -- * Syntactic constructs
       Name (..)
+    , Literal (..)
     , Construct (..)
     , Binding (..)
     , maxLam
@@ -78,7 +79,8 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Tree
 
-import Data.Hash (hashInt)
+import Data.Hash (Hashable, hashInt)
+import qualified Data.Hash as Hash
 
 import Language.Syntactic
 
@@ -87,6 +89,22 @@ import Language.Syntactic
 ----------------------------------------------------------------------------------------------------
 -- * Syntactic constructs
 ----------------------------------------------------------------------------------------------------
+
+-- | Literal
+data Literal sig
+  where
+    Literal :: Show a => a -> Literal (Full a)
+
+instance Symbol Literal
+  where
+    symSig (Literal _) = signature
+
+instance Render Literal
+  where
+    renderSym (Literal a) = show a
+
+instance Equality Literal
+instance StringTree Literal
 
 -- | Generic N-ary syntactic construct
 --
@@ -378,8 +396,6 @@ data Let sig
 
 instance Symbol Let where symSig Let = signature
 instance Render Let where renderSym Let = "letBind"
-instance Eval Let where evalSym Let = flip ($)
-instance EvalEnv Let env
 
 instance Equality Let
   where
@@ -567,9 +583,17 @@ instance Eval sym => Eval (sym :&: info)
   where
     evalSym = evalSym . decorExpr
 
+instance Eval Literal
+  where
+    evalSym (Literal a) = a
+
 instance Eval Construct
   where
     evalSym (Construct _ d) = d
+
+instance Eval Let
+  where
+    evalSym Let = flip ($)
 
 instance Monad m => Eval (MONAD m)
   where
@@ -618,10 +642,10 @@ type RunEnv = [(Name, Dynamic)]
 -- | Evaluation
 class EvalEnv sym env
   where
+    compileSym :: proxy env -> sym sig -> DenotationM (Reader env) sig
+
     default compileSym :: (Symbol sym, Eval sym) =>
         proxy env -> sym sig -> DenotationM (Reader env) sig
-
-    compileSym :: proxy env -> sym sig -> DenotationM (Reader env) sig
     compileSym p s = compileSymDefault (symSig s) p s
 
 -- | Simple implementation of `compileSym` from a 'Denotation'
@@ -646,11 +670,11 @@ instance EvalEnv sym env => EvalEnv (sym :&: info) env
   where
     compileSym p = compileSym p . decorExpr
 
+instance EvalEnv Literal env
+
 instance EvalEnv Construct env
-  where
-    compileSym _ s@(Construct _ d) = liftDenotationM signature p s d
-      where
-        p = Proxy :: Proxy (Reader env)
+
+instance EvalEnv Let env
 
 instance Monad m => EvalEnv (MONAD m) env
 
