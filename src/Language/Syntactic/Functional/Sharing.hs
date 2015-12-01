@@ -281,5 +281,5 @@ codeMotion :: forall sym m a
     -> ASTF sym a
 codeMotion iface a = flip evalState maxVar $ codeMotionM iface a
   where
-    maxVar = succ $ Set.findMax $ allVars a
+    maxVar = succ $ Set.findMax $ Set.insert 0 $ allVars a
 
