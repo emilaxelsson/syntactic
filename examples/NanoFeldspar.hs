@@ -27,8 +27,8 @@ import qualified Language.Syntactic as Syntactic
 import Language.Syntactic.Functional
 import Language.Syntactic.Functional.Sharing
 import Language.Syntactic.Functional.Tuple
-import Language.Syntactic.Sugar.BindingT ()
-import Language.Syntactic.Sugar.TupleT ()
+import Language.Syntactic.Sugar.BindingTyped ()
+import Language.Syntactic.Sugar.TupleTyped ()
 import Language.Syntactic.TH
 
 
@@ -221,36 +221,36 @@ force = resugar
 instance (Type a, Num a) => Num (Data a)
   where
     fromInteger = value . fromInteger
-    (+)         = sugarSymT Add
-    (-)         = sugarSymT Sub
-    (*)         = sugarSymT Mul
+    (+)         = sugarSymTyped Add
+    (-)         = sugarSymTyped Sub
+    (*)         = sugarSymTyped Mul
 
 -- | Explicit sharing
 share :: (Syntax a, Syntax b) => a -> (a -> b) -> b
-share = sugarSymT Let
+share = sugarSymTyped Let
 
 -- | Parallel array
 parallel :: Type a => Data Length -> (Data Index -> Data a) -> Data [a]
-parallel = sugarSymT Parallel
+parallel = sugarSymTyped Parallel
 
 -- | For loop
 forLoop :: Syntax st => Data Length -> st -> (Data Index -> st -> st) -> st
-forLoop = sugarSymT ForLoop
+forLoop = sugarSymTyped ForLoop
 
 -- | Conditional expression
 (?) :: forall a . Syntax a => Data Bool -> (a,a) -> a
-c ? (t,f) = sugarSymT sym c t f
+c ? (t,f) = sugarSymTyped sym c t f
   where
     sym :: Construct (Bool :-> Internal a :-> Internal a :-> Full (Internal a))
     sym = Construct "cond" (\c t f -> if c then t else f)
 
 -- | Get the length of an array
 arrLen :: Type a => Data [a] -> Data Length
-arrLen = sugarSymT $ Construct "arrLen" Prelude.length
+arrLen = sugarSymTyped $ Construct "arrLen" Prelude.length
 
 -- | Index into an array
 arrIx :: Type a => Data [a] -> Data Index -> Data a
-arrIx = sugarSymT $ Construct "arrIx" eval
+arrIx = sugarSymTyped $ Construct "arrIx" eval
   where
     eval as i
         | i >= len || i < 0 = error "arrIx: index out of bounds"
@@ -259,16 +259,16 @@ arrIx = sugarSymT $ Construct "arrIx" eval
         len = Prelude.length as
 
 not :: Data Bool -> Data Bool
-not = sugarSymT $ Construct "not" Prelude.not
+not = sugarSymTyped $ Construct "not" Prelude.not
 
 (==) :: Type a => Data a -> Data a -> Data Bool
-(==) = sugarSymT $ Construct "(==)" (Prelude.==)
+(==) = sugarSymTyped $ Construct "(==)" (Prelude.==)
 
 max :: Type a => Data a -> Data a -> Data a
-max = sugarSymT $ Construct "max" Prelude.max
+max = sugarSymTyped $ Construct "max" Prelude.max
 
 min :: Type a => Data a -> Data a -> Data a
-min = sugarSymT $ Construct "min" Prelude.min
+min = sugarSymTyped $ Construct "min" Prelude.min
 
 
 

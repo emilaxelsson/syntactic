@@ -2,7 +2,7 @@
 
 -- | 'Syntactic' instances for tuples and 'Typed' symbol domains
 
-module Language.Syntactic.Sugar.TupleT where
+module Language.Syntactic.Sugar.TupleTyped where
 
 
 
@@ -26,8 +26,8 @@ instance
   where
     type Domain (a,b)   = Domain a
     type Internal (a,b) = (Internal a, Internal b)
-    desugar (a,b) = sugarSymT Tup2 a b
-    sugar ab      = (sugarSymT Sel1 ab, sugarSymT Sel2 ab)
+    desugar (a,b) = sugarSymTyped Tup2 a b
+    sugar ab      = (sugarSymTyped Sel1 ab, sugarSymTyped Sel2 ab)
 
 instance
     ( Syntactic a
@@ -45,8 +45,8 @@ instance
   where
     type Domain (a,b,c)   = Domain a
     type Internal (a,b,c) = (Internal a, Internal b, Internal c)
-    desugar (a,b,c) = sugarSymT Tup3 a b c
-    sugar abc       = (sugarSymT Sel1 abc, sugarSymT Sel2 abc, sugarSymT Sel3 abc)
+    desugar (a,b,c) = sugarSymTyped Tup3 a b c
+    sugar abc       = (sugarSymTyped Sel1 abc, sugarSymTyped Sel2 abc, sugarSymTyped Sel3 abc)
 
 instance
     ( Syntactic a
@@ -67,6 +67,6 @@ instance
   where
     type Domain (a,b,c,d)   = Domain a
     type Internal (a,b,c,d) = (Internal a, Internal b, Internal c, Internal d)
-    desugar (a,b,c,d) = sugarSymT Tup4 a b c d
-    sugar abcd        = (sugarSymT Sel1 abcd, sugarSymT Sel2 abcd, sugarSymT Sel3 abcd, sugarSymT Sel4 abcd)
+    desugar (a,b,c,d) = sugarSymTyped Tup4 a b c d
+    sugar abcd        = (sugarSymTyped Sel1 abcd, sugarSymTyped Sel2 abcd, sugarSymTyped Sel3 abcd, sugarSymTyped Sel4 abcd)
 

@@ -1,11 +1,9 @@
 {-# LANGUAGE UndecidableInstances #-}
 
--- | 'Syntactic' instance for functions
---
--- This module is based on having 'BindingT' in the domain. For 'Binding' import
--- module "Language.Syntactic.Sugar.Binding" instead.
+-- | 'Syntactic' instance for functions for domains based on 'Typed' and
+-- 'BindingT'
 
-module Language.Syntactic.Sugar.BindingT where
+module Language.Syntactic.Sugar.BindingTyped where
 
 
 
@@ -17,9 +15,10 @@ import Language.Syntactic.Functional
 
 
 instance
-    ( Syntactic a, Domain a ~ Typed dom
-    , Syntactic b, Domain b ~ Typed dom
-    , BindingT :<: dom
+    ( sym ~ Typed s
+    , Syntactic a, Domain a ~ sym
+    , Syntactic b, Domain b ~ sym
+    , BindingT :<: s
     , Typeable (Internal a)
     , Typeable (Internal b)
     ) =>
@@ -27,6 +26,6 @@ instance
   where
     type Domain (a -> b)   = Domain a
     type Internal (a -> b) = Internal a -> Internal b
-    desugar f = lamT (desugar . f . sugar)
+    desugar f = lamTyped (desugar . f . sugar)
     sugar     = error "sugar not implemented for (a -> b)"
 

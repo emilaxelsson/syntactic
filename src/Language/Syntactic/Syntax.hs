@@ -37,7 +37,7 @@ module Language.Syntactic.Syntax
     , Project (..)
     , (:<:) (..)
     , smartSym
-    , smartSymT
+    , smartSymTyped
     , Empty
       -- * Existential quantification
     , E (..)
@@ -287,12 +287,13 @@ smartSym
     => sub sig -> f
 smartSym = smartSym' . inj
 
--- | Make a smart constructor of a symbol. 'smartSymT' has any type of the form:
+-- | Make a smart constructor of a symbol. 'smartSymTyped' has any type of the
+-- form:
 --
--- > smartSymT :: (sub :<: AST (Typed sup), Typeable x)
+-- > smartSymTyped :: (sub :<: AST (Typed sup), Typeable x)
 -- >     => sub (a :-> b :-> ... :-> Full x)
 -- >     -> (ASTF sup a -> ASTF sup b -> ... -> ASTF sup x)
-smartSymT
+smartSymTyped
     :: ( Signature sig
        , f         ~ SmartFun (Typed sup) sig
        , sig       ~ SmartSig f
@@ -301,7 +302,7 @@ smartSymT
        , Typeable (DenResult sig)
        )
     => sub sig -> f
-smartSymT = smartSym' . Typed . inj
+smartSymTyped = smartSym' . Typed . inj
 
 -- | Empty symbol type
 --

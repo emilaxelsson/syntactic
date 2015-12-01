@@ -19,7 +19,7 @@ import Data.Typeable (Typeable)
 
 import Language.Syntactic
 import Language.Syntactic.Functional
-import Language.Syntactic.Sugar.MonadT ()
+import Language.Syntactic.Sugar.MonadTyped ()
 
 import NanoFeldspar (Type, Arithmetic (..))
 
@@ -32,28 +32,28 @@ type Exp a = ASTF Dom a
 type IO' a = Remon Dom IO (Exp a)
 
 getDigit :: IO' Int
-getDigit = sugarSymT $ Construct "getDigit" get
+getDigit = sugarSymTyped $ Construct "getDigit" get
   where
     get = do
         c <- getChar
         if isDigit c then return (fromEnum c - fromEnum '0') else get
 
 putDigit :: Exp Int -> IO' ()
-putDigit = sugarSymT $ Construct "putDigit" print
+putDigit = sugarSymTyped $ Construct "putDigit" print
 
 iter :: Typeable a => Exp Int -> IO' a -> IO' ()
-iter = sugarSymT $ Construct "iter" replicateM_
+iter = sugarSymTyped $ Construct "iter" replicateM_
 
 -- | Literal
 value :: (Show a, Typeable a) => a -> Exp a
-value a = sugarSymT $ Construct (show a) a
+value a = sugarSymTyped $ Construct (show a) a
 
 instance (Num a, Type a) => Num (Exp a)
   where
     fromInteger = value . fromInteger
-    (+)         = sugarSymT Add
-    (-)         = sugarSymT Sub
-    (*)         = sugarSymT Mul
+    (+)         = sugarSymTyped Add
+    (-)         = sugarSymTyped Sub
+    (*)         = sugarSymTyped Mul
 
 ex1 :: Exp Int -> IO' ()
 ex1 n = iter n $ do

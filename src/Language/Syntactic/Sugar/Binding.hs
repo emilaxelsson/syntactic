@@ -1,9 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
--- | 'Syntactic' instance for functions
---
--- This module is based on having 'Binding' in the domain. For 'BindingT' import
--- module "Language.Syntactic.Sugar.BindingT" instead.
+-- | 'Syntactic' instance for functions for domains based on 'Binding'
 
 module Language.Syntactic.Sugar.Binding where
 

@@ -115,9 +115,9 @@ sugarSym = sugarN . smartSym
 
 -- | \"Sugared\" symbol application
 --
--- 'sugarSymT' has any type of the form:
+-- 'sugarSymTyped' has any type of the form:
 --
--- > sugarSymT ::
+-- > sugarSymTyped ::
 -- >     ( sub :<: AST (Typed sup)
 -- >     , Syntactic a
 -- >     , Syntactic b
@@ -127,7 +127,7 @@ sugarSym = sugarN . smartSym
 -- >     , Typeable (Internal x)
 -- >     ) => sub (Internal a :-> Internal b :-> ... :-> Full (Internal x))
 -- >       -> (a -> b -> ... -> x)
-sugarSymT
+sugarSymTyped
     :: ( Signature sig
        , fi        ~ SmartFun (Typed sup) sig
        , sig       ~ SmartSig fi
@@ -137,5 +137,5 @@ sugarSymT
        , Typeable (DenResult sig)
        )
     => sub sig -> f
-sugarSymT = sugarN . smartSymT
+sugarSymTyped = sugarN . smartSymTyped
 

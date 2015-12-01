@@ -64,11 +64,11 @@ library
     Language.Syntactic.Functional.Tuple
     Language.Syntactic.Functional.WellScoped
     Language.Syntactic.Sugar.Binding
-    Language.Syntactic.Sugar.BindingT
+    Language.Syntactic.Sugar.BindingTyped
     Language.Syntactic.Sugar.Monad
-    Language.Syntactic.Sugar.MonadT
+    Language.Syntactic.Sugar.MonadTyped
     Language.Syntactic.Sugar.Tuple
-    Language.Syntactic.Sugar.TupleT
+    Language.Syntactic.Sugar.TupleTyped
   if flag(th)
     exposed-modules:
       Language.Syntactic.TH

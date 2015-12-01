@@ -25,17 +25,20 @@ module Language.Syntactic.Functional
     , Construct (..)
     , Binding (..)
     , maxLam
+    , lam_template
     , lam
     , fromDeBruijn
     , BindingT (..)
     , maxLamT
+    , lamT_template
     , lamT
+    , lamTyped
     , BindingDomain (..)
     , Let (..)
     , MONAD (..)
     , Remon (..)
     , desugarMonad
-    , desugarMonadT
+    , desugarMonadTyped
       -- * Free and bound variables
     , freeVars
     , allVars
@@ -168,12 +171,12 @@ instance StringTree Binding
 --
 -- \[1\] Ordered binders means that the names of 'Lam' nodes are decreasing along every path from
 -- the root.
-maxLam :: (Binding :<: s) => AST s a -> Name
+maxLam :: (Project Binding s) => AST s a -> Name
 maxLam (Sym lam :$ _) | Just (Lam v) <- prj lam = v
 maxLam (s :$ a) = maxLam s `Prelude.max` maxLam a
 maxLam _ = 0
 
--- | Higher-order interface for variable binding
+-- | Higher-order interface for variable binding for domains based on 'Binding'
 --
 -- Assumptions:
 --
@@ -186,11 +189,23 @@ maxLam _ = 0
 --
 -- See \"Using Circular Programs for Higher-Order Syntax\"
 -- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>).
-lam :: (Binding :<: s) => (ASTF s a -> ASTF s b) -> ASTF s (a -> b)
-lam f = smartSym (Lam v) body
+lam_template :: (Project Binding sym)
+    => (Name -> sym (Full a))
+         -- ^ Variable constructor
+    -> (Name -> sym (b :-> Full (a -> b)))
+         -- ^ Lambda constructor
+    -> (ASTF sym a -> ASTF sym b) -> ASTF sym (a -> b)
+lam_template mkVar mkLam f = Sym (mkLam v) :$ body
   where
-    body = f (smartSym (Var v))
+    body = f (Sym (mkVar v))
     v    = succ $ maxLam body
+
+-- | Higher-order interface for variable binding
+--
+-- This function is 'lamT_template' specialized to domains @sym@ satisfying
+-- @(`Binding` `:<:` sym)@.
+lam :: (Binding :<: sym) => (ASTF sym a -> ASTF sym b) -> ASTF sym (a -> b)
+lam = lam_template (inj . Var) (inj . Lam)
 
 -- | Convert from a term with De Bruijn indexes to one with explicit names
 --
@@ -261,7 +276,7 @@ maxLamT (Sym lam :$ _) | Just (LamT n :: BindingT (b :-> a)) <- prj lam = n
 maxLamT (s :$ a) = maxLamT s `Prelude.max` maxLamT a
 maxLamT _ = 0
 
--- | Higher-order interface for typed variable binding
+-- | Higher-order interface for variable binding
 --
 -- Assumptions:
 --
@@ -274,17 +289,32 @@ maxLamT _ = 0
 --
 -- See \"Using Circular Programs for Higher-Order Syntax\"
 -- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>).
-lamT :: forall sym symT a b
-    .  ( BindingT :<: sym
-       , symT ~ Typed sym
-       , Typeable a
-       , Typeable b
-       )
-    => (ASTF symT a -> ASTF symT b) -> ASTF symT (a -> b)
-lamT f = smartSymT (LamT v) body
+lamT_template :: Project BindingT sym
+    => (Name -> sym (Full a))
+         -- ^ Variable constructor
+    -> (Name -> sym (b :-> Full (a -> b)))
+         -- ^ Lambda constructor
+    -> (ASTF sym a -> ASTF sym b) -> ASTF sym (a -> b)
+lamT_template mkVarSym mkLamSym f = Sym (mkLamSym v) :$ body
   where
-    body = f (smartSymT (VarT v))
+    body = f (Sym $ mkVarSym v)
     v    = succ $ maxLamT body
+
+-- | Higher-order interface for variable binding
+--
+-- This function is 'lamT_template' specialized to domains @sym@ satisfying
+-- @(`BindingT` `:<:` sym)@.
+lamT :: (BindingT :<: sym, Typeable a) =>
+    (ASTF sym a -> ASTF sym b) -> ASTF sym (a -> b)
+lamT = lamT_template (inj . VarT) (inj . LamT)
+
+-- | Higher-order interface for variable binding
+--
+-- This function is 'lamT_template' specialized to domains @sym@ satisfying
+-- @(sym ~ `Typed` s, `BindingT` `:<:` s)@.
+lamTyped :: (sym ~ Typed s, BindingT :<: s, Typeable a, Typeable b) =>
+    (ASTF sym a -> ASTF sym b) -> ASTF sym (a -> b)
+lamTyped = lamT_template (Typed . inj . VarT) (Typed . inj . LamT)
 
 -- | Domains that \"might\" include variables and binders
 class BindingDomain sym
@@ -428,14 +458,14 @@ desugarMonad
 desugarMonad = flip runCont (sugarSym Return) . unRemon
 
 -- | One-layer desugaring of monadic actions
-desugarMonadT
-    :: ( MONAD m :<: sym
-       , symT ~ Typed sym
+desugarMonadTyped
+    :: ( MONAD m :<: s
+       , sym ~ Typed s
        , Typeable a
        , TYPEABLE m
        )
-    => Remon symT m (ASTF symT a) -> ASTF symT (m a)
-desugarMonadT = flip runCont (sugarSymT Return) . unRemon
+    => Remon sym m (ASTF sym a) -> ASTF sym (m a)
+desugarMonadTyped = flip runCont (sugarSymTyped Return) . unRemon
 
 
 

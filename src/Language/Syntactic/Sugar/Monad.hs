@@ -7,7 +7,7 @@
 #define TYPEABLE Typeable
 #endif
 
--- | 'Syntactic' instance for 'Remon' using 'Binding' to handle variable binding
+-- | 'Syntactic' instance for 'Remon' for domains based on 'Binding'
 
 module Language.Syntactic.Sugar.Monad where
 
