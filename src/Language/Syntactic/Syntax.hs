@@ -289,7 +289,7 @@ smartSym = smartSym' . inj
 
 -- | Make a smart constructor of a symbol. 'smartSymT' has any type of the form:
 --
--- > smartSym :: (sub :<: AST (Typed sup), Typeable x)
+-- > smartSymT :: (sub :<: AST (Typed sup), Typeable x)
 -- >     => sub (a :-> b :-> ... :-> Full x)
 -- >     -> (ASTF sup a -> ASTF sup b -> ... -> ASTF sup x)
 smartSymT
