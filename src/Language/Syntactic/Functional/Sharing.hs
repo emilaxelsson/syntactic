@@ -76,7 +76,8 @@ defaultInterface :: forall binding sym symT
     -> (forall a b . ASTF symT a -> ASTF symT b -> Bool)
          -- ^ Can the expression represented by the first argument be shared in
          -- the second argument?
-    -> (forall a . ASTF symT a -> Bool)  -- ^ Can we hoist over this expression?
+    -> (forall a . ASTF symT a -> Bool)
+         -- ^ Can we hoist over this expression?
     -> CodeMotionInterface symT
 defaultInterface var lam sharable hoistOver = Interface {..}
   where
@@ -114,7 +115,8 @@ defaultInterfaceDecor :: forall binding sym symI info
     -> (forall a b . ASTF symI a -> ASTF symI b -> Bool)
          -- ^ Can the expression represented by the first argument be shared in
          -- the second argument?
-    -> (forall a . ASTF symI a -> Bool)  -- ^ Can we hoist over this expression?
+    -> (forall a . ASTF symI a -> Bool)
+         -- ^ Can we hoist over this expression?
     -> CodeMotionInterface symI
 defaultInterfaceDecor kaka mkFunInfo var lam sharable hoistOver = Interface {..}
   where

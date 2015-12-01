@@ -115,9 +115,9 @@ sugarSym = sugarN . smartSym
 
 -- | \"Sugared\" symbol application
 --
--- 'sugarSym' has any type of the form:
+-- 'sugarSymT' has any type of the form:
 --
--- > sugarSym ::
+-- > sugarSymT ::
 -- >     ( sub :<: AST (Typed sup)
 -- >     , Syntactic a
 -- >     , Syntactic b
