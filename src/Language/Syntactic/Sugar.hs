@@ -42,6 +42,13 @@ instance Syntactic (ASTF sym a)
     desugar = id
     sugar   = id
 
+instance Syntactic (ASTFull sym a)
+  where
+    type Domain (ASTFull sym a)   = sym
+    type Internal (ASTFull sym a) = a
+    desugar = unASTFull
+    sugar   = ASTFull
+
 -- | Syntactic type casting
 resugar :: (Syntactic a, Syntactic b, Domain a ~ Domain b, Internal a ~ Internal b) => a -> b
 resugar = sugar . desugar

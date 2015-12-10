@@ -20,6 +20,7 @@ module Language.Syntactic.Syntax
     ( -- * Syntax trees
       AST (..)
     , ASTF
+    , ASTFull (..)
     , Full (..)
     , (:->) (..)
     , SigRep (..)
@@ -87,6 +88,12 @@ infixl 1 :$
 
 -- | Fully applied abstract syntax tree
 type ASTF sym a = AST sym (Full a)
+
+-- | Fully applied abstract syntax tree
+--
+-- This type is like 'AST', but being a newtype, it is a proper type constructor
+-- that can be partially applied.
+newtype ASTFull sym a = ASTFull {unASTFull :: ASTF sym a}
 
 instance Functor sym => Functor (AST sym)
   where
