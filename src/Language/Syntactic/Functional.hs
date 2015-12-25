@@ -79,8 +79,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Tree
 
-import Data.Hash (Hashable, hashInt)
-import qualified Data.Hash as Hash
+import Data.Hash (hashInt)
 
 import Language.Syntactic
 

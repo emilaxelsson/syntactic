@@ -61,28 +61,39 @@ library
     Language.Syntactic.Decoration
     Language.Syntactic.Functional
     Language.Syntactic.Functional.Sharing
-    Language.Syntactic.Functional.Tuple
     Language.Syntactic.Functional.WellScoped
     Language.Syntactic.Sugar.Binding
     Language.Syntactic.Sugar.BindingTyped
     Language.Syntactic.Sugar.Monad
     Language.Syntactic.Sugar.MonadTyped
-    Language.Syntactic.Sugar.Tuple
-    Language.Syntactic.Sugar.TupleTyped
   if flag(th)
     exposed-modules:
       Language.Syntactic.TH
+      Language.Syntactic.Functional.Tuple
+      Language.Syntactic.Sugar.Tuple
+      Language.Syntactic.Sugar.TupleTyped
+
+    other-modules:
+      Language.Syntactic.Functional.Tuple.TH
 
   build-depends:
     base >= 4 && < 5,
+    base-orphans,
+      -- Only needed for GHC < 7.10
     constraints,
     containers,
     data-hash,
     deepseq,
     mtl >= 2 && < 3,
+    syb,
     tree-view
+
+  if impl(ghc < 7.10)
+    build-depends: base-orphans
+
   if impl(ghc < 7.8)
     build-depends: tagged
+
   if flag(th)
     build-depends: template-haskell
 

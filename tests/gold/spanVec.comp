@@ -1,7 +1,7 @@
 v3 = inp0
-v1 = (tup2 (v3 ! 0) (v3 ! 0))
+v1 = (Tup2 (v3 ! 0) (v3 ! 0))
 for v2 < (arrLen v3)
-    v0 = (tup2 (min (v3 ! v2) (sel1 v1)) (max (v3 ! v2) (sel2 v1)))
+    v0 = (Tup2 (min (v3 ! v2) (Sel1 v1)) (max (v3 ! v2) (Sel2 v1)))
     v1 = v0
 v4 = v0
-out = ((sel2 v4) - (sel1 v4))
+out = ((Sel2 v4) - (Sel1 v4))
