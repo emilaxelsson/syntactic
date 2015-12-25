@@ -11,7 +11,9 @@ module Language.Syntactic.Sugar.TupleTyped where
 import Data.Typeable
 import Language.Haskell.TH
 
+#if __GLASGOW_HASKELL__ < 710
 import Data.Orphans ()
+#endif
 
 import Language.Syntactic
 import Language.Syntactic.Functional.Tuple
