@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 -- | Generate types, classes and instances for tuples
@@ -12,32 +11,6 @@ import Language.Haskell.TH
 
 import Language.Syntactic ((:->), Full, AST (..), (:<:), Syntactic (..))
 import Language.Syntactic.TH
-
-
-
--- | Portable method for constructing a 'Pred' of the form @(t1 ~ t2)@
-eqPred :: Type -> Type -> Pred
-#if MIN_VERSION_template_haskell(2,10,0)
-eqPred t1 t2 = foldl1 AppT [EqualityT,t1,t2]
-#else
-eqPred = EqualP
-#endif
-
--- | Portable method for constructing a 'Pred' of the form @SomeClass t1 t2 ...@
-classPred :: Name -> [Type] -> Pred
-#if MIN_VERSION_template_haskell(2,10,0)
-classPred cl = foldl AppT (ConT cl)
-#else
-classPred = ClassP
-#endif
-
--- | Portable method for constructing a type synonym instances
-tySynInst :: Name -> [Type] -> Type -> Dec
-#if MIN_VERSION_template_haskell(2,9,0)
-tySynInst t as rhs = TySynInstD t (TySynEqn as rhs)
-#else
-tySynInst = TySynInstD
-#endif
 
 
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Language.Syntactic.TH where
@@ -170,4 +171,34 @@ deriveRender modify ty =
 
     showArg :: Name -> Exp
     showArg arg = AppE (VarE 'show) (VarE arg)
+
+
+
+--------------------------------------------------------------------------------
+-- * Portability
+--------------------------------------------------------------------------------
+
+-- | Portable method for constructing a 'Pred' of the form @(t1 ~ t2)@
+eqPred :: Type -> Type -> Pred
+#if MIN_VERSION_template_haskell(2,10,0)
+eqPred t1 t2 = foldl1 AppT [EqualityT,t1,t2]
+#else
+eqPred = EqualP
+#endif
+
+-- | Portable method for constructing a 'Pred' of the form @SomeClass t1 t2 ...@
+classPred :: Name -> [Type] -> Pred
+#if MIN_VERSION_template_haskell(2,10,0)
+classPred cl = foldl AppT (ConT cl)
+#else
+classPred = ClassP
+#endif
+
+-- | Portable method for constructing a type synonym instances
+tySynInst :: Name -> [Type] -> Type -> Dec
+#if MIN_VERSION_template_haskell(2,9,0)
+tySynInst t as rhs = TySynInstD t (TySynEqn as rhs)
+#else
+tySynInst = TySynInstD
+#endif
 
