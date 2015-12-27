@@ -128,7 +128,7 @@ mkTupleSym tyName tupName selName n = do
                       , AppT (ConT ''Full) (AppT (ConT (mkName ("Sel" ++ show s))) (VarT (mkName "tup")))
                       ]
                   )
-              , classPred (mkName ("Select" ++ show s)) [VarT (mkName "tup")]
+              , classPred (mkName ("Select" ++ show s)) ConT [VarT (mkName "tup")]
               ]
               (NormalC (mkName (selName ++ show s)) [])
             | s <- [1..n]
@@ -185,9 +185,9 @@ deriveSyntacticForTuples internalPred mkDomain symInj n = return $
   where
     deriveSyntacticForTuple w = InstanceD
         ( concat
-            [ map (classPred ''Syntactic . return) varsT
+            [ map (classPred ''Syntactic ConT . return) varsT
             , concatMap internalPred $ map (AppT (ConT ''Internal)) varsT
-            , [classPred ''(:<:) [ConT (mkName "Tuple"), VarT (mkName "sym")]]
+            , [classPred ''(:<:) ConT [ConT (mkName "Tuple"), VarT (mkName "sym")]]
             , [eqPred domainA (mkDomain (VarT (mkName "sym")))]
             , [eqPred domainA (AppT (ConT ''Domain) b)
                 | b <- tail varsT

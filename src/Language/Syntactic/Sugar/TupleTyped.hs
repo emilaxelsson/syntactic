@@ -21,7 +21,7 @@ import Language.Syntactic.Functional.Tuple
 
 
 deriveSyntacticForTuples
-    (return . classPred ''Typeable . return)
+    (return . classPred ''Typeable ConT . return)
     (AppT (ConT ''Typed))
     (\s -> AppE (ConE 'Typed) (AppE (VarE 'inj) s))
 #if __GLASGOW_HASKELL__ < 708

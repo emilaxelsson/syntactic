@@ -187,11 +187,15 @@ eqPred = EqualP
 #endif
 
 -- | Portable method for constructing a 'Pred' of the form @SomeClass t1 t2 ...@
-classPred :: Name -> [Type] -> Pred
+classPred
+    :: Name            -- ^ Class name
+    -> (Name -> Type)  -- ^ How to make a type for the class (typically 'ConT' or VarT)
+    -> [Type]          -- ^ Class arguments
+    -> Pred
 #if MIN_VERSION_template_haskell(2,10,0)
-classPred cl = foldl AppT (ConT cl)
+classPred cl con = foldl AppT (con cl)
 #else
-classPred = ClassP
+classPred cl con = ClassP cl
 #endif
 
 -- | Portable method for constructing a type synonym instances
