@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 -- | Simple code motion transformation performing common sub-expression
 -- elimination and variable hoisting. Note that the implementation is very
 -- inefficient.

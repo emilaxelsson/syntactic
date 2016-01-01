@@ -111,6 +111,7 @@ library
     GADTs
     GeneralizedNewtypeDeriving
     RankNTypes
+    RecordWildCards
     ScopedTypeVariables
     TypeFamilies
     TypeOperators
