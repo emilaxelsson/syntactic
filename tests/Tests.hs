@@ -1,12 +1,14 @@
 import Test.Tasty
 
+import qualified AlgorithmTests
 import qualified NanoFeldsparTests
 import qualified WellScopedTests
 import qualified MonadTests
 import qualified TH
 
 tests = testGroup "AllTests"
-    [ NanoFeldsparTests.tests
+    [ AlgorithmTests.tests
+    , NanoFeldsparTests.tests
     , WellScopedTests.tests
     , MonadTests.tests
     ]

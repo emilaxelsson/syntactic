@@ -129,8 +129,6 @@ test-suite examples
 
   default-language: Haskell2010
 
-  default-extensions:
-
   build-depends:
     syntactic,
     base,
@@ -167,3 +165,4 @@ benchmark syntactic-bench
 
   other-extensions:
     TemplateHaskell
+
