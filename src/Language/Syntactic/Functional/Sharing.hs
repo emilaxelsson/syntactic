@@ -116,7 +116,7 @@ defaultInterfaceDecor :: forall binding sym symI info
     -> (forall a . ASTF symI a -> Bool)
          -- ^ Can we hoist over this expression?
     -> CodeMotionInterface symI
-defaultInterfaceDecor kaka mkFunInfo var lam sharable hoistOver = Interface {..}
+defaultInterfaceDecor teq mkFunInfo var lam sharable hoistOver = Interface {..}
   where
     mkInjDict :: ASTF symI a -> ASTF symI b -> Maybe (InjDict symI a b)
     mkInjDict a b | not (sharable a b) = Nothing
@@ -135,7 +135,7 @@ defaultInterfaceDecor kaka mkFunInfo var lam sharable hoistOver = Interface {..}
     castExprCM a b =
         simpleMatch
           (\(_ :&: aInfo) _ -> simpleMatch
-            (\(_ :&: bInfo) _ -> case kaka aInfo bInfo of
+            (\(_ :&: bInfo) _ -> case teq aInfo bInfo of
               Just Dict -> Just a
               _ -> Nothing
             ) b
