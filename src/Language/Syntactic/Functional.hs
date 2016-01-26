@@ -43,6 +43,8 @@ module Language.Syntactic.Functional
       -- * Free and bound variables
     , freeVars
     , allVars
+    , renameUnique'
+    , renameUnique
       -- * Alpha-equivalence
     , AlphaEnv
     , alphaEq'
@@ -69,12 +71,15 @@ import Control.Applicative
 import Control.DeepSeq
 import Control.Monad.Cont
 import Control.Monad.Reader
+import Control.Monad.State
 import Data.Dynamic
 import Data.List (genericIndex)
 #if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
 #else
 import Data.Proxy  -- Needed by GHC < 7.8
 #endif
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Tree
@@ -338,8 +343,9 @@ class BindingDomain sym
   where
     prVar :: sym sig -> Maybe Name
     prLam :: sym sig -> Maybe Name
-  -- It is in principle possible to replace a constraint `BindingDomain s` by
-  -- `(Project Binding s, Project BindingT s)`
+
+    -- | Rename a variable or a lambda (no effect for other symbols)
+    renameBind :: (Name -> Name) -> sym sig -> sym sig
 
 instance {-# OVERLAPPING #-}
          (BindingDomain sym1, BindingDomain sym2) => BindingDomain (sym1 :+: sym2)
@@ -348,16 +354,20 @@ instance {-# OVERLAPPING #-}
     prVar (InjR s) = prVar s
     prLam (InjL s) = prLam s
     prLam (InjR s) = prLam s
+    renameBind re (InjL s) = InjL $ renameBind re s
+    renameBind re (InjR s) = InjR $ renameBind re s
 
 instance {-# OVERLAPPING #-} BindingDomain sym => BindingDomain (Typed sym)
   where
     prVar (Typed s) = prVar s
     prLam (Typed s) = prLam s
+    renameBind re (Typed s) = Typed $ renameBind re s
 
 instance {-# OVERLAPPING #-} BindingDomain sym => BindingDomain (sym :&: i)
   where
     prVar = prVar . decorExpr
     prLam = prLam . decorExpr
+    renameBind re (s :&: d) = renameBind re s :&: d
 
 instance {-# OVERLAPPING #-} BindingDomain sym => BindingDomain (AST sym)
   where
@@ -365,25 +375,27 @@ instance {-# OVERLAPPING #-} BindingDomain sym => BindingDomain (AST sym)
     prVar _       = Nothing
     prLam (Sym s) = prLam s
     prLam _       = Nothing
+    renameBind re (Sym s) = Sym $ renameBind re s
 
 instance {-# OVERLAPPING #-} BindingDomain Binding
   where
     prVar (Var v) = Just v
-    prVar _       = Nothing
     prLam (Lam v) = Just v
-    prLam _       = Nothing
+    renameBind re (Var v) = Var $ re v
+    renameBind re (Lam v) = Lam $ re v
 
 instance {-# OVERLAPPING #-} BindingDomain BindingT
   where
     prVar (VarT v) = Just v
-    prVar _        = Nothing
     prLam (LamT v) = Just v
-    prLam _        = Nothing
+    renameBind re (VarT v) = VarT $ re v
+    renameBind re (LamT v) = LamT $ re v
 
 instance {-# OVERLAPPING #-} BindingDomain sym
   where
     prVar _ = Nothing
     prLam _ = Nothing
+    renameBind _ a = a
 
 -- | A symbol for let bindings
 --
@@ -485,7 +497,7 @@ desugarMonadTyped = flip runCont (sugarSymTyped Return) . unRemon
 
 
 ----------------------------------------------------------------------------------------------------
--- * Free variables
+-- * Free and bound variables
 ----------------------------------------------------------------------------------------------------
 
 -- | Get the set of free variables in an expression
@@ -506,6 +518,57 @@ allVars (lam :$ body)
     | Just v <- prLam lam = Set.insert v (allVars body)
 allVars (s :$ a) = Set.union (allVars s) (allVars a)
 allVars _ = Set.empty
+
+-- | Generate an infinite list of fresh names given a list of allocated names
+--
+-- The argument is assumed to be sorted and not contain an infinite number of adjacent names.
+freshVars :: [Name] -> [Name]
+freshVars as = go 0 as
+  where
+    go c [] = [c..]
+    go c (v:as)
+      | c < v     = c : go (c+1) (v:as)
+      | c == v    = go (c+1) as
+      | otherwise = go c as
+
+freshVar :: MonadState [Name] m => m Name
+freshVar = do
+    v:vs <- get
+    put vs
+    return v
+
+-- | Rename the bound variables in a term
+--
+-- The free variables are left untouched. The bound variables are given unique
+-- names using as small names as possible. The first argument is a list of
+-- reserved names. Reserved names and names of free variables are not used when
+-- renaming bound variables.
+renameUnique' :: forall sym a . BindingDomain sym =>
+    [Name] -> ASTF sym a -> ASTF sym a
+renameUnique' vs a = flip evalState fs $ go Map.empty a
+  where
+    fs = freshVars $ Set.toAscList (freeVars a `Set.union` Set.fromList vs)
+
+    go :: Map Name Name -> AST sym sig -> State [Name] (AST sym sig)
+    go env var
+      | Just v <- prVar var = case Map.lookup v env of
+          Just w -> return $ renameBind (\_ -> w) var
+          _ -> return var  -- Free variable
+    go env (lam :$ body)
+      | Just v <- prLam lam = do
+          w     <- freshVar
+          body' <- go (Map.insert v w env) body
+          return $ renameBind (\_ -> w) lam :$ body'
+    go env (s :$ a) = liftM2 (:$) (go env s) (go env a)
+    go env s = return s
+
+-- | Rename the bound variables in a term
+--
+-- The free variables are left untouched. The bound variables are given unique
+-- names using as small names as possible. Names of free variables are not used
+-- when renaming bound variables.
+renameUnique :: BindingDomain sym => ASTF sym a -> ASTF sym a
+renameUnique = renameUnique' []
 
 
 
