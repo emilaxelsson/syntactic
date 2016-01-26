@@ -161,7 +161,7 @@ substitute iface x y a
     | otherwise = subst a
   where
     subst :: AST sym c -> AST sym c
-    subst (f :$ a) = subst f :$ substitute iface x y a
+    subst (s :$ a) = subst s :$ substitute iface x y a
     subst a = a
   -- Note: Since `codeMotion` only uses `substitute` to replace sub-expressions
   -- with fresh variables, there's no risk of capturing.
@@ -172,13 +172,31 @@ count :: forall sym a b
     => ASTF sym a  -- ^ Expression to count
     -> ASTF sym b  -- ^ Expression to count in
     -> Int
-count a b
-    | alphaEq a b = 1
-    | otherwise   = cnt b
+count a b = cnt b
   where
-    cnt :: AST sym c -> Int
-    cnt (f :$ b) = cnt f + count a b
-    cnt _        = 0
+    fv = freeVars a
+
+    cnt :: ASTF sym c -> Int
+    cnt c
+      | alphaEq a c = 1
+      | otherwise   = cnt' c
+
+    cnt' :: AST sym sig -> Int
+    cnt' (lam :$ body)
+      | Just v <- prLam lam
+      , Set.member v fv = 0
+          -- There can be no match under a lambda that binds a variable that is
+          -- free in `a`. This case needs to be handled in order to avoid false
+          -- matches.
+          --
+          -- Consider the following expression:
+          --
+          --     (\x -> f x) 0 + f x
+          --
+          -- The sub-expression `f x` appear twice, but `x` means different
+          -- things in the two cases.
+    cnt' (s :$ c) = cnt' s + cnt c
+    cnt' _        = 0
 
 -- | Environment for the expression in the 'choose' function
 data Env sym = Env
@@ -266,7 +284,7 @@ codeMotionM iface a
             :$ (Sym (injLambda id v) :$ body)
 
     descend :: AST sym b -> m (AST sym b)
-    descend (f :$ a) = liftM2 (:$) (descend f) (codeMotionM iface a)
+    descend (s :$ a) = liftM2 (:$) (descend s) (codeMotionM iface a)
     descend a        = return a
 
 -- | Perform common sub-expression elimination and variable hoisting
