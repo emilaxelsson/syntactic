@@ -101,7 +101,7 @@ compileExp :: ASTF Dom a -> CodeGen Exp
 compileExp var
     | Just (Var v) <- prj var = return (varNameE v)
 compileExp (lett :$ a :$ (lam :$ body))
-    | Just Let      <- prj lett
+    | Just (Let _)  <- prj lett
     , Just (LamT v) <- prj lam
     = do
         a' <- compileExp a

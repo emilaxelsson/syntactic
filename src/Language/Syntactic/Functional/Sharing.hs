@@ -87,7 +87,7 @@ defaultInterface var lam sharable hoistOver = Interface {..}
             (\(Typed _) _ ->
               let injVariable = Typed . inj . var
                   injLambda   = Typed . inj . lam
-                  injLet      = Typed $ inj Let
+                  injLet      = Typed $ inj (Let "")
               in  Just InjDict {..}
             ) b
           ) a
@@ -126,7 +126,7 @@ defaultInterfaceDecor teq mkFunInfo var lam sharable hoistOver = Interface {..}
             (\(_ :&: bInfo) _ ->
               let injVariable v = inj (var aInfo v) :&: aInfo
                   injLambda   v = inj (lam aInfo bInfo v) :&: mkFunInfo aInfo bInfo
-                  injLet        = inj Let :&: bInfo
+                  injLet        = inj (Let "") :&: bInfo
               in  Just InjDict {..}
             ) b
           ) a

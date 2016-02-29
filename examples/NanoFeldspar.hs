@@ -227,7 +227,7 @@ instance (Type a, Num a) => Num (Data a)
 
 -- | Explicit sharing
 share :: (Syntax a, Syntax b) => a -> (a -> b) -> b
-share = sugarSymTyped Let
+share = sugarSymTyped (Let "")
 
 -- | Parallel array
 parallel :: Type a => Data Length -> (Data Index -> Data a) -> Data [a]

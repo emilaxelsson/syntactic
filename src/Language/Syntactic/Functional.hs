@@ -401,12 +401,23 @@ instance {-# OVERLAPPING #-} BindingDomain sym
 --
 -- This symbol is just an application operator. The actual binding has to be
 -- done by a lambda that constructs the second argument.
+--
+-- The provided string is just a tag and has nothing to do with the name of the
+-- variable of the second argument (if that argument happens to be a lambda).
+-- However, a back end may use the tag to give a sensible name to the generated
+-- variable.
+--
+-- The string tag may be empty.
 data Let sig
   where
-    Let :: Let (a :-> (a -> b) :-> Full b)
+    Let :: String -> Let (a :-> (a -> b) :-> Full b)
 
-instance Symbol Let where symSig Let = signature
-instance Render Let where renderSym Let = "letBind"
+instance Symbol Let where symSig (Let _) = signature
+
+instance Render Let
+  where
+    renderSym (Let "") = "Let"
+    renderSym (Let nm) = "Let " ++ nm
 
 instance Equality Let
   where
@@ -415,9 +426,9 @@ instance Equality Let
 
 instance StringTree Let
   where
-    stringTreeSym [a, Node lam [body]] Let
-        | ("Lam",v) <- splitAt 3 lam = Node ("Let" ++ v) [a,body]
-    stringTreeSym [a,f] Let = Node "Let" [a,f]
+    stringTreeSym [a, Node lam [body]] letSym
+        | ("Lam",v) <- splitAt 3 lam = Node (renderSym letSym ++ v) [a,body]
+    stringTreeSym [a,f] letSym = Node (renderSym letSym) [a,f]
 
 -- | Monadic constructs
 --
@@ -655,7 +666,7 @@ instance Eval Construct
 
 instance Eval Let
   where
-    evalSym Let = flip ($)
+    evalSym (Let _) = flip ($)
 
 instance Monad m => Eval (MONAD m)
   where
