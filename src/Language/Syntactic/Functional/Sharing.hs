@@ -147,8 +147,9 @@ defaultInterfaceDecor teq mkFunInfo var lam sharable hoistOver = Interface {..}
 -- * Code motion
 --------------------------------------------------------------------------------
 
--- | Substituting a sub-expression. Assumes no variable capturing in the
--- expressions involved.
+-- | Substituting a sub-expression. Assumes that the free variables of the
+-- replacing expression do not occur as binders in the whole expression (so that
+-- there is no risk of capturing).
 substitute :: forall sym a b
     .  (Equality sym, BindingDomain sym)
     => CodeMotionInterface sym
@@ -156,15 +157,27 @@ substitute :: forall sym a b
     -> ASTF sym a  -- ^ Replacing sub-expression
     -> ASTF sym b  -- ^ Whole expression
     -> ASTF sym b
-substitute iface x y a
-    | Just y' <- castExprCM iface y a, alphaEq x a = y'
-    | otherwise = subst a
+substitute iface x y a = subst a
   where
-    subst :: AST sym c -> AST sym c
-    subst (s :$ a) = subst s :$ substitute iface x y a
-    subst a = a
+    fv = freeVars x
+
+    subst :: ASTF sym c -> ASTF sym c
+    subst a
+      | Just y' <- castExprCM iface y a, alphaEq x a = y'
+      | otherwise = subst' a
+
+    subst' :: AST sym c -> AST sym c
+    subst' a@(lam :$ body)
+      | Just v <- prLam lam
+      , Set.member v fv = a
+    subst' (s :$ a) = subst' s :$ subst a
+    subst' a = a
+
   -- Note: Since `codeMotion` only uses `substitute` to replace sub-expressions
-  -- with fresh variables, there's no risk of capturing.
+  -- with fresh variables, the assumption above is fulfilled. However, the
+  -- matching in `subst` needs to be aware of free variables, which is why the
+  -- substitution stops when reaching a lambda that binds a variable that is
+  -- free in the expression to be replaced.
 
 -- | Count the number of occurrences of a sub-expression
 count :: forall sym a b

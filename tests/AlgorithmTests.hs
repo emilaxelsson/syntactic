@@ -228,5 +228,12 @@ cm = codeMotion $ defaultInterface VarT LamT (\_ _ -> True) (\_ -> True)
 prop_codeMotion_vars (a :: Exp Int) = freeVars a == freeVars (cm a)
 prop_codeMotion_eval (a :: Exp Int) = evalAny a == evalAny (cm a)
 
+prop_bug1 = prop_codeMotion_eval exp
+  where
+    exp = add
+        (app2 (lamm 0 (lamm 0 (varr 1))) (int 0) (int 0))
+        (app2 (lamm 1 (lamm 2 (varr 1))) (int 0) (int 0))
+
+
 tests = $testGroupGenerator
 
