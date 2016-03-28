@@ -175,9 +175,9 @@ type family   SmartSym f :: * -> *
 type instance SmartSym (AST sym sig) = sym
 type instance SmartSym (a -> f)      = SmartSym f
 
--- | Make a smart constructor of a symbol. 'smartSym' has any type of the form:
+-- | Make a smart constructor of a symbol. 'smartSym'' has any type of the form:
 --
--- > smartSym
+-- > smartSym'
 -- >     :: sym (a :-> b :-> ... :-> Full x)
 -- >     -> (ASTF sym a -> ASTF sym b -> ... -> ASTF sym x)
 smartSym' :: forall sig f sym

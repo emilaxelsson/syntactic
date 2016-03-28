@@ -192,7 +192,7 @@ eqPred = EqualP
 -- | Portable method for constructing a 'Pred' of the form @SomeClass t1 t2 ...@
 classPred
     :: Name            -- ^ Class name
-    -> (Name -> Type)  -- ^ How to make a type for the class (typically 'ConT' or VarT)
+    -> (Name -> Type)  -- ^ How to make a type for the class (typically 'ConT' or 'VarT')
     -> [Type]          -- ^ Class arguments
     -> Pred
 #if __GLASGOW_HASKELL__ >= 710
