@@ -1,5 +1,5 @@
 Name:           syntactic
-Version:        3.5
+Version:        3.6
 Synopsis:       Generic representation and manipulation of abstract syntax
 Description:    The library provides a generic representation of type-indexed abstract syntax trees
                 (or indexed data types in general). It also permits the definition of open syntax
@@ -68,13 +68,13 @@ library
     Language.Syntactic.Sugar.MonadTyped
   if flag(th)
     exposed-modules:
+      Data.NestTuple
+      Data.NestTuple.TH
       Language.Syntactic.TH
       Language.Syntactic.Functional.Tuple
+      Language.Syntactic.Functional.Tuple.TH
       Language.Syntactic.Sugar.Tuple
       Language.Syntactic.Sugar.TupleTyped
-
-    other-modules:
-      Language.Syntactic.Functional.Tuple.TH
 
   build-depends:
     base >= 4 && < 5,

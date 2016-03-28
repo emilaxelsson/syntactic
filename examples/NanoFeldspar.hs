@@ -160,10 +160,8 @@ cmInterface = defaultInterface VarT LamT sharable (const True)
       -- arguments of higher-order constructs such as `Parallel` are always
       -- lambdas.
     sharable (sel :$ _) _
-        | Just Sel1 <- prj sel = False
-        | Just Sel2 <- prj sel = False
-        | Just Sel3 <- prj sel = False
-        | Just Sel4 <- prj sel = False
+        | Just Fst <- prj sel = False
+        | Just Snd <- prj sel = False
       -- Tuple selection not shared
     sharable (arrl :$ _ ) _
         | Just (Construct "arrLen" _) <- prj arrl = False

@@ -1,17 +1,17 @@
 Lam v3
- └╴Sel1
+ └╴Fst
     └╴ForLoop
        ├╴v3
-       ├╴Tup2
+       ├╴Pair
        │  ├╴0
        │  └╴1
        └╴Lam v2
           └╴Lam v1
-             └╴Tup2
-                ├╴Sel2
+             └╴Pair
+                ├╴Snd
                 │  └╴v1
                 └╴(+)
-                   ├╴Sel1
+                   ├╴Fst
                    │  └╴v1
-                   └╴Sel2
+                   └╴Snd
                       └╴v1

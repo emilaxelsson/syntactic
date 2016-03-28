@@ -7,13 +7,24 @@ module Language.Syntactic.Sugar.Tuple where
 
 
 
-import Language.Haskell.TH
-
 import Language.Syntactic
 import Language.Syntactic.Functional.Tuple
 import Language.Syntactic.Functional.Tuple.TH
 
 
 
-deriveSyntacticForTuples (const []) id (AppE (VarE 'inj)) 15
+instance
+    ( Syntactic a
+    , Syntactic b
+    , Tuple :<: Domain a
+    , Domain a ~ Domain b
+    ) =>
+      Syntactic (a,b)
+  where
+    type Domain (a,b)   = Domain a
+    type Internal (a,b) = (Internal a, Internal b)
+    desugar (a,b) = inj Pair :$ desugar a :$ desugar b
+    sugar ab      = (sugar $ inj Fst :$ ab, sugar $ inj Snd :$ ab)
+
+deriveSyntacticForTuples (const []) id 15
 
