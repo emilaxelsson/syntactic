@@ -41,6 +41,7 @@ instance
 deriveSyntacticForTuples
     (return . classPred ''Typeable ConT . return)
     (AppT (ConT ''Typed))
+    []
 #if __GLASGOW_HASKELL__ < 708
     7
 #else

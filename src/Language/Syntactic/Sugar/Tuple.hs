@@ -26,5 +26,5 @@ instance
     desugar (a,b) = inj Pair :$ desugar a :$ desugar b
     sugar ab      = (sugar $ inj Fst :$ ab, sugar $ inj Snd :$ ab)
 
-deriveSyntacticForTuples (const []) id 15
+deriveSyntacticForTuples (const []) id [] 15
 

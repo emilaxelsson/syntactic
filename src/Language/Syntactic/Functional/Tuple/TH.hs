@@ -35,6 +35,7 @@ import Language.Syntactic.TH
 -- >     , Domain a ~ Domain b
 -- >     , ...
 -- >     , Domain a ~ Domain x
+-- >     , extraConstraint
 -- >     ) =>
 -- >       Syntactic (a,...,x)
 -- >   where
@@ -48,9 +49,10 @@ import Language.Syntactic.TH
 deriveSyntacticForTuples
     :: (Type -> Cxt)   -- ^ @internalPred@ (see above)
     -> (Type -> Type)  -- ^ @mkDomain@ (see above)
+    -> Cxt             -- ^ @extraConstraint@ (see above)
     -> Int             -- ^ Max tuple width
     -> DecsQ
-deriveSyntacticForTuples internalPred mkDomain n = return $
+deriveSyntacticForTuples internalPred mkDomain extraConstraint n = return $
     map deriveSyntacticForTuple [3..n]
   where
     deriveSyntacticForTuple w = InstanceD
@@ -62,6 +64,7 @@ deriveSyntacticForTuples internalPred mkDomain n = return $
             , [eqPred domainA (AppT (ConT ''Domain) b)
                 | b <- tail varsT
               ]
+            , extraConstraint
             ]
         )
         (AppT (ConT ''Syntactic) tupT)
