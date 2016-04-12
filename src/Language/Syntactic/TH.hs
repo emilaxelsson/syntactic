@@ -178,9 +178,12 @@ deriveRender modify ty =
 -- * Portability
 --------------------------------------------------------------------------------
 
+-- Using `__GLASGOW_HASKELL__` instead of `MIN_VERSION_template_haskell`,
+-- because the latter doesn't work when the package is compiled with `-f-th`.
+
 -- | Portable method for constructing a 'Pred' of the form @(t1 ~ t2)@
 eqPred :: Type -> Type -> Pred
-#if MIN_VERSION_template_haskell(2,10,0)
+#if __GLASGOW_HASKELL__ >= 710
 eqPred t1 t2 = foldl1 AppT [EqualityT,t1,t2]
 #else
 eqPred = EqualP
@@ -192,7 +195,7 @@ classPred
     -> (Name -> Type)  -- ^ How to make a type for the class (typically 'ConT' or VarT)
     -> [Type]          -- ^ Class arguments
     -> Pred
-#if MIN_VERSION_template_haskell(2,10,0)
+#if __GLASGOW_HASKELL__ >= 710
 classPred cl con = foldl AppT (con cl)
 #else
 classPred cl con = ClassP cl
@@ -200,7 +203,7 @@ classPred cl con = ClassP cl
 
 -- | Portable method for constructing a type synonym instances
 tySynInst :: Name -> [Type] -> Type -> Dec
-#if MIN_VERSION_template_haskell(2,9,0)
+#if __GLASGOW_HASKELL__ >= 708
 tySynInst t as rhs = TySynInstD t (TySynEqn as rhs)
 #else
 tySynInst = TySynInstD

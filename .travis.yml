@@ -7,17 +7,23 @@ cache:
 
 matrix:
   include:
-    - env: CABALVER=1.18 GHCVER=7.6.3
+    - env: CABALVER=1.18 GHCVER=7.6.3 TH="-f-th"
       addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.18,ghc-7.6.3,happy-1.19.5,alex-3.1.4]}}
-    - env: CABALVER=1.18 GHCVER=7.8.4
+    - env: CABALVER=1.18 GHCVER=7.8.4 TH="-f-th"
       addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.18,ghc-7.8.4,happy-1.19.5,alex-3.1.4]}}
-    - env: CABALVER=1.22 GHCVER=7.10.2
+    - env: CABALVER=1.22 GHCVER=7.10.2 TH="-f-th"
       addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.22,ghc-7.10.2,happy-1.19.5,alex-3.1.4]}}
-    - env: CABALVER=head GHCVER=head
+    - env: CABALVER=1.18 GHCVER=7.6.3 TH=""
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.18,ghc-7.6.3,happy-1.19.5,alex-3.1.4]}}
+    - env: CABALVER=1.18 GHCVER=7.8.4 TH=""
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.18,ghc-7.8.4,happy-1.19.5,alex-3.1.4]}}
+    - env: CABALVER=1.22 GHCVER=7.10.2 TH=""
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.22,ghc-7.10.2,happy-1.19.5,alex-3.1.4]}}
+    - env: CABALVER=head GHCVER=head TH=""
       addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-head,ghc-head,happy-1.19.5,alex-3.1.4]}}
 
   allow_failures:
-    - env: CABALVER=head GHCVER=head
+    - env: CABALVER=head GHCVER=head TH=""
 
 before_install:
   - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$PATH
@@ -27,25 +33,33 @@ install:
   - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
   - travis_retry cabal update
   - cabal sandbox init
-  - cabal install --only-dependencies --enable-tests --enable-benchmarks
-
-script:
-  - cabal configure --enable-tests --enable-benchmarks -v2
-  - cabal build
-  - cabal test
-  - cabal check
-  - cabal sdist
-  - export SRC_TGZ=$(cabal info . | awk '{print $2;exit}');
-    cd dist/;
-    if [ -f "$SRC_TGZ".tar.gz ]; then
-      cabal unpack "$SRC_TGZ".tar.gz;
-      cd "$SRC_TGZ";
-      cabal sandbox init --sandbox ../../.cabal-sandbox;
-      cabal configure --disable-optimization --enable-tests --enable-benchmarks;
-      cabal build;
-      cabal install --disable-optimization --force-reinstalls;
+  - if [ "$TH" = "" ]; then
+      cabal install --only-dependencies --enable-tests --enable-benchmarks;
     else
-       echo "expected '$SRC_TGZ.tar.gz' not found";
-       exit 1;
+      cabal install --only-dependencies $TH;
     fi
 
+script:
+  - if [ "$TH" = "" ]; then
+      cabal configure --enable-tests --enable-benchmarks -v2;
+      cabal build;
+      cabal test;
+      cabal check;
+      cabal sdist;
+      export SRC_TGZ=$(cabal info . | awk '{print $2;exit}');
+      cd dist/;
+      if [ -f "$SRC_TGZ".tar.gz ]; then
+        cabal unpack "$SRC_TGZ".tar.gz;
+        cd "$SRC_TGZ";
+        cabal sandbox init --sandbox ../../.cabal-sandbox;
+        cabal configure --disable-optimization --enable-tests --enable-benchmarks;
+        cabal build;
+        cabal install --disable-optimization --force-reinstalls;
+      else
+         echo "expected '$SRC_TGZ.tar.gz' not found";
+         exit 1;
+      fi
+    else
+      cabal configure -v2 $TH;
+      cabal build;
+    fi
