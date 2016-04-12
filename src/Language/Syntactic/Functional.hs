@@ -213,13 +213,13 @@ maxLam _ = 0
 -- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>).
 lam_template :: (Project Binding sym)
     => (Name -> sym (Full a))
-         -- ^ Variable constructor
-    -> (Name -> sym (b :-> Full (a -> b)))
+         -- ^ Variable symbol constructor
+    -> (Name -> ASTF sym b -> ASTF sym (a -> b))
          -- ^ Lambda constructor
     -> (ASTF sym a -> ASTF sym b) -> ASTF sym (a -> b)
-lam_template mkVar mkLam f = Sym (mkLam v) :$ body
+lam_template mkVar mkLam f = mkLam v body
   where
-    body = f (Sym (mkVar v))
+    body = f $ Sym $ mkVar v
     v    = succ $ maxLam body
 
 -- | Higher-order interface for variable binding
@@ -227,7 +227,7 @@ lam_template mkVar mkLam f = Sym (mkLam v) :$ body
 -- This function is 'lamT_template' specialized to domains @sym@ satisfying
 -- @(`Binding` `:<:` sym)@.
 lam :: (Binding :<: sym) => (ASTF sym a -> ASTF sym b) -> ASTF sym (a -> b)
-lam = lam_template (inj . Var) (inj . Lam)
+lam = lam_template (inj . Var) (\v a -> Sym (inj (Lam v)) :$ a)
 
 -- | Convert from a term with De Bruijn indexes to one with explicit names
 --
@@ -313,13 +313,13 @@ maxLamT _ = 0
 -- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>).
 lamT_template :: Project BindingT sym
     => (Name -> sym (Full a))
-         -- ^ Variable constructor
-    -> (Name -> sym (b :-> Full (a -> b)))
+         -- ^ Variable symbol constructor
+    -> (Name -> ASTF sym b -> ASTF sym (a -> b))
          -- ^ Lambda constructor
     -> (ASTF sym a -> ASTF sym b) -> ASTF sym (a -> b)
-lamT_template mkVarSym mkLamSym f = Sym (mkLamSym v) :$ body
+lamT_template mkVar mkLam f = mkLam v body
   where
-    body = f (Sym $ mkVarSym v)
+    body = f $ Sym $ mkVar v
     v    = succ $ maxLamT body
 
 -- | Higher-order interface for variable binding
@@ -328,7 +328,7 @@ lamT_template mkVarSym mkLamSym f = Sym (mkLamSym v) :$ body
 -- @(`BindingT` `:<:` sym)@.
 lamT :: (BindingT :<: sym, Typeable a) =>
     (ASTF sym a -> ASTF sym b) -> ASTF sym (a -> b)
-lamT = lamT_template (inj . VarT) (inj . LamT)
+lamT = lamT_template (inj . VarT) (\v a -> Sym (inj (LamT v)) :$ a)
 
 -- | Higher-order interface for variable binding
 --
@@ -336,7 +336,9 @@ lamT = lamT_template (inj . VarT) (inj . LamT)
 -- @(sym ~ `Typed` s, `BindingT` `:<:` s)@.
 lamTyped :: (sym ~ Typed s, BindingT :<: s, Typeable a, Typeable b) =>
     (ASTF sym a -> ASTF sym b) -> ASTF sym (a -> b)
-lamTyped = lamT_template (Typed . inj . VarT) (Typed . inj . LamT)
+lamTyped = lamT_template
+    (Typed . inj . VarT)
+    (\v a -> Sym (Typed (inj (LamT v))) :$ a)
 
 -- | Domains that \"might\" include variables and binders
 class BindingDomain sym
