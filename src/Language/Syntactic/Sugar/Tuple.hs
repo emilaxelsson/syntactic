@@ -26,5 +26,8 @@ instance
     desugar (a,b) = inj Pair :$ desugar a :$ desugar b
     sugar ab      = (sugar $ inj Fst :$ ab, sugar $ inj Snd :$ ab)
 
+-- `desugar` and `sugar` can be seen as applying the eta-rule for pairs.
+-- <https://mail.haskell.org/pipermail/haskell-cafe/2016-April/123639.html>
+
 deriveSyntacticForTuples (const []) id [] 15
 
