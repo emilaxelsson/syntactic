@@ -23,6 +23,7 @@ import Data.Tree.View
 import Language.Syntactic.Syntax
 import Language.Syntactic.Traversal
 import Language.Syntactic.Interpretation
+import Language.Syntactic.Sugar
 
 
 
@@ -135,4 +136,46 @@ writeHtmlDecorWith showInfo file a = writeHtmlTree file $ mkTree [] a
     mkTree :: [Tree NodeInfo] -> AST (sym :&: info) sig -> Tree NodeInfo
     mkTree args (f :$ a)              = mkTree (mkTree [] a : args) f
     mkTree args (Sym (expr :&: info)) = Node (NodeInfo (renderSym expr) (showInfo info)) args
+
+-- | Make a smart constructor of a symbol. 'smartSymDecor' has any type of the
+-- form:
+--
+-- > smartSymDecor :: (sub :<: AST (sup :&: info))
+-- >     => info x
+-- >     -> sub (a :-> b :-> ... :-> Full x)
+-- >     -> (ASTF sup a -> ASTF sup b -> ... -> ASTF sup x)
+smartSymDecor
+    :: ( Signature sig
+       , f              ~ SmartFun (sup :&: info) sig
+       , sig            ~ SmartSig f
+       , (sup :&: info) ~ SmartSym f
+       , sub :<: sup
+       )
+    => info (DenResult sig) -> sub sig -> f
+smartSymDecor d = smartSym' . (:&: d) . inj
+
+-- | \"Sugared\" symbol application
+--
+-- 'sugarSymDecor' has any type of the form:
+--
+-- > sugarSymDecor ::
+-- >     ( sub :<: AST (sup :&: info)
+-- >     , Syntactic a
+-- >     , Syntactic b
+-- >     , ...
+-- >     , Syntactic x
+-- >     , Domain a ~ Domain b ~ ... ~ Domain x
+-- >     ) => info (Internal x)
+-- >       -> sub (Internal a :-> Internal b :-> ... :-> Full (Internal x))
+-- >       -> (a -> b -> ... -> x)
+sugarSymDecor
+    :: ( Signature sig
+       , fi             ~ SmartFun (sup :&: info) sig
+       , sig            ~ SmartSig fi
+       , (sup :&: info) ~ SmartSym fi
+       , SyntacticN f fi
+       , sub :<: sup
+       )
+    => info (DenResult sig) -> sub sig -> f
+sugarSymDecor i = sugarN . smartSymDecor i
 

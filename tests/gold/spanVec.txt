@@ -3,7 +3,7 @@ Lam v3
     ├╴ForLoop
     │  ├╴arrLen
     │  │  └╴v3
-    │  ├╴Tup2
+    │  ├╴Pair
     │  │  ├╴arrIx
     │  │  │  ├╴v3
     │  │  │  └╴0
@@ -12,21 +12,21 @@ Lam v3
     │  │     └╴0
     │  └╴Lam v2
     │     └╴Lam v1
-    │        └╴Tup2
+    │        └╴Pair
     │           ├╴min
     │           │  ├╴arrIx
     │           │  │  ├╴v3
     │           │  │  └╴v2
-    │           │  └╴Sel1
+    │           │  └╴Fst
     │           │     └╴v1
     │           └╴max
     │              ├╴arrIx
     │              │  ├╴v3
     │              │  └╴v2
-    │              └╴Sel2
+    │              └╴Snd
     │                 └╴v1
     └╴(-)
-       ├╴Sel2
+       ├╴Snd
        │  └╴v4
-       └╴Sel1
+       └╴Fst
           └╴v4

@@ -1,6 +1,6 @@
 v3 = inp0
-v1 = (Tup2 0 1)
+v1 = (Pair 0 1)
 for v2 < v3
-    v0 = (Tup2 (Sel2 v1) ((Sel1 v1) + (Sel2 v1)))
+    v0 = (Pair (Snd v1) ((Fst v1) + (Snd v1)))
     v1 = v0
-out = (Sel1 v0)
+out = (Fst v0)

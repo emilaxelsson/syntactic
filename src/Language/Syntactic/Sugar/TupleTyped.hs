@@ -16,14 +16,35 @@ import Data.Orphans ()
 #endif
 
 import Language.Syntactic
+import Language.Syntactic.TH
 import Language.Syntactic.Functional.Tuple
+import Language.Syntactic.Functional.Tuple.TH
 
 
+
+instance
+    ( Syntactic a
+    , Syntactic b
+    , Typeable (Internal a)
+    , Typeable (Internal b)
+    , Tuple :<: sym
+    , Domain a ~ Typed sym
+    , Domain a ~ Domain b
+    ) =>
+      Syntactic (a,b)
+  where
+    type Domain (a,b)   = Domain a
+    type Internal (a,b) = (Internal a, Internal b)
+    desugar (a,b) = Sym (Typed $ inj Pair) :$ desugar a :$ desugar b
+    sugar ab      = (sugar $ Sym (Typed $ inj Fst) :$ ab, sugar $ Sym (Typed $ inj Snd) :$ ab)
+
+-- `desugar` and `sugar` can be seen as applying the eta-rule for pairs.
+-- <https://mail.haskell.org/pipermail/haskell-cafe/2016-April/123639.html>
 
 deriveSyntacticForTuples
     (return . classPred ''Typeable ConT . return)
     (AppT (ConT ''Typed))
-    (\s -> AppE (ConE 'Typed) (AppE (VarE 'inj) s))
+    []
 #if __GLASGOW_HASKELL__ < 708
     7
 #else
