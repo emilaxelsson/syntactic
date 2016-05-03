@@ -273,6 +273,12 @@ choose iface a = chooseEnvSub initEnv a
     chooseEnvSub env (s :$ b) = chooseEnvSub env s `mplus` chooseEnv env b
     chooseEnvSub _ _ = Nothing
 
+-- If `codeMotionM` loops forever, the reason may be that `castExprCM` is
+-- broken. If `castExprCM` fails to cast even when it should, it means that
+-- we can get into situations where `substitute` returns the same expression
+-- unchanged. This in turn means that `codeMotionM` will loop, since it calls
+-- itself with `codeMotionM iface $ substitute iface b x a`.
+
 codeMotionM :: forall sym m a
     .  ( Equality sym
        , BindingDomain sym
