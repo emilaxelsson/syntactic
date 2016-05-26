@@ -51,7 +51,7 @@ mkNestableInstances
     -> DecsQ
 mkNestableInstances n = return $ map nestableInstance [2..n]
   where
-    nestableInstance w = InstanceD
+    nestableInstance w = instD
         []
         (AppT (ConT (mkName "Nestable")) tupT)
         [ tySynInst (mkName "Nested") [tupT] (foldNest VarT mkPairT $ toNest vars)

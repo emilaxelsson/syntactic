@@ -20,6 +20,12 @@ conName (NormalC name args) = (name, length args)
 conName (RecC name args)    = (name, length args)
 conName (InfixC _ name _)   = (name, 2)
 conName (ForallC _ _ c)     = conName c
+#if __GLASGOW_HASKELL__ >= 800
+conName (GadtC [n] as _)    = (n, length as)
+conName (RecGadtC [n] as _) = (n, length as)
+  -- I don't know what it means when a `GadtC` and `RecGadtC` don't have
+  -- singleton lists of names
+#endif
 
 -- | Description of class methods
 data Method
@@ -40,9 +46,9 @@ deriveClass
     -> [Method]  -- ^ Methods
     -> DecsQ
 deriveClass cxt ty clHead methods = do
-    t@(TyConI (DataD _ _ _ cs _)) <- reify ty
+    Just cs <- viewDataDef <$> reify ty
     return
-      [ InstanceD cxt clHead $
+      [ instD cxt clHead $
           [ FunD method (clauses ++ extra)
             | MatchingMethod method mkClause extra <- methods
             , let clauses = [ mkClause c i nm ar | (i,c) <- zip [0..] cs
@@ -90,7 +96,7 @@ deriveEquality
     :: Name  -- ^ Type name
     -> DecsQ
 deriveEquality ty = do
-    TyConI (DataD _ _ _ cs _) <- reify ty
+    Just cs <- viewDataDef <$> reify ty
     let equalFallThrough = if length cs > 1
           then [Clause [WildP, WildP] (NormalB $ ConE 'False) []]
           else []
@@ -180,6 +186,27 @@ deriveRender modify ty =
 
 -- Using `__GLASGOW_HASKELL__` instead of `MIN_VERSION_template_haskell`,
 -- because the latter doesn't work when the package is compiled with `-f-th`.
+
+-- | Construct an instance declaration
+instD
+    :: Cxt    -- ^ Context
+    -> Type   -- ^ Instance
+    -> [Dec]  -- ^ Methods, etc.
+    -> Dec
+#if __GLASGOW_HASKELL__ >= 800
+instD = InstanceD Nothing
+#else
+instD = InstanceD
+#endif
+
+-- | Get the constructors of a data type definition
+viewDataDef :: Info -> Maybe [Con]
+#if __GLASGOW_HASKELL__ >= 800
+viewDataDef (TyConI (DataD _ _ _ _ cs _)) = Just cs
+#else
+viewDataDef (TyConI (DataD _ _ _ cs _)) = Just cs
+#endif
+viewDataDef _ = Nothing
 
 -- | Portable method for constructing a 'Pred' of the form @(t1 ~ t2)@
 eqPred :: Type -> Type -> Pred

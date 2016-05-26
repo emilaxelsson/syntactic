@@ -55,7 +55,7 @@ deriveSyntacticForTuples
 deriveSyntacticForTuples internalPred mkDomain extraConstraint n = return $
     map deriveSyntacticForTuple [3..n]
   where
-    deriveSyntacticForTuple w = InstanceD
+    deriveSyntacticForTuple w = instD
         ( concat
             [ map (classPred ''Syntactic ConT . return) varsT
             , concatMap internalPred $ map (AppT (ConT ''Internal)) varsT
