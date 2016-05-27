@@ -5,6 +5,10 @@ module Language.Syntactic.TH where
 
 
 
+#if __GLASGOW_HASKELL__ < 710
+import Control.Applicative
+#endif
+
 import Language.Haskell.TH
 
 import Data.Hash (hashInt, combine)
