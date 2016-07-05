@@ -1,26 +1,29 @@
+# Inspired by
+# https://github.com/hvr/multi-ghc-travis/blob/master/make_travis_yml_2.hs
+
 sudo: false
 language: c
 
 cache:
   directories:
-    - .cabal-sandbox
+    - $HOME/.cabal
 
 matrix:
   include:
-    - env: CABALVER=1.18 GHCVER=7.6.3 TH="-f-th"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.18,ghc-7.6.3]}}
-    - env: CABALVER=1.18 GHCVER=7.8.4 TH="-f-th"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.18,ghc-7.8.4]}}
-    - env: CABALVER=1.22 GHCVER=7.10.2 TH="-f-th"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.22,ghc-7.10.2]}}
+    - env: CABALVER=1.24 GHCVER=7.6.3 TH="-f-th"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.24,ghc-7.6.3]}}
+    - env: CABALVER=1.24 GHCVER=7.8.4 TH="-f-th"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.24,ghc-7.8.4]}}
+    - env: CABALVER=1.24 GHCVER=7.10.3 TH="-f-th"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.24,ghc-7.10.3]}}
     - env: CABALVER=1.24 GHCVER=8.0.1 TH="-f-th"
       addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.24,ghc-8.0.1]}}
-    - env: CABALVER=1.18 GHCVER=7.6.3 TH=""
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.18,ghc-7.6.3]}}
-    - env: CABALVER=1.18 GHCVER=7.8.4 TH=""
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.18,ghc-7.8.4]}}
-    - env: CABALVER=1.22 GHCVER=7.10.2 TH=""
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.22,ghc-7.10.2]}}
+    - env: CABALVER=1.24 GHCVER=7.6.3 TH=""
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.24,ghc-7.6.3]}}
+    - env: CABALVER=1.24 GHCVER=7.8.4 TH=""
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.24,ghc-7.8.4]}}
+    - env: CABALVER=1.24 GHCVER=7.10.3 TH=""
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.24,ghc-7.10.3]}}
     - env: CABALVER=1.24 GHCVER=8.0.1 TH=""
       addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.24,ghc-8.0.1]}}
     - env: CABALVER=head GHCVER=head TH=""
@@ -30,40 +33,39 @@ matrix:
     - env: CABALVER=head GHCVER=head TH=""
 
 before_install:
+  - env
   - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$PATH
 
 install:
   - cabal --version
   - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
-  - travis_retry cabal update
-  - cabal sandbox init
+  - travis_retry cabal update -v
   - if [ "$TH" = "" ]; then
-      cabal install --only-dependencies --enable-tests --enable-benchmarks;
+      cabal new-build --enable-tests --enable-benchmarks --dependencies;
     else
-      cabal install --only-dependencies $TH;
+      cabal new-build $TH --dependencies;
     fi
 
 script:
+  # For some reason, it's not allowed to echo directly into
+  # dist/$SRC_BASENAME/cabal.project below. This gives a syntax error due to the
+  # colon.
+  # Syntax can be checked at <http://lint.travis-ci.org>.
+  - "echo 'packages: *.cabal' > ccc"
   - if [ "$TH" = "" ]; then
-      cabal configure --enable-tests --enable-benchmarks -v2;
-      cabal build;
-      cabal test;
+      cabal new-build --enable-tests --enable-benchmarks -v2;
+      TESTS=( $(awk 'tolower($0) ~ /^test-suite / { print $2 }' *.cabal) );
+      RC=true; for T in ${TESTS[@]}; do echo "== $T ==";
+      if dist-newstyle/build/*/build/$T/$T; then echo "= $T OK =";
+      else echo "= $T FAILED ="; RC=false; fi; done; $RC;
       cabal check;
       cabal sdist;
-      export SRC_TGZ=$(cabal info . | awk '{print $2;exit}');
-      cd dist/;
-      if [ -f "$SRC_TGZ".tar.gz ]; then
-        cabal unpack "$SRC_TGZ".tar.gz;
-        cd "$SRC_TGZ";
-        cabal sandbox init --sandbox ../../.cabal-sandbox;
-        cabal configure --disable-optimization --enable-tests --enable-benchmarks;
-        cabal build;
-        cabal install --disable-optimization --force-reinstalls;
-      else
-         echo "expected '$SRC_TGZ.tar.gz' not found";
-         exit 1;
-      fi
+      SRC_BASENAME=$(cabal info . | awk '{print $2;exit}');
+      tar -C dist/ -xf dist/$SRC_BASENAME.tar.gz;
+      mv ccc dist/$SRC_BASENAME/cabal.project;
+      cd dist/$SRC_BASENAME/;
+      cabal new-build --enable-tests --enable-benchmarks --disable-optimization;
     else
-      cabal configure -v2 $TH;
-      cabal build;
+      cabal new-build $TH -v2;
     fi
+
