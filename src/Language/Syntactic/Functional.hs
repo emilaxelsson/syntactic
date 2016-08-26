@@ -478,6 +478,9 @@ newtype Remon sym m a
   -- bake in `Typeable` here. A more flexible solution would be to parameterize
   -- `Remon` on the constraint.
 
+  -- Note that `Remon` can be seen as a variant of the codensity monad:
+  -- <https://hackage.haskell.org/package/kan-extensions/docs/Control-Monad-Codensity.html>
+
 instance Applicative (Remon sym m)
   where
     pure a  = Remon $ pure a
