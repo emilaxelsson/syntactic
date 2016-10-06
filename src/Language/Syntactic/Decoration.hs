@@ -131,11 +131,12 @@ drawDecorWith showInfo = putStrLn . showDecorWith showInfo
 
 writeHtmlDecorWith :: forall info sym a. (StringTree sym)
                    => (forall b. info b -> String) -> FilePath -> ASTF (sym :&: info) a -> IO ()
-writeHtmlDecorWith showInfo file a = writeHtmlTree file $ mkTree [] a
+writeHtmlDecorWith showInfo file a = writeHtmlTree Nothing file $ mkTree [] a
   where
     mkTree :: [Tree NodeInfo] -> AST (sym :&: info) sig -> Tree NodeInfo
-    mkTree args (f :$ a)              = mkTree (mkTree [] a : args) f
-    mkTree args (Sym (expr :&: info)) = Node (NodeInfo (renderSym expr) (showInfo info)) args
+    mkTree args (f :$ a) = mkTree (mkTree [] a : args) f
+    mkTree args (Sym (expr :&: info)) =
+      Node (NodeInfo InitiallyExpanded (renderSym expr) (showInfo info)) args
 
 -- | Make a smart constructor of a symbol. 'smartSymDecor' has any type of the
 -- form:

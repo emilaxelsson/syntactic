@@ -191,7 +191,9 @@ drawAST = putStrLn . showAST
 
 -- | Write a syntax tree to an HTML file with foldable nodes
 writeHtmlAST :: StringTree sym => FilePath -> ASTF sym a -> IO ()
-writeHtmlAST file = writeHtmlTree file . fmap (\n -> NodeInfo n "") . stringTree
+writeHtmlAST file
+    = writeHtmlTree Nothing file
+    . fmap (\n -> NodeInfo InitiallyExpanded n "") . stringTree
 
 
 

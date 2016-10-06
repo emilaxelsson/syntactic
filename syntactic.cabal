@@ -1,5 +1,5 @@
 Name:           syntactic
-Version:        3.6.1
+Version:        3.6.2
 Synopsis:       Generic representation and manipulation of abstract syntax
 Description:    The library provides a generic representation of type-indexed abstract syntax trees
                 (or indexed data types in general). It also permits the definition of open syntax
@@ -84,7 +84,7 @@ library
     deepseq,
     mtl >= 2 && < 3,
     syb,
-    tree-view
+    tree-view >= 0.5
 
   if impl(ghc < 7.10)
     build-depends: base-orphans
