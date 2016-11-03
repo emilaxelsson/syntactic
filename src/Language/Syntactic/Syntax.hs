@@ -20,7 +20,6 @@ module Language.Syntactic.Syntax
     ( -- * Syntax trees
       AST (..)
     , ASTF
-    , ASTFF
     , ASTFull (..)
     , Sig (..)
     , SigRep (..)
@@ -93,8 +92,7 @@ infixl 1 :$
 -- | Fully applied abstract syntax tree
 type ASTF sym a = AST sym (Full a)
 
-type ASTFF (sym :: Sig Type -> Type) (a :: Type) = AST sym (Full a)
-newtype ASTFull sym a = ASTFull {unASTFull :: ASTFF sym a}
+newtype ASTFull sym a = ASTFull {unASTFull :: ASTF sym a}
 
 
 -- | Fully applied abstract syntax tree
@@ -319,7 +317,7 @@ smartSymTyped = smartSym' . Typed . inj
 -- lists (e.g. to avoid overlapping instances):
 --
 -- > (A :+: B :+: Empty)
-data Empty :: Type -> Type
+data Empty :: k -> Type
 
 
 

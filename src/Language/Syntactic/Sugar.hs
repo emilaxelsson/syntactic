@@ -32,17 +32,17 @@ class Syntactic a
   where
     type Domain a :: Sig Type -> Type
     type Internal a
-    desugar :: a -> ASTFF (Domain a) (Internal a)
-    sugar   :: ASTFF (Domain a) (Internal a) -> a
+    desugar :: a -> ASTF (Domain a) (Internal a)
+    sugar   :: ASTF (Domain a) (Internal a) -> a
 
-instance Syntactic (ASTFF sym a)
+instance Syntactic (ASTF (sym :: Sig Type -> Type) a)
   where
-    type Domain (ASTFF sym a)   = sym
-    type Internal (ASTFF sym a) = a
+    type Domain (ASTF sym a)   = sym
+    type Internal (ASTF sym a) = a
     desugar = id
     sugar   = id
 
-instance Syntactic (ASTFull sym a)
+instance Syntactic (ASTFull (sym :: Sig Type -> Type) a)
   where
     type Domain (ASTFull sym a)   = sym
     type Internal (ASTFull sym a) = a

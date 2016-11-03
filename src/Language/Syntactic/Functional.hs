@@ -642,13 +642,13 @@ alphaEq = alphaEq' []
 ----------------------------------------------------------------------------------------------------
 
 -- | Semantic function type of the given symbol signature
-type family Denotation :: Sig Type -> Type where
+type family Denotation sig where
   Denotation (Full a)    = a
   Denotation (a :-> sig) = a -> Denotation sig
 
 class Eval s
-  where
-    evalSym :: s (sig :: Sig Type -> Type) -> Denotation sig
+  where    
+    evalSym :: s sig -> Denotation sig
 
 instance (Eval s, Eval t) => Eval (s :+: t)
   where

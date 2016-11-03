@@ -100,12 +100,12 @@ evalClosedWS = evalOpenWS ()
 -- to
 --
 -- > Reader env a :-> Reader env b :-> Full (Reader env c)
-type family   LiftReader env sig
-type instance LiftReader env (Full a)    = Full (Reader env a)
-type instance LiftReader env (a :-> sig) = Reader env a :-> LiftReader env sig
+type family   LiftReader env sig where
+  LiftReader env (Full a)    = Full (Reader env a)
+  LiftReader env (a :-> sig) = Reader env a :-> LiftReader env sig
 
-type family UnReader a
-type instance UnReader (Reader e a) = a
+type family UnReader a where
+  UnReader (Reader e a) = a
 
 -- | Mapping from a symbol signature
 --
@@ -114,9 +114,9 @@ type instance UnReader (Reader e a) = a
 -- to
 --
 -- > a :-> b :-> Full c
-type family   LowerReader sig
-type instance LowerReader (Full a)    = Full (UnReader a)
-type instance LowerReader (a :-> sig) = UnReader a :-> LowerReader sig
+type family   LowerReader sig where
+  LowerReader (Full a)    = Full (UnReader a)
+  LowerReader (a :-> sig) = UnReader a :-> LowerReader sig
 
 -- | Wrap a symbol to give it a 'LiftReader' signature
 data ReaderSym sym sig
@@ -173,4 +173,3 @@ smartWS :: forall sig sig' bsym f sub sup env a
        )
     => sub sig -> f
 smartWS s = smartSym' $ InjR $ ReaderSym (Proxy :: Proxy env) $ inj s
-
