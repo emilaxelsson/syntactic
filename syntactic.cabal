@@ -117,8 +117,7 @@ library
     ScopedTypeVariables
     TypeFamilies
     TypeOperators
-    TypeInType
-
+    
 
 
   other-extensions:

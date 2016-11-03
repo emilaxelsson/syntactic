@@ -67,11 +67,11 @@ import Data.Proxy  -- Needed by GHC < 7.8
 import Data.Traversable (Traversable)
 #endif
 
-import Data.Kind (Type)
-
 -- | Signature of a fully applied symbol
 data Sig a = Full a | (:->) a (Sig a)
   deriving (Show, Ord, Eq, Typeable, Functor)
+
+infixr :->
 
 --------------------------------------------------------------------------------
 -- * Syntax trees
@@ -82,7 +82,7 @@ data Sig a = Full a | (:->) a (Sig a)
 -- @(`AST` sym (a `:->` b))@ represents a partially applied (or unapplied)
 -- symbol, missing at least one argument, while @(`AST` sym (`Full` a))@
 -- represents a fully applied symbol, i.e. a complete syntax tree.
-data AST :: (Sig t -> Type) -> Sig t -> Type
+data AST :: (Sig t -> *) -> Sig t -> *
   where
     Sym  :: sym sig -> AST sym sig
     (:$) :: AST sym (a :-> sig) -> AST sym (Full a) -> AST sym sig
@@ -103,9 +103,6 @@ newtype ASTFull sym a = ASTFull {unASTFull :: ASTF sym a}
 --     fmap f (Sym s)  = Sym (fmap f s)
 --     fmap f (s :$ a) = fmap (fmap f) s :$ a
 
-
-
-infixr :->
 
 -- | Witness of the arity of a symbol signature
 data SigRep sig
@@ -156,7 +153,7 @@ size (s :$ a) = size s + size a
 -- | Maps a symbol signature to the type of the corresponding smart constructor:
 --
 -- > SmartFun sym (a :-> b :-> ... :-> Full x) = ASTF sym a -> ASTF sym b -> ... -> ASTF sym x
-type family   SmartFun (sym :: Sig t -> Type) sig where
+type family   SmartFun (sym :: Sig t -> *) sig where
   SmartFun sym (Full a)    = ASTF sym a
   SmartFun sym (a :-> sig) = ASTF sym a -> SmartFun sym sig
 
@@ -168,7 +165,7 @@ type family   SmartSig f where
   SmartSig (ASTF sym a -> f) = a :-> SmartSig f
 
 -- | Returns the symbol in the result of a smart constructor
-type family   SmartSym f :: Sig t -> Type where
+type family   SmartSym f :: Sig t -> * where
   SmartSym (AST sym sig) = sym
   SmartSym (a -> f)      = SmartSym f
 
@@ -314,7 +311,7 @@ smartSymTyped = smartSym' . Typed . inj
 -- lists (e.g. to avoid overlapping instances):
 --
 -- > (A :+: B :+: Empty)
-data Empty :: k -> Type
+data Empty :: k -> *
 
 
 
@@ -352,7 +349,7 @@ liftEF2 f (EF a) (EF b) = f a b
 
 -- | \"Typed\" symbol. Using @`Typed` sym@ instead of @sym@ gives access to the
 -- function 'castExpr' for casting expressions.
-data Typed :: (Sig Type -> Type) -> Sig Type -> Type
+data Typed :: (Sig * -> *) -> Sig * -> *
   where
     Typed :: Typeable (DenResult sig) => sym sig -> Typed sym sig
 

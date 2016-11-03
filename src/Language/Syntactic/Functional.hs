@@ -87,7 +87,6 @@ import Data.Tree
 import Data.Hash (hashInt)
 
 
-import Data.Kind (Type)
 import Language.Syntactic
 
 
@@ -642,11 +641,11 @@ alphaEq = alphaEq' []
 ----------------------------------------------------------------------------------------------------
 
 -- | Semantic function type of the given symbol signature
-type family Denotation (sig :: Sig Type) where
+type family Denotation (sig :: Sig *) where
   Denotation (Full a)    = a
   Denotation (a :-> sig) = a -> Denotation sig
 
-class Eval (s :: Sig Type -> Type)
+class Eval (s :: Sig * -> *)
   where
     evalSym :: s sig -> Denotation sig
 
@@ -695,7 +694,7 @@ evalDen = go
 -- to
 --
 -- > m a -> m b -> m c
-type family   DenotationM (m :: Type -> Type) sig where
+type family   DenotationM (m :: * -> *) sig where
   DenotationM m (Full a)    = m a
   DenotationM m (a :-> sig) = m a -> DenotationM m sig
 
