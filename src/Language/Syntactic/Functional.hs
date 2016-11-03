@@ -86,6 +86,8 @@ import Data.Tree
 
 import Data.Hash (hashInt)
 
+
+import Data.Kind (Type)
 import Language.Syntactic
 
 
@@ -640,13 +642,13 @@ alphaEq = alphaEq' []
 ----------------------------------------------------------------------------------------------------
 
 -- | Semantic function type of the given symbol signature
-type family   Denotation sig
-type instance Denotation (Full a)    = a
-type instance Denotation (a :-> sig) = a -> Denotation sig
+type family Denotation :: Sig Type -> Type where
+  Denotation (Full a)    = a
+  Denotation (a :-> sig) = a -> Denotation sig
 
 class Eval s
   where
-    evalSym :: s sig -> Denotation sig
+    evalSym :: s (sig :: Sig Type -> Type) -> Denotation sig
 
 instance (Eval s, Eval t) => Eval (s :+: t)
   where
@@ -693,9 +695,9 @@ evalDen = go
 -- to
 --
 -- > m a -> m b -> m c
-type family   DenotationM (m :: * -> *) sig
-type instance DenotationM m (Full a)    = m a
-type instance DenotationM m (a :-> sig) = m a -> DenotationM m sig
+type family   DenotationM (m :: Type -> Type) sig where
+  DenotationM m (Full a)    = m a
+  DenotationM m (a :-> sig) = m a -> DenotationM m sig
 
 -- | Lift a 'Denotation' to 'DenotationM'
 liftDenotationM :: forall m sig proxy1 proxy2 . Monad m =>
@@ -782,4 +784,3 @@ evalOpen env a = runReader (compile Proxy a) env
 -- (Note that there is no guarantee that the term is actually closed.)
 evalClosed :: EvalEnv sym RunEnv => ASTF sym a -> a
 evalClosed a = runReader (compile (Proxy :: Proxy RunEnv) a) []
-
