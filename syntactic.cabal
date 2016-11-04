@@ -162,6 +162,7 @@ benchmark syntactic-bench
   default-language: Haskell2010
 
   default-extensions:
+    DataKinds
     FlexibleInstances
     GADTs
     MultiParamTypeClasses
