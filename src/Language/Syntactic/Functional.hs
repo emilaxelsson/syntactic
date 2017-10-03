@@ -74,10 +74,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Data.Dynamic
 import Data.List (genericIndex)
-#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
-#else
-import Data.Proxy  -- Needed by GHC < 7.8
-#endif
+import Data.Proxy
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
@@ -90,9 +87,9 @@ import Language.Syntactic
 
 
 
-----------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- * Syntactic constructs
-----------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 -- | Literal
 data Literal sig
@@ -158,8 +155,8 @@ instance Symbol Binding
 
 instance NFData1 Binding
   where
-    rnf1 (Var v) = rnf v
-    rnf1 (Lam v) = rnf v
+    liftRnf _ (Var v) = rnf v
+    liftRnf _ (Lam v) = rnf v
 
 -- | 'equal' does strict identifier comparison; i.e. no alpha equivalence.
 --
@@ -258,8 +255,8 @@ instance Symbol BindingT
 
 instance NFData1 BindingT
   where
-    rnf1 (VarT v) = rnf v
-    rnf1 (LamT v) = rnf v
+    liftRnf _ (VarT v) = rnf v
+    liftRnf _ (LamT v) = rnf v
 
 -- | 'equal' does strict identifier comparison; i.e. no alpha equivalence.
 --
@@ -588,9 +585,9 @@ renameUnique = renameUnique' []
 
 
 
-----------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- * Alpha-equivalence
-----------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 -- | Environment used by 'alphaEq''
 type AlphaEnv = [(Name,Name)]
@@ -635,9 +632,9 @@ alphaEq = alphaEq' []
 
 
 
-----------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- * Evaluation
-----------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 -- | Semantic function type of the given symbol signature
 type family   Denotation sig
