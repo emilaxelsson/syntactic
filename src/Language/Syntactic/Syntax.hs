@@ -14,7 +14,7 @@
 -- | Generic representation of typed syntax trees
 --
 -- For details, see: A Generic Abstract Syntax Model for Embedded Languages
--- (ICFP 2012, <http://www.cse.chalmers.se/~emax/documents/axelsson2012generic.pdf>).
+-- (ICFP 2012, <https://emilaxelsson.github.io/documents/axelsson2012generic.pdf>).
 
 module Language.Syntactic.Syntax
     ( -- * Syntax trees

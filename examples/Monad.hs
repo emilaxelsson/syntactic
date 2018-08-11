@@ -7,7 +7,7 @@
 
 -- | This module demonstrates monad reification.
 -- See \"Generic Monadic Constructs for Embedded Languages\" (Persson et al., IFL 2011
--- <http://www.cse.chalmers.se/~emax/documents/persson2011generic.pdf>) for details.
+-- <https://emilaxelsson.github.io/documents/persson2011generic.pdf>) for details.
 
 module Monad where
 

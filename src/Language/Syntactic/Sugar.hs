@@ -14,7 +14,7 @@
 -- | \"Syntactic sugar\"
 --
 -- For details, see "Combining Deep and Shallow Embedding for EDSL"
--- (TFP 2013, <http://www.cse.chalmers.se/~emax/documents/svenningsson2013combining.pdf>).
+-- (TFP 2013, <https://emilaxelsson.github.io/documents/svenningsson2013combining.pdf>).
 
 module Language.Syntactic.Sugar where
 

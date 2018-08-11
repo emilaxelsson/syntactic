@@ -1,5 +1,5 @@
 Name:           syntactic
-Version:        3.7
+Version:        3.7.1
 Synopsis:       Generic representation and manipulation of abstract syntax
 Description:    The library provides a generic representation of type-indexed abstract syntax trees
                 (or indexed data types in general). It also permits the definition of open syntax
@@ -13,10 +13,10 @@ Description:    The library provides a generic representation of type-indexed ab
                 (ICFP 2012):
                 .
                   * Paper:
-                    <http://www.cse.chalmers.se/~emax/documents/axelsson2012generic.pdf>
+                    <https://emilaxelsson.github.io/documents/axelsson2012generic.pdf>
                 .
                   * Slides:
-                    <http://www.cse.chalmers.se/~emax/documents/axelsson2012generic-slides.pdf>
+                    <https://emilaxelsson.github.io/documents/axelsson2012generic-slides.pdf>
                 .
                 Example EDSLs can be found in the @examples@ folder.
                 .

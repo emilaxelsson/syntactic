@@ -207,7 +207,7 @@ maxLam _ = 0
 -- the root.
 --
 -- See \"Using Circular Programs for Higher-Order Syntax\"
--- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>).
+-- (ICFP 2013, <https://emilaxelsson.github.io/documents/axelsson2013using.pdf>).
 lam_template :: (Project Binding sym)
     => (Name -> sym (Full a))
          -- ^ Variable symbol constructor
@@ -307,7 +307,7 @@ maxLamT _ = 0
 -- the root.
 --
 -- See \"Using Circular Programs for Higher-Order Syntax\"
--- (ICFP 2013, <http://www.cse.chalmers.se/~emax/documents/axelsson2013using.pdf>).
+-- (ICFP 2013, <https://emilaxelsson.github.io/documents/axelsson2013using.pdf>).
 lamT_template :: Project BindingT sym
     => (Name -> sym (Full a))
          -- ^ Variable symbol constructor
@@ -432,7 +432,7 @@ instance StringTree Let
 -- | Monadic constructs
 --
 -- See \"Generic Monadic Constructs for Embedded Languages\" (Persson et al., IFL 2011
--- <http://www.cse.chalmers.se/~emax/documents/persson2011generic.pdf>).
+-- <https://emilaxelsson.github.io/documents/persson2011generic.pdf>).
 data MONAD m sig
   where
     Return :: MONAD m (a :-> Full (m a))
@@ -459,7 +459,7 @@ instance StringTree (MONAD m)
 -- | Reifiable monad
 --
 -- See \"Generic Monadic Constructs for Embedded Languages\" (Persson et al.,
--- IFL 2011 <http://www.cse.chalmers.se/~emax/documents/persson2011generic.pdf>).
+-- IFL 2011 <https://emilaxelsson.github.io/documents/persson2011generic.pdf>).
 --
 -- It is advised to convert to/from 'Remon' using the 'Syntactic' instance
 -- provided in the modules "Language.Syntactic.Sugar.Monad" or
