@@ -136,11 +136,11 @@ drawDecorWith showInfo = putStrLn . showDecorWith showInfo
 writeHtmlDecorWith :: forall info sym a. (StringTree sym)
                    => (forall sig. info sig -> String)
                    -> FilePath -> ASTF (Decor info sym) a -> IO ()
-writeHtmlDecorWith showInfo file = writeHtmlTree file . mkTree []
+writeHtmlDecorWith showInfo file = writeHtmlTree Nothing file . mkTree []
   where
     mkTree :: [Tree NodeInfo] -> AST (Decor info sym) sig -> Tree NodeInfo
     mkTree args (f :$ a) = mkTree (mkTree [] a : args) f
-    mkTree args (Sym (Decor info expr)) = Node (NodeInfo (renderSym expr) (showInfo info)) args
+    mkTree args (Sym (Decor info expr)) = Node (NodeInfo InitiallyExpanded (renderSym expr) (showInfo info)) args
 
 -- | Strip decorations from an 'AST'
 stripDecor :: AST (Decor info dom) sig -> AST dom sig

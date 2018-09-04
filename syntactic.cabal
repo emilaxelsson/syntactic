@@ -101,7 +101,7 @@ library
 
   build-depends:
     array,
-    base >= 4 && < 4.9,
+    base >= 4 && < 5.9,
     containers,
     constraints,
     data-hash,
@@ -109,7 +109,7 @@ library
     mtl >= 2 && < 3,
     template-haskell,
     transformers >= 0.2,
-    tree-view,
+    tree-view >= 0.5,
     tuple >= 0.2
 
   hs-source-dirs: src

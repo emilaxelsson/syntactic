@@ -3,6 +3,9 @@
 {-# LANGUAGE OverlappingInstances #-}
 #endif
 {-# LANGUAGE UndecidableInstances #-}
+#if defined(__GLASGOW_HASKELL__) && (__GLASGOW_HASKELL__ >= 800)
+{-# LANGUAGE UndecidableSuperClasses #-}
+#endif
 
 
 -- | Type-constrained syntax trees
