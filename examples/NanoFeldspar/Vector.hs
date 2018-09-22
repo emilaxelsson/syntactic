@@ -33,7 +33,6 @@ data Vector a
 
 instance Syntax a => Syntactic (Vector a)
   where
-    {-# SPECIALIZE instance Syntax a => Syntactic (Vector a) #-}
     {-# INLINABLE desugar #-}
     {-# INLINABLE sugar #-}
     type Domain (Vector a)   = FeldDomainAll
