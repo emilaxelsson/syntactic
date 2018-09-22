@@ -128,5 +128,5 @@ drawAST = putStrLn . showAST
 {-# INLINABLE drawAST #-}
 
 writeHtmlAST :: StringTree sym => FilePath -> ASTF sym a -> IO ()
-writeHtmlAST file = writeHtmlTree file . fmap (\n -> NodeInfo n "") . stringTree
+writeHtmlAST file = writeHtmlTree Nothing file . fmap (\n -> NodeInfo InitiallyExpanded n "") . stringTree
 {-# INLINABLE writeHtmlAST #-}

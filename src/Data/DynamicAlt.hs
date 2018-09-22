@@ -6,7 +6,7 @@ module Data.DynamicAlt where
 
 import Data.Dynamic ()
 import Data.Typeable
-import GHC.Prim
+import GHC.Exts
 import Unsafe.Coerce
 
 import Data.PolyProxy

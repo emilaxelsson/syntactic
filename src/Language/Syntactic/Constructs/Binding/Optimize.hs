@@ -115,7 +115,7 @@ instance Optimize Empty
   where
     {-# SPECIALIZE instance Optimize Empty #-}
     {-# INLINABLE optimizeSym #-}
-    optimizeSym = error "Not implemented: optimizeSym for Empty"
+    optimizeSym _ _ _ _ = error "Not implemented: optimizeSym for Empty"
 
 instance Optimize dom => Optimize (SubConstr1 c dom p)
   where
