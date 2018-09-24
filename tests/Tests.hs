@@ -4,10 +4,12 @@ import qualified AlgorithmTests
 import qualified NanoFeldsparTests
 import qualified WellScopedTests
 import qualified MonadTests
+import qualified SyntaxTests
 import qualified TH
 
 tests = testGroup "AllTests"
-    [ AlgorithmTests.tests
+    [ SyntaxTests.tests
+    , AlgorithmTests.tests
     , NanoFeldsparTests.tests
     , WellScopedTests.tests
     , MonadTests.tests

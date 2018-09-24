@@ -127,6 +127,17 @@ test-suite examples
 
   main-is: Tests.hs
 
+  other-modules: AlgorithmTests
+                 Monad
+                 MonadTests
+                 NanoFeldspar
+                 NanoFeldsparComp
+                 NanoFeldsparTests
+                 SyntaxTests
+                 TH
+                 WellScoped
+                 WellScopedTests
+
   default-language: Haskell2010
 
   build-depends:
@@ -137,6 +148,7 @@ test-suite examples
     QuickCheck,
     tagged,
     tasty,
+    tasty-hunit,
     tasty-golden,
     tasty-quickcheck,
     tasty-th,

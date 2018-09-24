@@ -246,10 +246,6 @@ instance {-# OVERLAPPING #-} Project sym1 sym3 => Project sym1 (sym2 :+: sym3)
     prj (InjR a) = prj a
     prj _        = Nothing
 
--- | If @sub@ is not in @sup@, 'prj' always returns 'Nothing'.
-instance Project sub sup
-  where
-    prj _ = Nothing
 
 -- | Symbol injection
 --

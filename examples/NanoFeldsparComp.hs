@@ -99,7 +99,7 @@ confiscate = censor (const mempty) . listen
 
 compileExp :: ASTF Dom a -> CodeGen Exp
 compileExp var
-    | Just (Var v) <- prj var = return (varNameE v)
+    | Just (VarT v) <- prj var = return (varNameE v)
 compileExp (lett :$ a :$ (lam :$ body))
     | Just (Let _)  <- prj lett
     , Just (LamT v) <- prj lam
