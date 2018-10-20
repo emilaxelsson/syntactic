@@ -10,62 +10,55 @@ cache:
 
 matrix:
   include:
-    - env: CABALVER=1.24 GHCVER=7.6.3 TH="-f-th"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.24,ghc-7.6.3]}}
-    - env: CABALVER=1.24 GHCVER=7.8.4 TH="-f-th"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.24,ghc-7.8.4]}}
-    - env: CABALVER=1.24 GHCVER=7.10.3 TH="-f-th"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.24,ghc-7.10.3]}}
-    - env: CABALVER=1.24 GHCVER=8.0.1 TH="-f-th"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.24,ghc-8.0.1]}}
-    - env: CABALVER=1.24 GHCVER=7.6.3 TH=""
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.24,ghc-7.6.3]}}
-    - env: CABALVER=1.24 GHCVER=7.8.4 TH=""
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.24,ghc-7.8.4]}}
-    - env: CABALVER=1.24 GHCVER=7.10.3 TH=""
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.24,ghc-7.10.3]}}
-    - env: CABALVER=1.24 GHCVER=8.0.1 TH=""
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-1.24,ghc-8.0.1]}}
-    - env: CABALVER=head GHCVER=head TH=""
+    - env: CABALVER=2.4 GHCVER=7.6.3 TH="-f-th" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-7.6.3]}}
+    - env: CABALVER=2.4 GHCVER=7.8.4 TH="-f-th" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-7.8.4]}}
+    - env: CABALVER=2.4 GHCVER=7.10.3 TH="-f-th" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-7.10.3]}}
+    - env: CABALVER=2.4 GHCVER=8.0.2 TH="-f-th" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-8.0.2]}}
+    - env: CABALVER=2.4 GHCVER=8.4.3 TH="-f-th" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-8.4.3]}}
+    - env: CABALVER=2.4 GHCVER=7.6.3 TH="" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-7.6.3]}}
+    - env: CABALVER=2.4 GHCVER=7.8.4 TH="" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-7.8.4]}}
+    - env: CABALVER=2.4 GHCVER=7.10.3 TH="" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-7.10.3]}}
+    - env: CABALVER=2.4 GHCVER=8.0.2 TH="" TEST="yes"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-8.0.2]}}
+    - env: CABALVER=2.4 GHCVER=8.4.3 TH="" TEST="yes"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-8.4.3]}}
+    - env: CABALVER=head GHCVER=head TH="" TEST="yes"
       addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-head,ghc-head]}}
 
   allow_failures:
-    - env: CABALVER=head GHCVER=head TH=""
+    - env: CABALVER=head GHCVER=head TH="" TEST="yes"
 
 before_install:
   - env
   - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$PATH
+  - if [ "$TEST" = "yes" ]; then
+      export TEST_FLAGS="--enable-test --enable-bench";
+    else
+      export TEST_FLAGS="--disable-test --disable-bench";
+    fi
 
 install:
   - cabal --version
   - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
-  - travis_retry cabal update -v
-  - if [ "$TH" = "" ]; then
-      cabal new-build --enable-tests --enable-benchmarks --dependencies;
-    else
-      cabal new-build $TH --dependencies;
-    fi
+  - travis_retry cabal new-update -v
+  - cabal new-build $TH $TEST_FLAGS --dependencies;
 
 script:
-  # For some reason, it's not allowed to echo directly into
-  # dist/$SRC_BASENAME/cabal.project below. This gives a syntax error due to the
-  # colon.
-  # Syntax can be checked at <http://lint.travis-ci.org>.
-  - "echo 'packages: *.cabal' > ccc"
-  - if [ "$TH" = "" ]; then
-      cabal new-build --enable-tests --enable-benchmarks -v2;
-      TESTS=( $(awk 'tolower($0) ~ /^test-suite / { print $2 }' *.cabal) );
-      RC=true; for T in ${TESTS[@]}; do echo "== $T ==";
-      if dist-newstyle/build/*/build/$T/$T; then echo "= $T OK =";
-      else echo "= $T FAILED ="; RC=false; fi; done; $RC;
-      cabal check;
-      cabal sdist;
-      SRC_BASENAME=$(cabal info . | awk '{print $2;exit}');
-      tar -C dist/ -xf dist/$SRC_BASENAME.tar.gz;
-      mv ccc dist/$SRC_BASENAME/cabal.project;
-      cd dist/$SRC_BASENAME/;
-      cabal new-build --enable-tests --enable-benchmarks --disable-optimization;
-    else
-      cabal new-build $TH -v2;
+  - cabal new-build $TH $TEST_FLAGS -v2
+  - if [ "$TEST" = "yes" ]; then
+      cabal new-test $TH;
     fi
-
+  - cabal check;
+  - cabal sdist;
+  - SRC_BASENAME=$(cabal info . | awk '{print $2;exit}');
+  - tar -C dist/ -xf dist/$SRC_BASENAME.tar.gz;
+  - cd dist/$SRC_BASENAME/;
+  - cabal new-build $TH $TEST_FLAGS --disable-optimization;
