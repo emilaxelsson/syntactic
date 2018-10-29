@@ -79,13 +79,13 @@ class SyntacticN f internal | f -> internal
     desugarN :: f -> internal
     sugarN   :: internal -> f
 
-instance {-# OVERLAPPING #-}
+instance {-# OVERLAPS #-}
          (Syntactic f, Domain f ~ sym, fi ~ AST sym (Full (Internal f))) => SyntacticN f fi
   where
     desugarN = desugar
     sugarN   = sugar
 
-instance {-# OVERLAPPING #-}
+instance {-# OVERLAPS #-}
     ( Syntactic a
     , Domain a ~ sym
     , ia ~ Internal a

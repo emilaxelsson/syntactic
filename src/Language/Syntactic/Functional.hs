@@ -390,11 +390,15 @@ instance {-# OVERLAPPING #-} BindingDomain BindingT
     renameBind re (VarT v) = VarT $ re v
     renameBind re (LamT v) = LamT $ re v
 
-instance {-# OVERLAPPING #-} BindingDomain sym
+instance {-# OVERLAPPABLE #-} BindingDomain sym
   where
     prVar _ = Nothing
     prLam _ = Nothing
     renameBind _ a = a
+  -- This instance seems to overlap all others on GHC 8.2.2. This leads to
+  -- failures in the test suite. Removing the instance and declaring one
+  -- instance per type solves the problem. Earlier and later GHC versions don't
+  -- have this problem, so I assume it's a bug in 8.2.
 
 -- | A symbol for let bindings
 --

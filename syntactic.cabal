@@ -5,6 +5,9 @@ Description:    The library provides a generic representation of type-indexed ab
                 (or indexed data types in general). It also permits the definition of open syntax
                 trees based on the technique in Data Types à la Carte [1].
                 .
+                This package does not work on GHC version 8.2, but works on many
+                earlier and later versions.
+                .
                 (Note that the difference between version 2.x and 3.0 is not that big. The bump to
                 3.0 was done because the modules changed namespace.)
                 .
@@ -85,6 +88,12 @@ library
     mtl >= 2 && < 3,
     syb,
     tree-view >= 0.5
+
+  if impl(ghc == 8.2.*)
+    build-depends: base<0
+    -- See the note to the catch-all instance of `BindingDomain`. Since this can
+    -- lead to subtle errors and non-termination in user code, we prefer not to
+    -- support GHC 8.2.
 
   if impl(ghc < 7.10)
     build-depends: base-orphans

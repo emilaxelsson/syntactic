@@ -227,21 +227,21 @@ class Project sub sup
     -- | Partial projection from @sup@ to @sub@
     prj :: sup a -> Maybe (sub a)
 
-instance {-# OVERLAPPING #-} Project sub sup => Project sub (AST sup)
+instance Project sub sup => Project sub (AST sup)
   where
     prj (Sym s) = prj s
     prj _       = Nothing
 
-instance {-# OVERLAPPING #-} Project sym sym
+instance {-# OVERLAPS #-} Project sym sym
   where
     prj = Just
 
-instance {-# OVERLAPPING #-} Project sym1 (sym1 :+: sym2)
+instance {-# OVERLAPS #-} Project sym1 (sym1 :+: sym2)
   where
     prj (InjL a) = Just a
     prj _        = Nothing
 
-instance {-# OVERLAPPING #-} Project sym1 sym3 => Project sym1 (sym2 :+: sym3)
+instance {-# OVERLAPS #-} Project sym1 sym3 => Project sym1 (sym2 :+: sym3)
   where
     prj (InjR a) = prj a
     prj _        = Nothing
@@ -255,19 +255,19 @@ class Project sub sup => sub :<: sup
     -- | Injection from @sub@ to @sup@
     inj :: sub a -> sup a
 
-instance {-# OVERLAPPING #-} (sub :<: sup) => (sub :<: AST sup)
+instance {-# OVERLAPS #-} (sub :<: sup) => (sub :<: AST sup)
   where
     inj = Sym . inj
 
-instance {-# OVERLAPPING #-} (sym :<: sym)
+instance {-# OVERLAPS #-} (sym :<: sym)
   where
     inj = id
 
-instance {-# OVERLAPPING #-} (sym1 :<: (sym1 :+: sym2))
+instance {-# OVERLAPS #-} (sym1 :<: (sym1 :+: sym2))
   where
     inj = InjL
 
-instance {-# OVERLAPPING #-} (sym1 :<: sym3) => (sym1 :<: (sym2 :+: sym3))
+instance {-# OVERLAPS #-} (sym1 :<: sym3) => (sym1 :<: (sym2 :+: sym3))
   where
     inj = InjR . inj
 
@@ -355,7 +355,7 @@ data Typed sym sig
   where
     Typed :: Typeable (DenResult sig) => sym sig -> Typed sym sig
 
-instance {-# OVERLAPPING #-} Project sub sup => Project sub (Typed sup)
+instance Project sub sup => Project sub (Typed sup)
   where
     prj (Typed s) = prj s
 
