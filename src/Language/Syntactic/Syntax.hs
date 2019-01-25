@@ -142,7 +142,7 @@ class Symbol sym
 
 instance NFData1 sym => NFData (AST sym sig)
   where
-    rnf (Sym s)  = liftRnf (`seq` ()) s
+    rnf (Sym s)  = rnf1 s
     rnf (s :$ a) = rnf s `seq` rnf a
 
 -- | Count the number of symbols in an 'AST'
@@ -215,8 +215,8 @@ instance (Symbol sym1, Symbol sym2) => Symbol (sym1 :+: sym2)
 
 instance (NFData1 sym1, NFData1 sym2) => NFData1 (sym1 :+: sym2)
   where
-    liftRnf r (InjL s) = liftRnf r s
-    liftRnf r (InjR s) = liftRnf r s
+    rnf1 (InjL s) = rnf1 s
+    rnf1 (InjR s) = rnf1 s
 
 -- | Symbol projection
 --
@@ -393,6 +393,13 @@ castExpr a b = cast1 a
 --------------------------------------------------------------------------------
 -- * Misc.
 --------------------------------------------------------------------------------
+
+-- | Higher-kinded version of 'NFData'
+class NFData1 c
+  where
+    -- | Force a symbol to normal form
+    rnf1 :: c a -> ()
+    rnf1 s = s `seq` ()
 
 -- | Constrain a symbol to a specific type
 symType :: Proxy sym -> sym sig -> sym sig

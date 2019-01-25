@@ -68,8 +68,8 @@ instance Symbol BindingWS
 
 instance NFData1 BindingWS
   where
-    liftRnf _ (VarWS Proxy) = ()
-    liftRnf _ LamWS         = ()
+    rnf1 (VarWS Proxy) = ()
+    rnf1 LamWS         = ()
 
 instance Eval BindingWS
   where

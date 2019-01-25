@@ -51,7 +51,7 @@ instance Symbol sym => Symbol (sym :&: info)
 
 instance (NFData1 sym, NFData1 info) => NFData1 (sym :&: info)
   where
-    liftRnf r (s :&: i) = liftRnf r s `seq` liftRnf (`seq` ()) i
+    rnf1 (s :&: i) = rnf1 s `seq` rnf1 i `seq` ()
 
 instance {-# OVERLAPPING #-} Project sub sup => Project sub (sup :&: info)
   where

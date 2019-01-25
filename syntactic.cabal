@@ -81,7 +81,7 @@ library
     constraints,
     containers,
     data-hash,
-    deepseq >= 1.4.3.0,
+    deepseq,
     mtl >= 2 && < 3,
     syb,
     tree-view >= 0.5
