@@ -80,14 +80,14 @@ library
       Language.Syntactic.Sugar.TupleTyped
 
   build-depends:
-    base >= 4.6 && < 5,
-    constraints,
-    containers,
-    data-hash,
-    deepseq,
-    mtl >= 2 && < 3,
-    syb,
-    tree-view >= 0.5
+    base >= 4.6 && < 4.13,
+    constraints < 0.11,
+    containers < 0.7,
+    data-hash < 0.3,
+    deepseq < 1.5,
+    mtl >= 2 && < 2.3,
+    syb < 0.8,
+    tree-view >= 0.5 && < 0.6
 
   if impl(ghc == 8.2.*)
     build-depends: base<0
@@ -169,6 +169,10 @@ benchmark syntactic-bench
   hs-source-dirs: benchmarks
 
   main-is: MainBenchmark.hs
+
+  other-modules: JoiningTypes
+                 Normal
+                 WithArity
 
   build-depends:
     base,
