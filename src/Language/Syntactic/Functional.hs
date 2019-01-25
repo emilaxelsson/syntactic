@@ -68,16 +68,13 @@ module Language.Syntactic.Functional
 #else
 import Control.Applicative
 #endif
-import Control.DeepSeq
+import Control.DeepSeq (NFData (..))
 import Control.Monad.Cont
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Dynamic
 import Data.List (genericIndex)
-#if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
-#else
-import Data.Proxy  -- Needed by GHC < 7.8
-#endif
+import Data.Proxy
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)

@@ -59,7 +59,7 @@ module Language.Syntactic.Syntax
 
 
 
-import Control.DeepSeq
+import Control.DeepSeq (NFData (..))
 import Data.Typeable
 #if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
 #else
