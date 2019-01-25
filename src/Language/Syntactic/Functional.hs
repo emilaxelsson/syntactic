@@ -550,9 +550,11 @@ freshVars as = go 0 as
 
 freshVar :: MonadState [Name] m => m Name
 freshVar = do
-    v:vs <- get
-    put vs
-    return v
+    vs <- get
+    case vs of
+      v:vs' -> do
+        put vs'
+        return v
 
 -- | Rename the bound variables in a term
 --
