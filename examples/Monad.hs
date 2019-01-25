@@ -3,7 +3,8 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
 
-{-# OPTIONS_GHC -fno-warn-missing-methods #-}
+{-# OPTIONS_GHC -Wno-missing-methods #-}
+{-# OPTIONS_GHC -Wno-simplifiable-class-constraints #-}
 
 -- | This module demonstrates monad reification.
 -- See \"Generic Monadic Constructs for Embedded Languages\" (Persson et al., IFL 2011
