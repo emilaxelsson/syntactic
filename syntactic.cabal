@@ -1,5 +1,5 @@
 Name:           syntactic
-Version:        3.8
+Version:        3.8.1
 Synopsis:       Generic representation and manipulation of abstract syntax
 Description:    The library provides a generic representation of type-indexed abstract syntax trees
                 (or indexed data types in general). It also permits the definition of open syntax
@@ -17,6 +17,9 @@ Description:    The library provides a generic representation of type-indexed ab
                 .
                   * Paper:
                     <https://emilaxelsson.github.io/documents/axelsson2012generic.pdf>
+                .
+                  * Literal source:
+                    <https://emilaxelsson.github.io/documents/axelsson2012generic.lhs>
                 .
                   * Slides:
                     <https://emilaxelsson.github.io/documents/axelsson2012generic-slides.pdf>
