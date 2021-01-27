@@ -233,9 +233,11 @@ classPred cl con = ClassP cl
 #endif
 
 -- | Portable method for constructing a type synonym instances
-tySynInst :: Name -> [Type] -> Type -> Dec
+tySynInst :: Name -> Type -> Type -> Dec
 #if __GLASGOW_HASKELL__ >= 708
-tySynInst t as rhs = TySynInstD t (TySynEqn as rhs)
+tySynInst t as rhs = TySynInstD {-t-} (TySynEqn Nothing app rhs)
+  where
+    app = AppT (ConT t) as
 #else
 tySynInst = TySynInstD
 #endif

@@ -15,7 +15,7 @@ mkPairT :: Type -> Type -> Type
 mkPairT a b = foldl AppT (TupleT 2) [a,b]
 
 mkPairE :: Exp -> Exp -> Exp
-mkPairE a b = TupE [a,b]
+mkPairE a b = TupE [Just a,Just b]
 
 mkPairP :: Pat -> Pat -> Pat
 mkPairP a b = TupP [a,b]
@@ -54,7 +54,7 @@ mkNestableInstances n = return $ map nestableInstance [2..n]
     nestableInstance w = instD
         []
         (AppT (ConT (mkName "Nestable")) tupT)
-        [ tySynInst (mkName "Nested") [tupT] (foldNest VarT mkPairT $ toNest vars)
+        [ tySynInst (mkName "Nested") tupT (foldNest VarT mkPairT $ toNest vars)
         , FunD (mkName "nest")
             [ Clause
                 [TupP (map VarP vars)]
@@ -64,7 +64,7 @@ mkNestableInstances n = return $ map nestableInstance [2..n]
         , FunD (mkName "unnest")
             [ Clause
                 [foldNest VarP mkPairP $ toNest vars]
-                (NormalB (TupE (map VarE vars)))
+                (NormalB (TupE (map (Just . VarE) vars)))
                 []
             ]
         ]

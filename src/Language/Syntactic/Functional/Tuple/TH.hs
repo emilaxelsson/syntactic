@@ -68,8 +68,8 @@ deriveSyntacticForTuples internalPred mkDomain extraConstraint n = return $
             ]
         )
         (AppT (ConT ''Syntactic) tupT)
-        [ tySynInst ''Domain [tupT] domainA
-        , tySynInst ''Internal [tupT] tupTI
+        [ tySynInst ''Domain tupT domainA
+        , tySynInst ''Internal tupT tupTI
         , FunD 'desugar
             [ Clause
                 []
