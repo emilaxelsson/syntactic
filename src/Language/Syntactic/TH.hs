@@ -232,9 +232,12 @@ classPred cl con = foldl AppT (con cl)
 classPred cl con = ClassP cl
 #endif
 
--- | Portable method for constructing a type synonym instances
+-- | Portable method for constructing a type synonym instance
 tySynInst :: Name -> [Type] -> Type -> Dec
-#if __GLASGOW_HASKELL__ >= 708
+#if __GLASGOW_HASKELL__ >= 808
+tySynInst t as rhs = TySynInstD $
+  TySynEqn Nothing (foldl AppT (ConT t) as) rhs
+#elif __GLASGOW_HASKELL__ >= 708
 tySynInst t as rhs = TySynInstD t (TySynEqn as rhs)
 #else
 tySynInst = TySynInstD

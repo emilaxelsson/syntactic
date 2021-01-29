@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Data.NestTuple.TH where
 
 
@@ -14,8 +16,15 @@ mkTupT ts = foldl AppT (TupleT (length ts)) ts
 mkPairT :: Type -> Type -> Type
 mkPairT a b = foldl AppT (TupleT 2) [a,b]
 
+mkTupE :: [Exp] -> Exp
+#if __GLASGOW_HASKELL__ >= 810
+mkTupE = TupE . map Just
+#else
+mkTupE = TupE
+#endif
+
 mkPairE :: Exp -> Exp -> Exp
-mkPairE a b = TupE [a,b]
+mkPairE a b = mkTupE [a,b]
 
 mkPairP :: Pat -> Pat -> Pat
 mkPairP a b = TupP [a,b]
@@ -64,7 +73,7 @@ mkNestableInstances n = return $ map nestableInstance [2..n]
         , FunD (mkName "unnest")
             [ Clause
                 [foldNest VarP mkPairP $ toNest vars]
-                (NormalB (TupE (map VarE vars)))
+                (NormalB (mkTupE (map VarE vars)))
                 []
             ]
         ]
