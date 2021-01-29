@@ -25,6 +25,9 @@ import Test.Tasty.TH
 
 
 
+subCap :: (Num a, Ord a) => a -> a -> a
+subCap a b = max 0 (a - b)
+
 data Sym sig
   where
     Int   :: Int -> Sym (Full Int)
@@ -101,10 +104,11 @@ genVar fb ff inScope = fmap fromIntegral $ frequency
     ]
 
 genExp :: Int -> [Name] -> Gen (ASTF Dom Int)
+genExp s _ | s < 0 = error (show s)
 genExp s inScope = frequency
     [ (1, fmap int arbitrary)
     , (1, fmap varr $ genVar 1 1 inScope)
-    , (s, do a <- genExp (s-1) inScope
+    , (s, do a <- genExp (s `subCap` 1) inScope
              return $ neg a
       )
     , (s, do a <- genExp (s `div` 2) inScope
@@ -131,14 +135,14 @@ genExp s inScope = frequency
 genExp1 :: Int -> [Name] -> Gen (ASTF Dom (Int -> Int))
 genExp1 s inScope = do
     v    <- genVar 1 2 inScope
-    body <- genExp (s-1) (v:inScope)
+    body <- genExp (s `subCap` 1) (v:inScope)
     return $ lamm v body
 
 genExp2 :: Int -> [Name] -> Gen (ASTF Dom (Int -> Int -> Int))
 genExp2 s inScope = do
     v1   <- genVar 1 2 inScope
     v2   <- genVar 1 2 (v1:inScope)
-    body <- genExp (s-2) (v2:v1:inScope)
+    body <- genExp (s `subCap` 2) (v2:v1:inScope)
     return $ lamm v1 $ lamm v2 body
 
 genExp3 :: Int -> [Name] -> Gen (ASTF Dom (Int -> Int -> Int -> Int))
@@ -146,7 +150,7 @@ genExp3 s inScope = do
     v1   <- genVar 1 2 inScope
     v2   <- genVar 1 2 (v1:inScope)
     v3   <- genVar 1 2 (v2:v1:inScope)
-    body <- genExp (s-3) (v3:v2:v1:inScope)
+    body <- genExp (s `subCap` 3) (v3:v2:v1:inScope)
     return $ lamm v1 $ lamm v2 $ lamm v3 body
 
 shrinkExp :: AST Dom sig -> [AST Dom sig]
