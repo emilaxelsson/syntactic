@@ -1,5 +1,5 @@
 Name:           syntactic
-Version:        3.8.2
+Version:        3.8.3
 Synopsis:       Generic representation and manipulation of abstract syntax
 Description:    The library provides a generic representation of type-indexed abstract syntax trees
                 (or indexed data types in general). It also permits the definition of open syntax
@@ -39,7 +39,7 @@ Bug-reports:    https://github.com/emilaxelsson/syntactic/issues
 Stability:      experimental
 Category:       Language
 Build-type:     Simple
-Cabal-version:  >=1.16
+Cabal-version:  1.16
 
 extra-source-files:
   CONTRIBUTORS
@@ -83,8 +83,8 @@ library
       Language.Syntactic.Sugar.TupleTyped
 
   build-depends:
-    base >= 4.6 && < 4.15,
-    constraints < 0.13,
+    base >= 4.6 && < 4.16,
+    constraints < 0.14,
     containers < 0.7,
     data-hash < 0.3,
     deepseq < 1.5,

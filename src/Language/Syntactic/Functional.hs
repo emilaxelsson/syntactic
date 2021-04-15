@@ -490,7 +490,7 @@ instance Applicative (Remon sym m)
 instance Monad (Remon dom m)
   where
     return a = Remon $ return a
-    ma >>= f = Remon $ unRemon ma >>= unRemon . f
+    ma >>= f = Remon $ unRemon ma >>= \a -> unRemon (f a)
 
 -- | One-layer desugaring of monadic actions
 desugarMonad
@@ -499,7 +499,7 @@ desugarMonad
        , TYPEABLE m
        )
     => Remon sym m (ASTF sym a) -> ASTF sym (m a)
-desugarMonad = flip runCont (sugarSym Return) . unRemon
+desugarMonad (Remon m) = flip runCont (sugarSym Return) m
 
 -- | One-layer desugaring of monadic actions
 desugarMonadTyped
@@ -509,7 +509,7 @@ desugarMonadTyped
        , TYPEABLE m
        )
     => Remon sym m (ASTF sym a) -> ASTF sym (m a)
-desugarMonadTyped = flip runCont (sugarSymTyped Return) . unRemon
+desugarMonadTyped (Remon m) = flip runCont (sugarSymTyped Return) m
 
 
 
