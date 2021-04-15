@@ -10,43 +10,43 @@ cache:
 
 matrix:
   include:
-    - env: CABALVER=2.4 GHCVER=7.6.3 TH="-f-th" TEST="no"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-7.6.3]}}
-    - env: CABALVER=2.4 GHCVER=7.8.4 TH="-f-th" TEST="no"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-7.8.4]}}
-    - env: CABALVER=2.4 GHCVER=7.10.3 TH="-f-th" TEST="no"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-7.10.3]}}
-    - env: CABALVER=2.4 GHCVER=8.0.2 TH="-f-th" TEST="no"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-8.0.2]}}
-    - env: CABALVER=2.4 GHCVER=8.4.3 TH="-f-th" TEST="no"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-8.4.3]}}
-    - env: CABALVER=2.4 GHCVER=8.6.5 TH="-f-th" TEST="no"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-8.6.5]}}
-    - env: CABALVER=2.4 GHCVER=8.8.3 TH="-f-th" TEST="no"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-8.8.3]}}
-    - env: CABALVER=2.4 GHCVER=8.10.3 TH="-f-th" TEST="no"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-8.10.3]}}
-    - env: CABALVER=2.4 GHCVER=7.6.3 TH="" TEST="no"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-7.6.3]}}
-    - env: CABALVER=2.4 GHCVER=7.8.4 TH="" TEST="no"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-7.8.4]}}
-    - env: CABALVER=2.4 GHCVER=7.10.3 TH="" TEST="no"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-7.10.3]}}
-    - env: CABALVER=2.4 GHCVER=8.0.2 TH="" TEST="yes"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-8.0.2]}}
-    - env: CABALVER=2.4 GHCVER=8.4.3 TH="" TEST="yes"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-8.4.3]}}
-    - env: CABALVER=2.4 GHCVER=8.6.5 TH="" TEST="yes"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-8.6.5]}}
-    - env: CABALVER=2.4 GHCVER=8.8.3 TH="" TEST="yes"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-8.8.3]}}
-    - env: CABALVER=2.4 GHCVER=8.10.3 TH="" TEST="yes"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-2.4,ghc-8.10.3]}}
-    - env: CABALVER=head GHCVER=head TH="" TEST="yes"
-      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-head,ghc-head]}}
+    - env: CABALVER=3.4 GHCVER=7.6.3 TH="-f-th" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-7.6.3]}}
+    - env: CABALVER=3.4 GHCVER=7.8.4 TH="-f-th" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-7.8.4]}}
+    - env: CABALVER=3.4 GHCVER=7.10.3 TH="-f-th" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-7.10.3]}}
+    - env: CABALVER=3.4 GHCVER=8.0.2 TH="-f-th" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-8.0.2]}}
+    - env: CABALVER=3.4 GHCVER=8.4.3 TH="-f-th" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-8.4.3]}}
+    - env: CABALVER=3.4 GHCVER=8.6.5 TH="-f-th" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-8.6.5]}}
+    - env: CABALVER=3.4 GHCVER=8.8.3 TH="-f-th" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-8.8.3]}}
+    - env: CABALVER=3.4 GHCVER=8.10.3 TH="-f-th" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-8.10.3]}}
+    - env: CABALVER=3.4 GHCVER=9.0.1 TH="-f-th" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-9.0.1]}}
 
-  allow_failures:
-    - env: CABALVER=head GHCVER=head TH="" TEST="yes"
+    - env: CABALVER=3.4 GHCVER=7.6.3 TH="" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-7.6.3]}}
+    - env: CABALVER=3.4 GHCVER=7.8.4 TH="" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-7.8.4]}}
+    - env: CABALVER=3.4 GHCVER=7.10.3 TH="" TEST="no"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-7.10.3]}}
+    - env: CABALVER=3.4 GHCVER=8.0.2 TH="" TEST="yes"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-8.0.2]}}
+    - env: CABALVER=3.4 GHCVER=8.4.3 TH="" TEST="yes"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-8.4.3]}}
+    - env: CABALVER=3.4 GHCVER=8.6.5 TH="" TEST="yes"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-8.6.5]}}
+    - env: CABALVER=3.4 GHCVER=8.8.3 TH="" TEST="yes"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-8.8.3]}}
+    - env: CABALVER=3.4 GHCVER=8.10.3 TH="" TEST="yes"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-8.10.3]}}
+    - env: CABALVER=3.4 GHCVER=9.0.1 TH="" TEST="yes"
+      addons: {apt: {sources: [hvr-ghc], packages: [cabal-install-3.4,ghc-9.0.1]}}
 
 before_install:
   - env
@@ -71,6 +71,6 @@ script:
   - cabal check;
   - cabal sdist;
   - SRC_BASENAME=$(cabal info . | awk '{print $2;exit}');
-  - tar -C dist/ -xf dist/$SRC_BASENAME.tar.gz;
-  - cd dist/$SRC_BASENAME/;
+  - tar -C dist-newstyle/sdist/ -xf dist-newstyle/sdist/$SRC_BASENAME.tar.gz;
+  - cd dist-newstyle/sdist/$SRC_BASENAME/;
   - cabal new-build $TH $TEST_FLAGS --disable-optimization;
