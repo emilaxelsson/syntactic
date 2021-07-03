@@ -112,6 +112,8 @@ library
   default-language: Haskell2010
 
   default-extensions:
+    DataKinds
+    PolyKinds
     DefaultSignatures
     DeriveDataTypeable
     DeriveFunctor
@@ -127,6 +129,8 @@ library
     ScopedTypeVariables
     TypeFamilies
     TypeOperators
+    
+
 
   other-extensions:
     OverlappingInstances
@@ -186,6 +190,7 @@ benchmark syntactic-bench
   default-language: Haskell2010
 
   default-extensions:
+    DataKinds
     FlexibleInstances
     GADTs
     MultiParamTypeClasses
@@ -193,4 +198,3 @@ benchmark syntactic-bench
 
   other-extensions:
     TemplateHaskell
-

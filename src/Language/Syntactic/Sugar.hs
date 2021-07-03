@@ -19,7 +19,6 @@
 module Language.Syntactic.Sugar where
 
 
-
 import Data.Typeable
 
 import Language.Syntactic.Syntax
@@ -30,19 +29,19 @@ import Language.Syntactic.Syntax
 -- as @a@.
 class Syntactic a
   where
-    type Domain a :: * -> *
+    type Domain a :: Sig * -> *
     type Internal a
     desugar :: a -> ASTF (Domain a) (Internal a)
     sugar   :: ASTF (Domain a) (Internal a) -> a
 
-instance Syntactic (ASTF sym a)
+instance Syntactic (ASTF (sym :: Sig * -> *) a)
   where
     type Domain (ASTF sym a)   = sym
     type Internal (ASTF sym a) = a
     desugar = id
     sugar   = id
 
-instance Syntactic (ASTFull sym a)
+instance Syntactic (ASTFull (sym :: Sig * -> *) a)
   where
     type Domain (ASTFull sym a)   = sym
     type Internal (ASTFull sym a) = a
@@ -145,4 +144,3 @@ sugarSymTyped
        )
     => sub sig -> f
 sugarSymTyped = sugarN . smartSymTyped
-
