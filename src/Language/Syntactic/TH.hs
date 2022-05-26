@@ -86,7 +86,7 @@ deriveSymbol ty =
     deriveClassSimple ''Symbol ty [MatchingMethod 'symSig  symSigClause []]
   where
     symSigClause _ _ con arity =
-      Clause [ConP con (replicate arity WildP)] (NormalB (VarE 'signature)) []
+      Clause [conPat con (replicate arity WildP)] (NormalB (VarE 'signature)) []
 
 -- | Derive 'Equality' instance for a type
 --
@@ -110,8 +110,8 @@ deriveEquality ty = do
       ]
   where
     equalClause _ _ con arity = Clause
-        [ ConP con [VarP v | v <- vs1]
-        , ConP con [VarP v | v <- vs2]
+        [ conPat con [VarP v | v <- vs1]
+        , conPat con [VarP v | v <- vs2]
         ]
         (NormalB body)
         []
@@ -129,7 +129,7 @@ deriveEquality ty = do
                  )
 
     hashClause _ i con arity = Clause
-        [ConP con [VarP v | v <- vs]]
+        [conPat con [VarP v | v <- vs]]
         (NormalB body)
         []
       where
@@ -160,7 +160,7 @@ deriveRender modify ty =
     conName = modify . nameBase
 
     renderClause _ _ con arity = Clause
-        [ConP con [VarP v | v <- take arity varSupply]]
+        [conPat con [VarP v | v <- take arity varSupply]]
         (NormalB body)
         []
       where
@@ -241,5 +241,12 @@ tySynInst t as rhs = TySynInstD $
 tySynInst t as rhs = TySynInstD t (TySynEqn as rhs)
 #else
 tySynInst = TySynInstD
+#endif
+
+conPat :: Name -> [Pat] -> Pat
+#if __GLASGOW_HASKELL__ >= 902
+conPat name ps = ConP name [] ps
+#else
+conPat name ps = ConP name ps
 #endif
 

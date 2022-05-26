@@ -69,6 +69,7 @@ module Language.Syntactic.Functional
 import Control.Applicative
 #endif
 import Control.DeepSeq (NFData (..))
+import Control.Monad (liftM2)
 import Control.Monad.Cont
 import Control.Monad.Reader
 import Control.Monad.State
@@ -489,7 +490,7 @@ instance Applicative (Remon sym m)
 
 instance Monad (Remon dom m)
   where
-    return a = Remon $ return a
+    return = pure
     ma >>= f = Remon $ unRemon ma >>= \a -> unRemon (f a)
 
 -- | One-layer desugaring of monadic actions

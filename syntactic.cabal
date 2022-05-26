@@ -1,5 +1,5 @@
 Name:           syntactic
-Version:        3.8.3
+Version:        3.8.4
 Synopsis:       Generic representation and manipulation of abstract syntax
 Description:    The library provides a generic representation of type-indexed abstract syntax trees
                 (or indexed data types in general). It also permits the definition of open syntax
@@ -83,12 +83,12 @@ library
       Language.Syntactic.Sugar.TupleTyped
 
   build-depends:
-    base >= 4.6 && < 4.16,
+    base >= 4.6 && < 4.17,
     constraints < 0.14,
     containers < 0.7,
     data-hash < 0.3,
     deepseq < 1.5,
-    mtl >= 2 && < 2.3,
+    mtl >= 2 && < 2.4,
     syb < 0.8,
     tree-view >= 0.5 && < 0.6
 

@@ -16,6 +16,7 @@ module Language.Syntactic.Functional.Sharing
 
 
 
+import Control.Monad (liftM2, mplus)
 import Control.Monad.State
 import Data.Maybe (isNothing)
 import Data.Set (Set)
