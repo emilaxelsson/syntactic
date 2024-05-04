@@ -21,8 +21,7 @@ module Language.Syntactic.Syntax
       AST (..)
     , ASTF
     , ASTFull (..)
-    , Full (..)
-    , (:->) (..)
+    , Sig (..)
     , SigRep (..)
     , Signature (..)
     , DenResult
@@ -68,7 +67,11 @@ import Data.Proxy  -- Needed by GHC < 7.8
 import Data.Traversable (Traversable)
 #endif
 
+-- | Signature of a fully applied symbol
+data Sig a = Full a | (:->) a (Sig a)
+  deriving (Show, Ord, Eq, Typeable, Functor)
 
+infixr :->
 
 --------------------------------------------------------------------------------
 -- * Syntax trees
@@ -79,7 +82,7 @@ import Data.Traversable (Traversable)
 -- @(`AST` sym (a `:->` b))@ represents a partially applied (or unapplied)
 -- symbol, missing at least one argument, while @(`AST` sym (`Full` a))@
 -- represents a fully applied symbol, i.e. a complete syntax tree.
-data AST sym sig
+data AST :: (Sig t -> *) -> Sig t -> *
   where
     Sym  :: sym sig -> AST sym sig
     (:$) :: AST sym (a :-> sig) -> AST sym (Full a) -> AST sym sig
@@ -95,20 +98,11 @@ type ASTF sym a = AST sym (Full a)
 -- that can be partially applied.
 newtype ASTFull sym a = ASTFull {unASTFull :: ASTF sym a}
 
-instance Functor sym => Functor (AST sym)
-  where
-    fmap f (Sym s)  = Sym (fmap f s)
-    fmap f (s :$ a) = fmap (fmap f) s :$ a
+-- instance Functor sym => Functor (AST sym)
+--   where
+--     fmap f (Sym s)  = Sym (fmap f s)
+--     fmap f (s :$ a) = fmap (fmap f) s :$ a
 
--- | Signature of a fully applied symbol
-newtype Full a = Full { result :: a }
-  deriving (Eq, Show, Typeable, Functor)
-
--- | Signature of a partially applied (or unapplied) symbol
-newtype a :-> sig = Partial (a -> sig)
-  deriving (Typeable, Functor)
-
-infixr :->
 
 -- | Witness of the arity of a symbol signature
 data SigRep sig
@@ -130,9 +124,9 @@ instance Signature sig => Signature (a :-> sig)
     signature = SigMore signature
 
 -- | The result type of a symbol with the given signature
-type family   DenResult sig
-type instance DenResult (Full a)    = a
-type instance DenResult (a :-> sig) = DenResult sig
+type family   DenResult sig where
+  DenResult (Full a)    = a
+  DenResult (a :-> sig) = DenResult sig
 
 -- | Valid symbols to use in an 'AST'
 class Symbol sym
@@ -159,21 +153,21 @@ size (s :$ a) = size s + size a
 -- | Maps a symbol signature to the type of the corresponding smart constructor:
 --
 -- > SmartFun sym (a :-> b :-> ... :-> Full x) = ASTF sym a -> ASTF sym b -> ... -> ASTF sym x
-type family   SmartFun (sym :: * -> *) sig
-type instance SmartFun sym (Full a)    = ASTF sym a
-type instance SmartFun sym (a :-> sig) = ASTF sym a -> SmartFun sym sig
+type family   SmartFun (sym :: Sig t -> *) sig where
+  SmartFun sym (Full a)    = ASTF sym a
+  SmartFun sym (a :-> sig) = ASTF sym a -> SmartFun sym sig
 
 -- | Maps a smart constructor type to the corresponding symbol signature:
 --
 -- > SmartSig (ASTF sym a -> ASTF sym b -> ... -> ASTF sym x) = a :-> b :-> ... :-> Full x
-type family   SmartSig f
-type instance SmartSig (AST sym sig)     = sig
-type instance SmartSig (ASTF sym a -> f) = a :-> SmartSig f
+type family   SmartSig f where
+  SmartSig (AST sym sig)     = sig
+  SmartSig (ASTF sym a -> f) = a :-> SmartSig f
 
 -- | Returns the symbol in the result of a smart constructor
-type family   SmartSym f :: * -> *
-type instance SmartSym (AST sym sig) = sym
-type instance SmartSym (a -> f)      = SmartSym f
+type family   SmartSym f :: Sig t -> * where
+  SmartSym (AST sym sig) = sym
+  SmartSym (a -> f)      = SmartSym f
 
 -- | Make a smart constructor of a symbol. 'smartSym'' has any type of the form:
 --
@@ -313,7 +307,7 @@ smartSymTyped = smartSym' . Typed . inj
 -- lists (e.g. to avoid overlapping instances):
 --
 -- > (A :+: B :+: Empty)
-data Empty :: * -> *
+data Empty :: k -> *
 
 
 
@@ -351,7 +345,7 @@ liftEF2 f (EF a) (EF b) = f a b
 
 -- | \"Typed\" symbol. Using @`Typed` sym@ instead of @sym@ gives access to the
 -- function 'castExpr' for casting expressions.
-data Typed sym sig
+data Typed :: (Sig * -> *) -> Sig * -> *
   where
     Typed :: Typeable (DenResult sig) => sym sig -> Typed sym sig
 
@@ -408,4 +402,3 @@ symType _ = id
 -- | Projection to a specific symbol type
 prjP :: Project sub sup => Proxy sub -> sup sig -> Maybe (sub sig)
 prjP _ = prj
-

@@ -4,6 +4,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DataKinds #-}
 
 module AlgorithmTests where
 
