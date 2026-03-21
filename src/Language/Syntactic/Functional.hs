@@ -74,6 +74,7 @@ import Control.Monad.Cont
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Dynamic
+import Data.Kind (Type)
 import Data.List (genericIndex)
 import Data.Proxy
 import Data.Map (Map)
@@ -697,7 +698,7 @@ evalDen = go
 -- to
 --
 -- > m a -> m b -> m c
-type family   DenotationM (m :: * -> *) sig
+type family   DenotationM (m :: Type -> Type) sig
 type instance DenotationM m (Full a)    = m a
 type instance DenotationM m (a :-> sig) = m a -> DenotationM m sig
 
@@ -786,4 +787,3 @@ evalOpen env a = runReader (compile Proxy a) env
 -- (Note that there is no guarantee that the term is actually closed.)
 evalClosed :: EvalEnv sym RunEnv => ASTF sym a -> a
 evalClosed a = runReader (compile (Proxy :: Proxy RunEnv) a) []
-

@@ -60,6 +60,7 @@ module Language.Syntactic.Syntax
 
 
 import Control.DeepSeq (NFData (..))
+import Data.Kind (Type)
 import Data.Typeable
 #if MIN_VERSION_GLASGOW_HASKELL(7,10,0,0)
 #else
@@ -159,7 +160,7 @@ size (s :$ a) = size s + size a
 -- | Maps a symbol signature to the type of the corresponding smart constructor:
 --
 -- > SmartFun sym (a :-> b :-> ... :-> Full x) = ASTF sym a -> ASTF sym b -> ... -> ASTF sym x
-type family   SmartFun (sym :: * -> *) sig
+type family   SmartFun (sym :: Type -> Type) sig
 type instance SmartFun sym (Full a)    = ASTF sym a
 type instance SmartFun sym (a :-> sig) = ASTF sym a -> SmartFun sym sig
 
@@ -171,7 +172,7 @@ type instance SmartSig (AST sym sig)     = sig
 type instance SmartSig (ASTF sym a -> f) = a :-> SmartSig f
 
 -- | Returns the symbol in the result of a smart constructor
-type family   SmartSym f :: * -> *
+type family   SmartSym f :: Type -> Type
 type instance SmartSym (AST sym sig) = sym
 type instance SmartSym (a -> f)      = SmartSym f
 
@@ -313,7 +314,7 @@ smartSymTyped = smartSym' . Typed . inj
 -- lists (e.g. to avoid overlapping instances):
 --
 -- > (A :+: B :+: Empty)
-data Empty :: * -> *
+data Empty :: Type -> Type
 
 
 
@@ -408,4 +409,3 @@ symType _ = id
 -- | Projection to a specific symbol type
 prjP :: Project sub sup => Proxy sub -> sup sig -> Maybe (sub sig)
 prjP _ = prj
-
