@@ -1,5 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
+{-# OPTIONS_GHC -Wno-x-partial #-}
+
 -- | Generate 'Syntactic' instances for tuples
 
 module Language.Syntactic.Functional.Tuple.TH

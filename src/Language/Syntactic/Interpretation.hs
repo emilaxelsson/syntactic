@@ -117,19 +117,13 @@ instance (Render sym1, Render sym2) => Render (sym1 :+: sym2)
 
 -- | Implementation of 'renderArgs' that handles infix operators
 renderArgsSmart :: Render sym => [String] -> sym a -> String
-renderArgsSmart []   sym = renderSym sym
-renderArgsSmart args sym
-    | isInfix   = "(" ++ unwords [a,op,b] ++ ")"
-    | otherwise = "(" ++ unwords (name : args) ++ ")"
-  where
-    name  = renderSym sym
-    [a,b] = args
-    op    = init $ tail name
-    isInfix
-      =  not (null name)
-      && head name == '('
-      && last name == ')'
-      && length args == 2
+renderArgsSmart [] sym = renderSym sym
+renderArgsSmart [a, b] sym
+    | '(' : name <- renderSym sym
+    , last name == ')'
+    , let op = init name
+    = "(" ++ unwords [a, op, b] ++ ")"
+renderArgsSmart args sym = "(" ++ unwords (renderSym sym : args) ++ ")"
 
 -- | Render an 'AST' as concrete syntax
 render :: forall sym a. Render sym => ASTF sym a -> String
