@@ -83,11 +83,11 @@ library
       Language.Syntactic.Sugar.TupleTyped
 
   build-depends:
-    base >= 4.6 && < 4.17,
-    constraints < 0.14,
-    containers < 0.7,
+    base >= 4.6 && < 4.22,
+    constraints < 0.15,
+    containers < 0.9,
     data-hash < 0.3,
-    deepseq < 1.5,
+    deepseq < 1.6,
     mtl >= 2 && < 2.4,
     syb < 0.8,
     tree-view >= 0.5 && < 0.6
